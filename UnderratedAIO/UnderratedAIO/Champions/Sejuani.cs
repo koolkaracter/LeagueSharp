@@ -91,6 +91,7 @@ namespace UnderratedAIO.Champions
 
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             if (config.Item("manualR").GetValue<KeyBind>().Active && R.IsReady()) CastR();
+            if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
             
         }
 
@@ -176,7 +177,7 @@ namespace UnderratedAIO.Champions
             var minHit = config.Item("useemin").GetValue<Slider>().Value;
             Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
 
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target);
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
 
             var buffs = CombatHelper.SejuaniCountFrostHero(E.Range);
             if (E.IsReady() && me.Distance(target.Position) < E.Range && buffs > 0 && (
@@ -274,8 +275,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useRmin", "R minimum target")).SetValue(new Slider(1, 0, 5));
             menuC.AddItem(new MenuItem("useRminr", "Ulti minimum range")).SetValue(new Slider(0, 0, 350));
             menuC.AddItem(new MenuItem("manualR", "Cast R asap")).SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
-            menuC.AddItem(new MenuItem("useItems", "Use items")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+            menuC = ItemHandler.addItemOptons(menuC);
             
             config.AddSubMenu(menuC);
             // Clear/Jungle
@@ -293,6 +294,7 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("usergc", "Use R to anti gap closer")).SetValue(false);
             menuU.AddItem(new MenuItem("userint", "Use R to interrupt")).SetValue(false);
             menuU = Jungle.addJungleOptions(menuU);
+            menuU = ItemHandler.addCleanseOptions(menuU);
             config.AddSubMenu(menuU);
             var sulti = new Menu("Don't ult on ", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))

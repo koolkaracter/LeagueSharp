@@ -144,6 +144,7 @@ namespace UnderratedAIO.Champions
                 if (getEnemiesAtMyTurret(me).IsValid && E.CanCast(enemy)) E.Cast(enemy, config.Item("packets").GetValue<bool>()); 
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
         }
 
         private static void GetPassive()
@@ -258,8 +259,8 @@ namespace UnderratedAIO.Champions
             var minHit = config.Item("useemin").GetValue<Slider>().Value;
             Obj_AI_Hero target = TargetSelector.GetTarget(E.Range+400, TargetSelector.DamageType.Magical);
             Obj_AI_Hero targetQ = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target);
             if (target == null) return;
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
             if (config.Item("usee").GetValue<bool>() && E.IsReady() && me.Distance(target.Position)<E.Range)
             {
                 if (minHit > 1)
@@ -326,7 +327,7 @@ namespace UnderratedAIO.Champions
                 Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                 currEnergy -= me.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
             }
-            ItemHandler.UseItems(target);
+            ItemHandler.UseItems(target, config);
 
         }
 		public static Vector3 getPosToEflash(Vector3 target)
@@ -470,8 +471,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
             menuC.AddItem(new MenuItem("useemin", "Try to use E min")).SetValue(new Slider(1, 1, 5));
-            menuC.AddItem(new MenuItem("useItems", "Use items")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+            menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
 
             // Misc Settings
@@ -490,6 +491,7 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("user", "Use R")).SetValue(true);
             menuU.AddItem(new MenuItem("atpercent", "Friend under")).SetValue(new Slider(20, 0, 100));
             menuU = Jungle.addJungleOptions(menuU);
+            menuU = ItemHandler.addCleanseOptions(menuU);
             config.AddSubMenu(menuU);
             var sulti = new Menu("Don't ult on ", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsAlly))

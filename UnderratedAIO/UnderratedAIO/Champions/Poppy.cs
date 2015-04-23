@@ -77,13 +77,14 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
         }
 
         private static void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
-            if (target==null)return;
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target);
+            if (target == null) return;
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
             bool hasFlash = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready;
 
             if ( config.Item("usew").GetValue<bool>() && player.Distance(target.Position)<R.Range && W.IsReady())
@@ -234,14 +235,15 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("user", "Use R to maximize dmg")).SetValue(true);
             menuC.AddItem(new MenuItem("userindanger", "Auto activate if more than")).SetValue(new Slider(3, 1, 6));
             menuC.AddItem(new MenuItem("userOnweakest", "Use on the weakest enemy")).SetValue(true);
-            menuC.AddItem(new MenuItem("useItems", "Use items")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+            menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("useEint", "Use E interrupt")).SetValue(true);
             menuM.AddItem(new MenuItem("useEgap", "Use E on gapcloser near walls")).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
+            menuM = ItemHandler.addCleanseOptions(menuM);
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

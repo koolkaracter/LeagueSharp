@@ -57,21 +57,8 @@ namespace UnderratedAIO.Champions
                    }
                    break;
            }
-           if (config.Item("useSmite").GetValue<bool>() && Jungle.smiteSlot != SpellSlot.Unknown)
-           {
-
-               var target = Jungle.GetNearest(player.Position);
-               bool smiteReady = ObjectManager.Player.Spellbook.CanUseSpell(Jungle.smiteSlot) == SpellState.Ready;
-               if (target != null)
-               {
-                   
-                   if (Jungle.smite.CanCast(target) && smiteReady && player.Distance(target.Position) <= Jungle.smite.Range && Jungle.smiteDamage(target) >= target.Health)
-                   {
-                       Jungle.setSmiteSlot();
-                       Jungle.CastSmite(target);
-                   }
-               }
-           }
+           Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+           if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
        }
 
        private void LastHit()
@@ -88,8 +75,8 @@ namespace UnderratedAIO.Champions
        private void Combo()
        {
            Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
-           if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target);
            if (target == null) return;
+           if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
 
            if (config.Item("useq").GetValue<bool>() && Q.IsReady())
@@ -225,8 +212,8 @@ namespace UnderratedAIO.Champions
            menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
            menuC.AddItem(new MenuItem("user", "Use R")).SetValue(true);
            menuC.AddItem(new MenuItem("useRmin", "R minimum target")).SetValue(new Slider(2, 1, 5));
-           menuC.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
            menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+           menuC = ItemHandler.addItemOptons(menuC);
            config.AddSubMenu(menuC);
            // Harass Settings
            Menu menuH = new Menu("Harass ", "Hsettings");
@@ -244,8 +231,8 @@ namespace UnderratedAIO.Champions
            config.AddSubMenu(menuLC);
            // Misc Settings
            Menu menuM = new Menu("Misc ", "Msettings");
-           menuM.AddItem(new MenuItem("useSmite", "Use Smite")).SetValue(true);
-
+           menuM = Jungle.addJungleOptions(menuM);
+           menuM = ItemHandler.addCleanseOptions(menuM);
            config.AddSubMenu(menuM);
            config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
            config.AddToMainMenu();

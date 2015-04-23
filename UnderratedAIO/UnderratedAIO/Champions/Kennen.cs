@@ -70,6 +70,7 @@ namespace UnderratedAIO.Champions
                     }
                     break;
             }
+            if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
             if (target == null)return;
             if (player.HasBuff("KennenShurikenStorm") && config.Item("Minhelath").GetValue<Slider>().Value > player.Health / player.MaxHealth * 100)
             {
@@ -155,9 +156,9 @@ namespace UnderratedAIO.Champions
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
-            if (config.Item("useItems").GetValue<bool>())
-             ItemHandler.UseItems(target);
             if (target == null) return;
+            if (config.Item("useItems").GetValue<bool>())
+                ItemHandler.UseItems(target, config);
             if (player.HasBuff("KennenLightningRush") && player.Health>target.Health && target.UnderTurret(true))
             {
                 player.IssueOrder(GameObjectOrder.MoveTo, target);
@@ -274,8 +275,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useemin", "Min healt to E")).SetValue(new Slider(50, 0, 100));
             menuC.AddItem(new MenuItem("user", "Use R min")).SetValue(new Slider(1, 1, 5));
             menuC.AddItem(new MenuItem("userrange", "R activate range")).SetValue(new Slider(350, 0, 550));
-            menuC.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+            menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // Harass Settings
             Menu menuLC = new Menu("Harass ", "Hcsettings");
@@ -298,6 +299,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("Minhelath", "Use Zhonya under x health")).SetValue(new Slider(35, 0, 100));
             menuM.AddItem(new MenuItem("autoq", "Auto Q to prepare stun")).SetValue(true);
             menuM.AddItem(new MenuItem("autow", "Auto W to stun")).SetValue(true);
+            menuM = ItemHandler.addCleanseOptions(menuM);
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

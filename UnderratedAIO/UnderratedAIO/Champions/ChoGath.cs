@@ -87,6 +87,7 @@ namespace UnderratedAIO.Champions
             {
                 Jungle();
             }
+            if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
         }
         private static bool VorpalSpikes
         {
@@ -183,12 +184,12 @@ namespace UnderratedAIO.Champions
         private static void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(1000, TargetSelector.DamageType.Magical);
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target);
             if (config.Item("usee").GetValue<bool>() && !VorpalSpikes && E.GetHitCount() > 0 && (Environment.Turret.countTurretsInRange(player) < 1 || target.Health < 150))
             {
                 E.Cast();
             }
             if (target == null) return;
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
             var combodmg = ComboDamage(target);
             bool hasFlash = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready;
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
@@ -356,8 +357,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R")).SetValue(true);
             menuC.AddItem(new MenuItem("UseFlashC", "Use flash")).SetValue(false);
-            menuC.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+            menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // Harass Settings
             Menu menuH = new Menu("Harass ", "Hsettings");
@@ -380,6 +381,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useWint", "Use W to interrupt")).SetValue(true);
             menuM.AddItem(new MenuItem("useWgc", "Use W on gapclosers")).SetValue(false);
             menuM = Helpers.Jungle.addJungleOptions(menuM);
+            menuM = ItemHandler.addCleanseOptions(menuM);
             menuM.AddItem(new MenuItem("useRJ", "Use R")).SetValue(false);
             menuM.AddItem(new MenuItem("priorizeSmite", "Use smite if possible")).SetValue(false);
             menuM.AddItem(new MenuItem("useFlashJ", "Use Flash+R to steal buffs")).SetValue(true);

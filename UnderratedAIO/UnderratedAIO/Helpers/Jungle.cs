@@ -118,6 +118,5 @@ namespace UnderratedAIO.Helpers
             smite.Slot = smiteSlot;
             ObjectManager.Player.Spellbook.CastSpell(smiteSlot, target);
         }
-
     }
 }

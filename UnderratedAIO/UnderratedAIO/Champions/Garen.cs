@@ -41,7 +41,7 @@ namespace UnderratedAIO.Champions
                 if (HealthPrediction.GetHealthPrediction(minion, 3000) <= Damage.GetAutoAttackDamage(player, minion, false))
                     minionBlock = true;
             }
-            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -63,6 +63,8 @@ namespace UnderratedAIO.Champions
                     }
                     break;
             }
+            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
         }
 
         private void Clear()
@@ -97,9 +99,9 @@ namespace UnderratedAIO.Champions
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(700, TargetSelector.DamageType.Physical);
-            if (config.Item("useItems").GetValue<bool>())
-                ItemHandler.UseItems(target);
             if (target == null) return;
+            if (config.Item("useItems").GetValue<bool>())
+                ItemHandler.UseItems(target, config);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             var combodamage = ComboDamage(target);
             if (config.Item("useIgnite").GetValue<bool>() && combodamage > target.Health && hasIgnite)
@@ -212,8 +214,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R")).SetValue(true);
-            menuC.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+            menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // LaneClear Settings
             Menu menuLC = new Menu("LaneClear ", "Lcsettings");
@@ -223,6 +225,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("useqAAA", "Use Q after AA")).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
+            menuM = ItemHandler.addCleanseOptions(menuM);
             config.AddSubMenu(menuM);
             var sulti = new Menu("TeamFight Ult block", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))

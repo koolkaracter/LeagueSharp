@@ -37,11 +37,13 @@ namespace UnderratedAIO.Champions
         private void Game_OnGameUpdate(EventArgs args)
         {
             bool minionBlock = false;
-            foreach (Obj_AI_Minion minion in MinionManager.GetMinions(player.Position, player.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
+            foreach (var minion in MinionManager.GetMinions(player.Position, player.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
             {
                 if (HealthPrediction.GetHealthPrediction(minion, 3000) <= Damage.GetAutoAttackDamage(player, minion, false))
                     minionBlock = true;
             }
+            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -57,7 +59,6 @@ namespace UnderratedAIO.Champions
                 default:
                     break;
             }
-            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
         }
         private static void AfterAttack(AttackableUnit unit, AttackableUnit target)
         {
@@ -81,8 +82,8 @@ namespace UnderratedAIO.Champions
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical);
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target);
             if (target == null) return;
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && lastQ.Equals(0))
             {
@@ -299,8 +300,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("user", "R if killable")).SetValue(true);
             menuC.AddItem(new MenuItem("RapidAttack", "Fast AA Combo always")).SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Toggle));
             menuC.AddItem(new MenuItem("dodgeWithR", "Dodge ults with R")).SetValue(true);
-            menuC.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+            menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // LaneClear Settings
             Menu menuLC = new Menu("LaneClear ", "Lcsettings");
@@ -313,7 +314,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("autoW", "Auto W AA")).SetValue(true);
             menuM.AddItem(new MenuItem("minmanaP", "Min mana percent")).SetValue(new Slider(1, 1, 100));
             menuM = Jungle.addJungleOptions(menuM);
-
+            menuM = ItemHandler.addCleanseOptions(menuM);
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

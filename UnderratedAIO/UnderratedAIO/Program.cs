@@ -17,6 +17,7 @@ namespace UnderratedAIO
         {
             CustomEvents.Game.OnGameLoad += OnGameLoad;
         }
+
         private static void OnGameLoad(EventArgs args)
         {
           try
@@ -26,11 +27,19 @@ namespace UnderratedAIO
               {
                   Helpers.DynamicInitializer.NewInstance(type);
               }
+              else
+              {
+                  var common = Type.GetType("UnderratedAIO.Champions." + "Other");
+                  if (common != null)
+                  {
+                      Helpers.DynamicInitializer.NewInstance(common);
+                  }
+              }
+
           }
           catch (Exception e)
           {
-              Console.WriteLine(e);
-              Game.PrintChat(e.ToString().Substring(0,30));
+              Console.WriteLine(e.ToString());
           }
         }
     }

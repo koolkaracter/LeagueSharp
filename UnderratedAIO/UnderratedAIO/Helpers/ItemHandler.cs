@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using LeagueSharp;
 using LeagueSharp.Common;
 
 namespace UnderratedAIO.Helpers
 {
-
     public class ItemHandler
     {
         public static Obj_AI_Hero player = ObjectManager.Player;
@@ -32,39 +32,80 @@ namespace UnderratedAIO.Helpers
         public static Items.Item Zhonya = new Items.Item(3157, 0);
         public static Items.Item Wooglet = new Items.Item(3090, 0);
 
-        public static void UseItems(Obj_AI_Hero target)
+        public static bool QssUsed = false;
+
+        public static void UseItems(Obj_AI_Hero target, Menu config)
         {
-            if (player.BaseSkinName != "Renekton")
+            if (config.Item("hyd").GetValue<bool>() && player.BaseSkinName != "Renekton")
             {
                 castHydra(target);
             }
-            if (Items.HasItem(randuins.Id) && Items.CanUseItem(randuins.Id))
+            if (config.Item("ran").GetValue<bool>() && Items.HasItem(randuins.Id) && Items.CanUseItem(randuins.Id))
             {
-                if (player.Distance(target) < randuins.Range && player.Distance(target) > player.AttackRange + 100)
+                if (target != null && player.Distance(target) < randuins.Range &&
+                    player.CountEnemiesInRange(randuins.Range) >= config.Item("ranmin").GetValue<Slider>().Value)
                 {
                     Items.UseItem(randuins.Id);
                 }
             }
-            if (Items.HasItem(odins.Id) && Items.CanUseItem(odins.Id))
+            if (config.Item("odin").GetValue<bool>() && Items.HasItem(odins.Id) && Items.CanUseItem(odins.Id))
             {
-                if (player.Distance(target) < odins.Range &&
-                    (player.CountEnemiesInRange(odins.Range) > 1 ||
-                     target.Health < Damage.GetItemDamage(player, target, Damage.DamageItems.OdingVeils)))
+                if (config.Item("odinonlyks").GetValue<bool>())
                 {
-                    Items.UseItem(odins.Id);
+                    if ( target != null && Damage.GetItemDamage(player, target, Damage.DamageItems.OdingVeils) > target.Health)
+                    {
+                        odins.Cast(target);
+                    }
+                }
+                else if (player.CountEnemiesInRange(odins.Range) >= config.Item("odinmin").GetValue<Slider>().Value)
+                {
+                    odins.Cast();
                 }
             }
-            if (Items.HasItem(bilgewater.Id) && Items.CanUseItem(bilgewater.Id))
+            if (config.Item("bil").GetValue<bool>() && Items.HasItem(bilgewater.Id) && Items.CanUseItem(bilgewater.Id))
             {
-                bilgewater.Cast(target);
+                if (config.Item("bilonlyks").GetValue<bool>())
+                {
+                    if (target != null && Damage.GetItemDamage(player, target, Damage.DamageItems.Bilgewater) > target.Health)
+                    {
+                        bilgewater.Cast(target);
+                    }
+                }
+                else if (player.Distance(target) > config.Item("bilminr").GetValue<Slider>().Value)
+                {
+                    bilgewater.Cast(target);
+                }
             }
-            if (Items.HasItem(botrk.Id) && Items.CanUseItem(botrk.Id) && (player.Health < player.MaxHealth / 2 || Damage.GetItemDamage(player,target,Damage.DamageItems.Botrk)<target.Health))
+            if (config.Item("botr").GetValue<bool>() && Items.HasItem(botrk.Id) && Items.CanUseItem(botrk.Id))
             {
-                botrk.Cast(target);
+                if (config.Item("botronlyks").GetValue<bool>())
+                {
+                    if (target != null && Damage.GetItemDamage(player, target, Damage.DamageItems.Botrk) > target.Health)
+                    {
+                        botrk.Cast(target);
+                    }
+                }
+                else if (target != null && player.Distance(target) > config.Item("botrminr").GetValue<Slider>().Value &&
+                         (player.Health / player.MaxHealth * 100f) < config.Item("botrmyhealth").GetValue<Slider>().Value &&
+                         (target.Health / target.MaxHealth * 100f) >
+                         config.Item("botrenemyhealth").GetValue<Slider>().Value)
+                {
+                    botrk.Cast(target);
+                }
             }
-            if (Items.HasItem(hexgun.Id) && Items.CanUseItem(hexgun.Id))
+            if (config.Item("hex").GetValue<bool>() && Items.HasItem(hexgun.Id) && Items.CanUseItem(hexgun.Id))
             {
-                hexgun.Cast(target);
+                if (config.Item("hexonlyks").GetValue<bool>())
+                {
+                    if (target != null && Damage.GetItemDamage(player, target, Damage.DamageItems.Hexgun) > target.Health)
+                    {
+                        hexgun.Cast(target);
+                    }
+                }
+                else if (player.Distance(target) > config.Item("hexminr").GetValue<Slider>().Value)
+                {
+                    hexgun.Cast(target);
+                }
             }
             if (Items.HasItem(Dfg.Id) && Items.CanUseItem(Dfg.Id))
             {
@@ -74,14 +115,16 @@ namespace UnderratedAIO.Helpers
             {
                 Bft.Cast(target);
             }
-            if (Items.HasItem(youmuu.Id) && Items.CanUseItem(youmuu.Id) && player.Distance(target)<player.AttackRange+50)
+            if (config.Item("you").GetValue<bool>() && Items.HasItem(youmuu.Id) && Items.CanUseItem(youmuu.Id) && target != null &&
+                player.Distance(target) < player.AttackRange + 50)
             {
                 youmuu.Cast();
             }
         }
+
         public static void castHydra(Obj_AI_Hero target)
         {
-            if (player.Distance(target) < hydra.Range && !LeagueSharp.Common.Orbwalking.CanAttack())
+            if (target !=null && player.Distance(target) < hydra.Range && !LeagueSharp.Common.Orbwalking.CanAttack())
             {
                 if (Items.HasItem(tiamat.Id) && Items.CanUseItem(tiamat.Id))
                 {
@@ -94,6 +137,64 @@ namespace UnderratedAIO.Helpers
             }
         }
 
+        public static Menu addItemOptons(Menu config)
+        {
+            var mConfig = config;
+            Menu menuI = new Menu("Items ", "Itemsettings");
+            menuI.AddItem(new MenuItem("hyd", "Hydra/Tiamat")).SetValue(true);
+            Menu menuRan = new Menu("Randuin's Omen", "Rands ");
+            menuRan.AddItem(new MenuItem("ran", "Enabled")).SetValue(true);
+            menuRan.AddItem(new MenuItem("ranmin", "Min enemy")).SetValue(new Slider(1, 1, 6));
+            menuI.AddSubMenu(menuRan);
+            Menu menuOdin = new Menu("Odyn's Veil ", "Odyns");
+            menuOdin.AddItem(new MenuItem("odin", "Enabled")).SetValue(true);
+            menuOdin.AddItem(new MenuItem("odinonlyks", "KS only")).SetValue(false);
+            menuOdin.AddItem(new MenuItem("odinmin", "Odyn's Veil")).SetValue(new Slider(1, 1, 6));
+            menuI.AddSubMenu(menuOdin);
+            Menu menuBilgewater = new Menu("Bilgewater Cutlass ", "Bilgewaters");
+            menuBilgewater.AddItem(new MenuItem("bil", "Enabled")).SetValue(true);
+            menuBilgewater.AddItem(new MenuItem("bilonlyks", "KS only")).SetValue(false);
+            menuBilgewater.AddItem(new MenuItem("bilminr", "Min range"))
+                .SetValue(
+                    new Slider(
+                        (int)
+                            (Orbwalking.GetRealAutoAttackRange(player) < bilgewater.Range
+                                ? (int) Orbwalking.GetRealAutoAttackRange(player)
+                                : bilgewater.Range - 20), 0, (int) bilgewater.Range));
+            menuI.AddSubMenu(menuBilgewater);
+
+            Menu menuBlade = new Menu("Blade of the Ruined King", "Blades");
+            menuBlade.AddItem(new MenuItem("botr", "Enabled")).SetValue(true);
+            menuBlade.AddItem(new MenuItem("botronlyks", "KS only")).SetValue(false);
+            menuBlade.AddItem(new MenuItem("botrminr", "Min range"))
+                .SetValue(
+                    new Slider(
+                        (int)
+                            (Orbwalking.GetRealAutoAttackRange(player) < botrk.Range
+                                ? (int) Orbwalking.GetRealAutoAttackRange(player)
+                                : botrk.Range - 20), 0, (int) botrk.Range));
+            menuBlade.AddItem(new MenuItem("botrmyhealth", "Use if player healt lower"))
+                .SetValue(new Slider(40, 0, 100));
+            menuBlade.AddItem(new MenuItem("botrenemyhealth", "Use if enemy healt higher"))
+                .SetValue(new Slider(50, 0, 100));
+            menuI.AddSubMenu(menuBlade);
+            Menu menuHextech = new Menu("Hextech Gunblade", "Hextechs");
+            menuHextech.AddItem(new MenuItem("hex", "Enabled")).SetValue(true);
+            menuHextech.AddItem(new MenuItem("hexonlyks", "KS only")).SetValue(false);
+            menuHextech.AddItem(new MenuItem("hexminr", "Min range"))
+                .SetValue(
+                    new Slider(
+                        (int)
+                            (Orbwalking.GetRealAutoAttackRange(player) < hexgun.Range
+                                ? (int) Orbwalking.GetRealAutoAttackRange(player)
+                                : hexgun.Range - 20), 0, (int) hexgun.Range));
+            menuI.AddSubMenu(menuHextech);
+            menuI.AddItem(new MenuItem("Youmuu's Ghostblade", "yous")).SetValue(true);
+            menuI.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
+            mConfig.AddSubMenu(menuI);
+            return mConfig;
+        }
+
         public static float GetItemsDamage(Obj_AI_Hero target)
         {
             double damage = 0;
@@ -103,21 +204,23 @@ namespace UnderratedAIO.Helpers
             }
             if (Items.HasItem(hexgun.Id) && Items.CanUseItem(hexgun.Id))
             {
-                
                 damage += Damage.GetItemDamage(player, target, Damage.DamageItems.Hexgun);
             }
             var ludenStacks = player.Buffs.FirstOrDefault(buff => buff.Name == "itemmagicshankcharge");
-            if (ludenStacks != null && (Items.HasItem(Ludens.Id) && ludenStacks.Count==100))
+            if (ludenStacks != null && (Items.HasItem(Ludens.Id) && ludenStacks.Count == 100))
             {
-                damage += player.CalcDamage(target, Damage.DamageType.Magical, Damage.CalcDamage(player, target, Damage.DamageType.Magical, 100 + player.FlatMagicDamageMod * 0.15));
+                damage += player.CalcDamage(
+                    target, Damage.DamageType.Magical,
+                    Damage.CalcDamage(player, target, Damage.DamageType.Magical, 100 + player.FlatMagicDamageMod * 0.15));
             }
             if (Items.HasItem(lich.Id) && Items.CanUseItem(lich.Id))
             {
-                damage += player.CalcDamage(target, Damage.DamageType.Magical, player.BaseAttackDamage * 0.75 + player.FlatMagicDamageMod*0.5);
+                damage += player.CalcDamage(
+                    target, Damage.DamageType.Magical, player.BaseAttackDamage * 0.75 + player.FlatMagicDamageMod * 0.5);
             }
             if (Items.HasItem(Dfg.Id) && Items.CanUseItem(Dfg.Id))
             {
-                damage = damage*1.2;
+                damage = damage * 1.2;
                 damage += Damage.GetItemDamage(player, target, Damage.DamageItems.Dfg);
             }
             if (Items.HasItem(Bft.Id) && Items.CanUseItem(Bft.Id))
@@ -127,7 +230,7 @@ namespace UnderratedAIO.Helpers
             }
             if (Items.HasItem(tiamat.Id) && Items.CanUseItem(tiamat.Id))
             {
-                damage += Damage.GetItemDamage(player,target, Damage.DamageItems.Tiamat);
+                damage += Damage.GetItemDamage(player, target, Damage.DamageItems.Tiamat);
             }
             if (Items.HasItem(hydra.Id) && Items.CanUseItem(hydra.Id))
             {
@@ -153,8 +256,227 @@ namespace UnderratedAIO.Helpers
             {
                 damage += player.CalcDamage(target, Damage.DamageType.Physical, player.BaseAttackDamage * 2);
             }
-            return (float)damage;
+            return (float) damage;
         }
 
+
+        public static Menu addCleanseOptions(Menu config)
+        {
+            var mConfig = config;
+            Menu menuQ = new Menu("QSS", "QSSsettings");
+            menuQ.AddItem(new MenuItem("slow", "Slow")).SetValue(false);
+            menuQ.AddItem(new MenuItem("blind", "Blind")).SetValue(false);
+            menuQ.AddItem(new MenuItem("silence", "Silence")).SetValue(false);
+            menuQ.AddItem(new MenuItem("snare", "Snare")).SetValue(false);
+            menuQ.AddItem(new MenuItem("stun", "Stun")).SetValue(false);
+            menuQ.AddItem(new MenuItem("charm", "Charm")).SetValue(true);
+            menuQ.AddItem(new MenuItem("taunt", "Taunt")).SetValue(true);
+            menuQ.AddItem(new MenuItem("fear", "Fear")).SetValue(true);
+            menuQ.AddItem(new MenuItem("suppression", "Suppression")).SetValue(true);
+            menuQ.AddItem(new MenuItem("polymorph", "Polymorph")).SetValue(true);
+            menuQ.AddItem(new MenuItem("damager", "Vlad/Zed ult")).SetValue(true);
+            menuQ.AddItem(new MenuItem("QSSdelay", "Delay in ms")).SetValue(new Slider(600, 0, 1500));
+            menuQ.AddItem(new MenuItem("QSSEnabled", "Enabled")).SetValue(true);
+            mConfig.AddSubMenu(menuQ);
+            return mConfig;
+        }
+
+        public static void UseCleanse(Menu config)
+        {
+            if (QssUsed)
+            {
+                return;
+            }
+            if (Items.CanUseItem(Qss.Id) && Items.HasItem(Qss.Id))
+            {
+                Cleanse(Qss, config);
+            }
+            if (Items.CanUseItem(Mercurial.Id) && Items.HasItem(Mercurial.Id))
+            {
+                Cleanse(Mercurial, config);
+            }
+            if (Items.CanUseItem(Dervish.Id) && Items.HasItem(Dervish.Id))
+            {
+                Cleanse(Dervish, config);
+            }
+        }
+
+        private static void Cleanse(Items.Item Item, Menu config)
+        {
+            var delay = config.Item("QSSdelay").GetValue<Slider>().Value;
+            foreach (var buff in player.Buffs)
+            {
+                if (config.Item("slow").GetValue<bool>() && buff.Type == BuffType.Slow)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("blind").GetValue<bool>() && buff.Type == BuffType.Blind)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("silence").GetValue<bool>() && buff.Type == BuffType.Silence)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("snare").GetValue<bool>() && buff.Type == BuffType.Snare)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("stun").GetValue<bool>() && buff.Type == BuffType.Stun)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("charm").GetValue<bool>() && buff.Type == BuffType.Charm)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("taunt").GetValue<bool>() && buff.Type == BuffType.Taunt)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("fear").GetValue<bool>() && buff.Type == BuffType.Fear)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("suppression").GetValue<bool>() && buff.Type == BuffType.Suppression)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("polymorph").GetValue<bool>() && buff.Type == BuffType.Polymorph)
+                {
+                    QssUsed = true;
+                    Utility.DelayAction.Add(
+                        delay, () =>
+                        {
+                            Items.UseItem(Item.Id, player);
+                            QssUsed = false;
+                        });
+                    return;
+                }
+                if (config.Item("damager").GetValue<bool>())
+                {
+                    switch (buff.Name)
+                    {
+                        case "zedulttargetmark":
+                            QssUsed = true;
+                            Utility.DelayAction.Add(
+                                2900, () =>
+                                {
+                                    Items.UseItem(Item.Id, player);
+                                    QssUsed = false;
+                                });
+                            break;
+                        case "VladimirHemoplague":
+                            QssUsed = true;
+                            Utility.DelayAction.Add(
+                                4900, () =>
+                                {
+                                    Items.UseItem(Item.Id, player);
+                                    QssUsed = false;
+                                });
+                            break;
+                        case "mordekaiserchildrenofthegrave":
+                            QssUsed = true;
+                            Utility.DelayAction.Add(
+                                delay, () =>
+                                {
+                                    Items.UseItem(Item.Id, player);
+                                    QssUsed = false;
+                                });
+                            break;
+                        case "urgotswap2":
+                            QssUsed = true;
+                            Utility.DelayAction.Add(
+                                900, () =>
+                                {
+                                    Items.UseItem(Item.Id, player);
+                                    QssUsed = false;
+                                });
+                            break;
+                        case "skarnerimpale":
+                            QssUsed = true;
+                            Utility.DelayAction.Add(
+                                delay, () =>
+                                {
+                                    Items.UseItem(Item.Id, player);
+                                    QssUsed = false;
+                                });
+                            break;
+                        case "poppydiplomaticimmunity":
+                            QssUsed = true;
+                            Utility.DelayAction.Add(
+                                delay, () =>
+                                {
+                                    Items.UseItem(Item.Id, player);
+                                    QssUsed = false;
+                                });
+                            break;
+                    }
+                }
+            }
+        }
     }
 }

@@ -74,6 +74,7 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
         }
 
         private void afterAttack(AttackableUnit unit, AttackableUnit target)
@@ -81,7 +82,7 @@ namespace UnderratedAIO.Champions
             if (unit.IsMe && target is Obj_AI_Hero && (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed))
             {
                 var time = Game.Time - W.Instance.CooldownExpires;
-                if (time < -9 || (!W.IsReady() && time<-1))
+                if (config.Item("hyd").GetValue<bool>() && time < -9 || (!W.IsReady() && time<-1))
                 {
                     ItemHandler.castHydra((Obj_AI_Hero)target);
                 }
@@ -122,8 +123,8 @@ namespace UnderratedAIO.Champions
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(E.Range * 2, TargetSelector.DamageType.Physical);
-           // if (config.Item("useItems").GetValue<bool>())ItemHandler.UseItems(target);
-            if (target == null)return;
+            if (target == null) return;
+            if (config.Item("useItems").GetValue<bool>())ItemHandler.UseItems(target,config);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             var FuryQ = Damage.GetSpellDamage(player, target, SpellSlot.Q) * 0.5;
             var FuryW = Damage.GetSpellDamage(player, target, SpellSlot.W) * 0.5;
@@ -336,8 +337,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R under")).SetValue(new Slider(20, 0, 100));
             menuC.AddItem(new MenuItem("userindanger", "Use R above X enemy")).SetValue(new Slider(2, 1, 5));
-            menuC.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+            menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // Harass Settings
             Menu menuH = new Menu("Harass ", "Hsettings");
@@ -356,6 +357,7 @@ namespace UnderratedAIO.Champions
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
+            menuM = ItemHandler.addCleanseOptions(menuM);
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

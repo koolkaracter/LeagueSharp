@@ -66,6 +66,7 @@ namespace UnderratedAIO.Champions
                    break;
            }
            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+           if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
        }
 
        private static void AfterAttack(AttackableUnit unit, AttackableUnit target)
@@ -89,8 +90,8 @@ namespace UnderratedAIO.Champions
        private void Combo()
        {
            Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical);
-           if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target);
            if (target == null) return;
+           if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
            var combodmg = ComboDamage(target);
            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
            if (config.Item("usew").GetValue<bool>() && W.CanCast(target))
@@ -277,8 +278,8 @@ namespace UnderratedAIO.Champions
            menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
            menuC.AddItem(new MenuItem("user", "Use R")).SetValue(true);
            menuC.AddItem(new MenuItem("atpercenty", "Ult friend under")).SetValue(new Slider(30, 0, 100));
-           menuC.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
            menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
+           menuC = ItemHandler.addItemOptons(menuC);
            config.AddSubMenu(menuC);
            // Harass Settings
            Menu menuH = new Menu("Harass ", "Hsettings");
@@ -295,6 +296,7 @@ namespace UnderratedAIO.Champions
            // Misc Settings
            Menu menuM = new Menu("Misc ", "Msettings");
            menuM = Jungle.addJungleOptions(menuM);
+           menuM = ItemHandler.addCleanseOptions(menuM);
            menuM.AddItem(new MenuItem("ghostTarget", "Ghost target priority")).SetValue(new StringList(new[] { "Targetselector", "Lowest health", "Closest to you" }, 0));
            config.AddSubMenu(menuM);
            var sulti = new Menu("Don't ult on ", "dontult");
