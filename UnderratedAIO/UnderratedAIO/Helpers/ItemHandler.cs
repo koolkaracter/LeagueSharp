@@ -189,7 +189,7 @@ namespace UnderratedAIO.Helpers
                                 ? (int) Orbwalking.GetRealAutoAttackRange(player)
                                 : hexgun.Range - 20), 0, (int) hexgun.Range));
             menuI.AddSubMenu(menuHextech);
-            menuI.AddItem(new MenuItem("Youmuu's Ghostblade", "yous")).SetValue(true);
+            menuI.AddItem(new MenuItem("you", "Youmuu's Ghostblade")).SetValue(true);
             menuI.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             mConfig.AddSubMenu(menuI);
             return mConfig;
