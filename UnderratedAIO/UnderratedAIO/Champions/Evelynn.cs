@@ -105,7 +105,7 @@ namespace UnderratedAIO.Champions
 
         private bool checkSlows()
         {
-            return player.Buffs.Any(buff => buff.Name.ToLower().Contains("slow"));
+            return player.Buffs.Any(buff => buff.Type==BuffType.Slow);
         }
 
         private void Clear()
