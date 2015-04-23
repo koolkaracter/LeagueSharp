@@ -57,21 +57,7 @@ namespace UnderratedAIO.Champions
                 default:
                     break;
             }
-            if (config.Item("useSmite").GetValue<bool>() && Jungle.smiteSlot != SpellSlot.Unknown)
-            {
-
-                var target = Jungle.GetNearest(player.Position);
-                bool smiteReady = ObjectManager.Player.Spellbook.CanUseSpell(Jungle.smiteSlot) == SpellState.Ready;
-                if (target != null)
-                {
-
-                    if (Jungle.smite.CanCast(target) && smiteReady && player.Distance(target.Position) <= Jungle.smite.Range && Jungle.smiteDamage(target) >= target.Health)
-                    {
-                        Jungle.setSmiteSlot();
-                        Jungle.CastSmite(target);
-                    }
-                }
-            }
+            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
         }
         private static void AfterAttack(AttackableUnit unit, AttackableUnit target)
         {
@@ -228,6 +214,7 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(config.Item("drawaa").GetValue<Circle>(), player.AttackRange);
             DrawHelper.DrawCircle(config.Item("drawqq").GetValue<Circle>(), Q.Range);
             DrawHelper.DrawCircle(config.Item("drawrr").GetValue<Circle>(), R.Range);
+            Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
         }
@@ -325,7 +312,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("autoW", "Auto W AA")).SetValue(true);
             menuM.AddItem(new MenuItem("minmanaP", "Min mana percent")).SetValue(new Slider(1, 1, 100));
-            menuM.AddItem(new MenuItem("useSmite", "Use Smite")).SetValue(true);
+            menuM = Jungle.addJungleOptions(menuM);
 
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);

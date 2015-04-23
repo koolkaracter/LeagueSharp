@@ -79,7 +79,6 @@ namespace UnderratedAIO.Helpers
                 youmuu.Cast();
             }
         }
-
         public static void castHydra(Obj_AI_Hero target)
         {
             if (player.Distance(target) < hydra.Range && !LeagueSharp.Common.Orbwalking.CanAttack())
@@ -104,6 +103,7 @@ namespace UnderratedAIO.Helpers
             }
             if (Items.HasItem(hexgun.Id) && Items.CanUseItem(hexgun.Id))
             {
+                
                 damage += Damage.GetItemDamage(player, target, Damage.DamageItems.Hexgun);
             }
             var ludenStacks = player.Buffs.FirstOrDefault(buff => buff.Name == "itemmagicshankcharge");

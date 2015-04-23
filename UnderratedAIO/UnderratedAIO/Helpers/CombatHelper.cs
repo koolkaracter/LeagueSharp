@@ -43,6 +43,10 @@ namespace UnderratedAIO.Helpers
 
         public static Vector3 bestVectorToPoppyFlash(Obj_AI_Base target)
         {
+            if (target==null)
+            {
+                return new Vector3(); 
+            }
             Vector3 newPos = new Vector3();
             for (int i = 1; i < 7; i++)
             {
@@ -103,7 +107,7 @@ namespace UnderratedAIO.Helpers
             }
             return num;
         }
-
+        
         #endregion
 
         #region Common

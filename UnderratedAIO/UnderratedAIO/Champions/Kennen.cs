@@ -30,7 +30,6 @@ namespace UnderratedAIO.Champions
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Kennen</font>");
             Game.OnUpdate += Game_OnGameUpdate;
             Drawing.OnDraw += Game_OnDraw;
-            Jungle.setSmiteSlot();
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -237,11 +236,11 @@ namespace UnderratedAIO.Champions
         }
         private void InitKennen()
         {
-            Q = new Spell(SpellSlot.Q, 1020);
+            Q = new Spell(SpellSlot.Q, 950);
             Q.SetSkillshot(0.125f, 50, 1700, true, SkillshotType.SkillshotLine);
-            W = new Spell(SpellSlot.W, 800);
+            W = new Spell(SpellSlot.W, 900);
             E = new Spell(SpellSlot.E);
-            R = new Spell(SpellSlot.R, 480);
+            R = new Spell(SpellSlot.R, 500);
         }
 
         private void InitMenu()
@@ -274,7 +273,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
             menuC.AddItem(new MenuItem("useemin", "Min healt to E")).SetValue(new Slider(50, 0, 100));
             menuC.AddItem(new MenuItem("user", "Use R min")).SetValue(new Slider(1, 1, 5));
-            menuC.AddItem(new MenuItem("userrange", "R activate range")).SetValue(new Slider(350, 0, 480));
+            menuC.AddItem(new MenuItem("userrange", "R activate range")).SetValue(new Slider(350, 0, 550));
             menuC.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             config.AddSubMenu(menuC);

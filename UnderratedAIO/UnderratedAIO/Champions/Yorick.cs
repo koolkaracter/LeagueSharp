@@ -65,21 +65,7 @@ namespace UnderratedAIO.Champions
                    }
                    break;
            }
-           if (config.Item("useSmite").GetValue<bool>() && Jungle.smiteSlot != SpellSlot.Unknown)
-           {
-               var target = Jungle.GetNearest(player.Position);
-               bool smiteReady = ObjectManager.Player.Spellbook.CanUseSpell(Jungle.smiteSlot) == SpellState.Ready;
-
-               if (target != null)
-               {
-
-                   if (Jungle.smite.CanCast(target) && smiteReady && player.Distance(target.Position) <= Jungle.smite.Range && Jungle.smiteDamage(target) >= target.Health)
-                   {
-                       Jungle.setSmiteSlot();
-                       Jungle.CastSmite(target);
-                   }
-               }
-           }
+           Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
        }
 
        private static void AfterAttack(AttackableUnit unit, AttackableUnit target)
@@ -215,6 +201,7 @@ namespace UnderratedAIO.Champions
            DrawHelper.DrawCircle(config.Item("drawww").GetValue<Circle>(), W.Range);
            DrawHelper.DrawCircle(config.Item("drawee").GetValue<Circle>(), E.Range);
            DrawHelper.DrawCircle(config.Item("drawrr").GetValue<Circle>(), R.Range);
+           Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
            Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
            Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
        }
@@ -307,7 +294,7 @@ namespace UnderratedAIO.Champions
            config.AddSubMenu(menuLC);
            // Misc Settings
            Menu menuM = new Menu("Misc ", "Msettings");
-           menuM.AddItem(new MenuItem("useSmite", "Use Smite")).SetValue(true);
+           menuM = Jungle.addJungleOptions(menuM);
            menuM.AddItem(new MenuItem("ghostTarget", "Ghost target priority")).SetValue(new StringList(new[] { "Targetselector", "Lowest health", "Closest to you" }, 0));
            config.AddSubMenu(menuM);
            var sulti = new Menu("Don't ult on ", "dontult");

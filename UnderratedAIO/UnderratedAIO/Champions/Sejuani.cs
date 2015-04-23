@@ -59,6 +59,7 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(config.Item("drawww").GetValue<Circle>(), W.Range);
             DrawHelper.DrawCircle(config.Item("drawee").GetValue<Circle>(), E.Range);
             DrawHelper.DrawCircle(config.Item("drawrr").GetValue<Circle>(), R.Range);
+            Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
         }
@@ -87,21 +88,8 @@ namespace UnderratedAIO.Champions
                 default:
                     break;
             }
-            
-            if (config.Item("useSmite").GetValue<bool>() && Jungle.smiteSlot != SpellSlot.Unknown)
-            {
-                
-                var target = Jungle.GetNearest(me.Position);
-                bool smiteReady = ObjectManager.Player.Spellbook.CanUseSpell(Jungle.smiteSlot) == SpellState.Ready;
-                if (target != null)
-                {
-                    if (Jungle.smite.CanCast(target) && smiteReady && me.Distance(target.Position) <= Jungle.smite.Range && Jungle.smiteDamage(target) >= target.Health)
-                    {
-                        Jungle.setSmiteSlot();
-                        Jungle.CastSmite(target);
-                    }
-                }
-            }
+
+            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             if (config.Item("manualR").GetValue<KeyBind>().Active && R.IsReady()) CastR();
             
         }
@@ -304,7 +292,7 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("useqint", "Use Q to interrupt")).SetValue(true);
             menuU.AddItem(new MenuItem("usergc", "Use R to anti gap closer")).SetValue(false);
             menuU.AddItem(new MenuItem("userint", "Use R to interrupt")).SetValue(false);
-            menuU.AddItem(new MenuItem("useSmite", "Use smite")).SetValue(true);
+            menuU = Jungle.addJungleOptions(menuU);
             config.AddSubMenu(menuU);
             var sulti = new Menu("Don't ult on ", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))

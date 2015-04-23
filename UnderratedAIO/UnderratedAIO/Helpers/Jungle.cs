@@ -36,6 +36,48 @@ namespace UnderratedAIO.Helpers
             return player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Smite);
 
         }
+
+        public static Menu addJungleOptions(Menu config)
+        {
+            var mConfig = config;
+            Menu menuS = new Menu("Smite ", "Smitesettings");
+            menuS.AddItem(new MenuItem("useSmite", "Use Smite")).SetValue(new KeyBind("M".ToCharArray()[0], KeyBindType.Toggle));
+            menuS.AddItem(new MenuItem("smiteStatus", "Show status")).SetValue(false);
+            mConfig.AddSubMenu(menuS);
+            return mConfig;
+        }
+        public static void ShowSmiteStatus(bool smite, bool status)
+        {
+            if (status && smiteSlot != SpellSlot.Unknown)
+            {
+            if (smite)
+                {
+                    Drawing.DrawCircle(player.Position, 570f, System.Drawing.Color.LimeGreen);
+                }
+                else
+                {
+                    Drawing.DrawCircle(player.Position, 570f, System.Drawing.Color.Red);
+                }
+            }
+        }
+        public static void CastSmite(bool enabled)
+        {
+            if (enabled && smiteSlot != SpellSlot.Unknown)
+            {
+
+                var target = GetNearest(player.Position);
+                bool smiteReady = ObjectManager.Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready;
+                if (target != null)
+                {
+
+                    if (smite.CanCast(target) && smiteReady && player.Distance(target.Position) <= smite.Range && smiteDamage(target) >= target.Health)
+                    {
+                        setSmiteSlot();
+                        CastSmite(target);
+                    }
+                }
+            }
+        }
         //Kurisu
         public static readonly int[] SmitePurple = { 3713, 3726, 3725, 3726, 3723 };
         public static readonly int[] SmiteGrey = { 3711, 3722, 3721, 3720, 3719 };

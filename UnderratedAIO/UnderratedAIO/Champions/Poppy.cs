@@ -49,6 +49,7 @@ namespace UnderratedAIO.Champions
 
         private static void Game_OnGameUpdate(EventArgs args)
         {
+            
             Obj_AI_Hero targetf = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
             var bestpos = CombatHelper.bestVectorToPoppyFlash(targetf);
             if (config.Item("useeflashforced").GetValue<KeyBind>().Active)
@@ -75,20 +76,7 @@ namespace UnderratedAIO.Champions
                 default:
                     break;
             }
-            if (config.Item("useSmite").GetValue<bool>() && Jungle.smiteSlot != SpellSlot.Unknown)
-            {
-                var target = Jungle.GetNearest(player.Position);
-                bool smiteReady = ObjectManager.Player.Spellbook.CanUseSpell(Jungle.smiteSlot) == SpellState.Ready;
-                if (target != null)
-                {
-
-                    if (Jungle.smite.CanCast(target) && smiteReady && player.Distance(target.Position) <= Jungle.smite.Range && Jungle.smiteDamage(target) >= target.Health)
-                    {
-                        Jungle.setSmiteSlot();
-                        Jungle.CastSmite(target);
-                    }
-                }
-            }
+            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
         }
 
         private static void Combo()
@@ -165,6 +153,7 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(config.Item("drawaa").GetValue<Circle>(), player.AttackRange);
             DrawHelper.DrawCircle(config.Item("drawee").GetValue<Circle>(), E.Range);
             DrawHelper.DrawCircle(config.Item("drawrr").GetValue<Circle>(), R.Range);
+            Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
         }
@@ -252,7 +241,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("useEint", "Use E interrupt")).SetValue(true);
             menuM.AddItem(new MenuItem("useEgap", "Use E on gapcloser near walls")).SetValue(true);
-            menuM.AddItem(new MenuItem("useSmite", "Use Smite")).SetValue(true);
+            menuM = Jungle.addJungleOptions(menuM);
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

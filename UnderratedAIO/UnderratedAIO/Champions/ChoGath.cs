@@ -118,7 +118,7 @@ namespace UnderratedAIO.Champions
                 {
                 return;    
                 }
-                if (config.Item("useSmite").GetValue<bool>() && Helpers.Jungle.smite.CanCast(target) && smiteReady && Helpers.Jungle.smiteSlot != SpellSlot.Unknown && player.Distance(target) <= Helpers.Jungle.smite.Range && Helpers.Jungle.smiteDamage(target) >= target.Health)
+                if (config.Item("useSmite").GetValue<KeyBind>().Active && Helpers.Jungle.smite.CanCast(target) && smiteReady && Helpers.Jungle.smiteSlot != SpellSlot.Unknown && player.Distance(target) <= Helpers.Jungle.smite.Range && Helpers.Jungle.smiteDamage(target) >= target.Health)
                 {
                     Helpers.Jungle.setSmiteSlot();
                     Helpers.Jungle.CastSmite(target);
@@ -282,6 +282,7 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(config.Item("drawww", true).GetValue<Circle>(), W.Range);
             DrawHelper.DrawCircle(config.Item("drawee", true).GetValue<Circle>(), W.Range);
             DrawHelper.DrawCircle(config.Item("drawrrflash").GetValue<Circle>(), RFlash.Range);
+            Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
         }
@@ -372,19 +373,16 @@ namespace UnderratedAIO.Champions
             menuLC.AddItem(new MenuItem("whitLC", "More than x minion").SetValue(new Slider(2, 1, 10)));
             menuLC.AddItem(new MenuItem("minmana", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLC);
-            // Jungle Settings
-            Menu menuJ = new Menu("Jungle ", "Jsettings");
-            menuJ.AddItem(new MenuItem("useSmite", "Use Smite")).SetValue(false);
-            menuJ.AddItem(new MenuItem("useRJ", "Use R")).SetValue(false);
-            menuJ.AddItem(new MenuItem("priorizeSmite", "Use smite if possible")).SetValue(false);
-            menuJ.AddItem(new MenuItem("useFlashJ", "Use Flash to steal")).SetValue(true);
-            config.AddSubMenu(menuJ);
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");
-            menuM.AddItem(new MenuItem("useQint", "Use Q interrupt")).SetValue(true);
+            menuM.AddItem(new MenuItem("useQint", "Use Q to interrupt")).SetValue(true);
             menuM.AddItem(new MenuItem("useQgc", "Use Q on gapclosers")).SetValue(false);
-            menuM.AddItem(new MenuItem("useWint", "Use W interrupt")).SetValue(true);
+            menuM.AddItem(new MenuItem("useWint", "Use W to interrupt")).SetValue(true);
             menuM.AddItem(new MenuItem("useWgc", "Use W on gapclosers")).SetValue(false);
+            menuM = Helpers.Jungle.addJungleOptions(menuM);
+            menuM.AddItem(new MenuItem("useRJ", "Use R")).SetValue(false);
+            menuM.AddItem(new MenuItem("priorizeSmite", "Use smite if possible")).SetValue(false);
+            menuM.AddItem(new MenuItem("useFlashJ", "Use Flash+R to steal buffs")).SetValue(true);
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

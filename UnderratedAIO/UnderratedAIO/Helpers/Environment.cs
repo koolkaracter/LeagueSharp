@@ -22,6 +22,7 @@ namespace UnderratedAIO.Helpers
             {
                 return ObjectManager.Get<Obj_AI_Minion>().Count(i => !i.IsDead && i.IsEnemy && i.Distance(l) < p);
             }
+            
             public static Vector3 bestVectorToAoeFarm(Vector3 center, float spellrange, float spellWidth, int hit=0)
             {
                 var minions = MinionManager.GetMinions(center, spellrange, MinionTypes.All, MinionTeam.NotAlly);

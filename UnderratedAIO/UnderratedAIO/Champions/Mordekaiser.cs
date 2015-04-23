@@ -68,7 +68,7 @@ namespace UnderratedAIO.Champions
 
        private void BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
        {
-           if (args.Unit.IsMe && Q.IsReady() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear && config.Item("useqLC").GetValue<bool>() && Environment.Minion.countMinionsInrange(player.Position, 600f) > 1)
+           if (args.Unit.IsMe && Q.IsReady() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear && config.Item("useqLC").GetValue<bool>() && Environment.Minion.countMinionsInrange(player.Position, 600f) > config.Item("qhitLC").GetValue<Slider>().Value)
            {
                Q.Cast(config.Item("packets").GetValue<bool>());
                Orbwalking.ResetAutoAttackTimer();
@@ -151,12 +151,12 @@ namespace UnderratedAIO.Champions
 
        private void Clear()
        {
-          var bestpos = Environment.Minion.bestVectorToAoeFarm(player.Position,E.Range-20f,50f);
-           if (config.Item("useeLC").GetValue<bool>() && E.IsReady() && player.Distance(bestpos) <= W.Range && bestpos.IsValid())
+           MinionManager.FarmLocation bestPosition = E.GetLineFarmLocation(MinionManager.GetMinions(E.Range,MinionTypes.All,MinionTeam.NotAlly));
+           if (config.Item("useeLC").GetValue<bool>() && E.IsReady() && bestPosition.MinionsHit > config.Item("ehitLC").GetValue<Slider>().Value)
            {
-               E.Cast(bestpos, config.Item("packets").GetValue<bool>());
+               E.Cast(bestPosition.Position, config.Item("packets").GetValue<bool>());
            }
-           if (config.Item("usewLC").GetValue<bool>() && W.IsReady() && Environment.Minion.countMinionsInrange(player.Position,250f)>1)
+           if (config.Item("usewLC").GetValue<bool>() && W.IsReady() && Environment.Minion.countMinionsInrange(player.Position, 250f) > config.Item("whitLC").GetValue<Slider>().Value)
            {
                W.Cast(player, config.Item("packets").GetValue<bool>());
            }
@@ -255,8 +255,11 @@ namespace UnderratedAIO.Champions
            // LaneClear Settings
            Menu menuLC = new Menu("LaneClear ", "Lcsettings");
            menuLC.AddItem(new MenuItem("useqLC", "Use Q")).SetValue(true);
+           menuLC.AddItem(new MenuItem("qhitLC", "More than x minion").SetValue(new Slider(2, 1, 3)));
            menuLC.AddItem(new MenuItem("usewLC", "Use W")).SetValue(true);
+           menuLC.AddItem(new MenuItem("whitLC", "More than x minion").SetValue(new Slider(2, 1, 5)));
            menuLC.AddItem(new MenuItem("useeLC", "Use E")).SetValue(true);
+           menuLC.AddItem(new MenuItem("ehitLC", "More than x minion").SetValue(new Slider(2, 1, 5)));
            config.AddSubMenu(menuLC);
            // Misc Settings
            Menu menuM = new Menu("Misc ", "Msettings");

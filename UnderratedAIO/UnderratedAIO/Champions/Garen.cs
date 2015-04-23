@@ -32,7 +32,7 @@ namespace UnderratedAIO.Champions
             Drawing.OnDraw += Game_OnDraw;
             Jungle.setSmiteSlot();
         }
-
+        
         private void Game_OnGameUpdate(EventArgs args)
         {
             bool minionBlock = false;
@@ -41,23 +41,7 @@ namespace UnderratedAIO.Champions
                 if (HealthPrediction.GetHealthPrediction(minion, 3000) <= Damage.GetAutoAttackDamage(player, minion, false))
                     minionBlock = true;
             }
-
-            if (config.Item("useSmite").GetValue<bool>() && Jungle.smiteSlot != SpellSlot.Unknown)
-            {
-                var target = Jungle.GetNearest(player.Position);
-                bool smiteReady = ObjectManager.Player.Spellbook.CanUseSpell(Jungle.smiteSlot) == SpellState.Ready;
-
-                if (target != null)
-                {
-                    Jungle.setSmiteSlot();
-                    if (Jungle.smite.CanCast(target) && smiteReady &&
-                        player.Distance(target.Position) <= Jungle.smite.Range && Jungle.smiteDamage(target) >= target.Health)
-                    {
-
-                        Jungle.CastSmite(target);
-                    }
-                }
-            }
+            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -159,6 +143,7 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(config.Item("drawaa").GetValue<Circle>(), player.AttackRange);
             DrawHelper.DrawCircle(config.Item("drawee").GetValue<Circle>(), E.Range);
             DrawHelper.DrawCircle(config.Item("drawrr").GetValue<Circle>(), R.Range);
+            Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
         }
@@ -197,7 +182,7 @@ namespace UnderratedAIO.Champions
         {
             Q = new Spell(SpellSlot.Q, player.AttackRange);
             W = new Spell(SpellSlot.W);
-            E = new Spell(SpellSlot.E, 330);
+            E = new Spell(SpellSlot.E, 325);
             R = new Spell(SpellSlot.R, 400);
         }
 
@@ -236,8 +221,8 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLC);
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");
-            menuM.AddItem(new MenuItem("useSmite", "Use Smite")).SetValue(true);
             menuM.AddItem(new MenuItem("useqAAA", "Use Q after AA")).SetValue(true);
+            menuM = Jungle.addJungleOptions(menuM);
             config.AddSubMenu(menuM);
             var sulti = new Menu("TeamFight Ult block", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))
