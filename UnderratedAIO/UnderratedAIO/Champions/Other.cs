@@ -15,7 +15,7 @@ namespace UnderratedAIO.Champions
     class Other
     {
         public static Menu config;
-        private static Orbwalking.Orbwalker orbwalker;
+        public static Orbwalking.Orbwalker orbwalker;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
 
         public Other()
