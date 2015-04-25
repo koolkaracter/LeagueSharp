@@ -149,7 +149,7 @@ namespace UnderratedAIO.Helpers
             Menu menuOdin = new Menu("Odyn's Veil ", "Odyns");
             menuOdin.AddItem(new MenuItem("odin", "Enabled")).SetValue(true);
             menuOdin.AddItem(new MenuItem("odinonlyks", "KS only")).SetValue(false);
-            menuOdin.AddItem(new MenuItem("odinmin", "Odyn's Veil")).SetValue(new Slider(1, 1, 6));
+            menuOdin.AddItem(new MenuItem("odinmin", "Min enemy")).SetValue(new Slider(2, 1, 6));
             menuI.AddSubMenu(menuOdin);
             Menu menuBilgewater = new Menu("Bilgewater Cutlass ", "Bilgewaters");
             menuBilgewater.AddItem(new MenuItem("bil", "Enabled")).SetValue(true);
