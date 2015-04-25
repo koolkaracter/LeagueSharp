@@ -163,7 +163,7 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
             if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && config.Item("usee").GetValue<bool>() &&
                 player.Distance(target) <= config.Item("useqrange").GetValue<Slider>().Value &&
                 ((config.Item("useqroot").GetValue<bool>() && (!target.HasBuffOfType(BuffType.Snare) && !target.HasBuffOfType(BuffType.Slow) && !target.HasBuffOfType(BuffType.Stun) && !target.HasBuffOfType(BuffType.Suppression))) || !config.Item("useqroot").GetValue<bool>()))

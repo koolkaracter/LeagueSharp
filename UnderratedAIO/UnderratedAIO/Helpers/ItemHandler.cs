@@ -34,7 +34,7 @@ namespace UnderratedAIO.Helpers
 
         public static bool QssUsed = false;
 
-        public static void UseItems(Obj_AI_Hero target, Menu config)
+        public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg=0f)
         {
             if (config.Item("hyd").GetValue<bool>() && player.BaseSkinName != "Renekton")
             {
@@ -48,16 +48,16 @@ namespace UnderratedAIO.Helpers
                     Items.UseItem(randuins.Id);
                 }
             }
-            if (config.Item("odin").GetValue<bool>() && Items.HasItem(odins.Id) && Items.CanUseItem(odins.Id))
+            if (config.Item("odin").GetValue<bool>() && target != null && Items.HasItem(odins.Id) && Items.CanUseItem(odins.Id))
             {
                 if (config.Item("odinonlyks").GetValue<bool>())
                 {
-                    if ( target != null && Damage.GetItemDamage(player, target, Damage.DamageItems.OdingVeils) > target.Health)
+                    if ( Damage.GetItemDamage(player, target, Damage.DamageItems.OdingVeils) > target.Health)
                     {
                         odins.Cast(target);
                     }
                 }
-                else if (player.CountEnemiesInRange(odins.Range) >= config.Item("odinmin").GetValue<Slider>().Value)
+                else if (player.CountEnemiesInRange(odins.Range) >= config.Item("odinmin").GetValue<Slider>().Value || comboDmg > target.Health)
                 {
                     odins.Cast();
                 }
@@ -144,7 +144,7 @@ namespace UnderratedAIO.Helpers
             menuI.AddItem(new MenuItem("hyd", "Hydra/Tiamat")).SetValue(true);
             Menu menuRan = new Menu("Randuin's Omen", "Rands ");
             menuRan.AddItem(new MenuItem("ran", "Enabled")).SetValue(true);
-            menuRan.AddItem(new MenuItem("ranmin", "Min enemy")).SetValue(new Slider(1, 1, 6));
+            menuRan.AddItem(new MenuItem("ranmin", "Min enemy")).SetValue(new Slider(2, 1, 6));
             menuI.AddSubMenu(menuRan);
             Menu menuOdin = new Menu("Odyn's Veil ", "Odyns");
             menuOdin.AddItem(new MenuItem("odin", "Enabled")).SetValue(true);
