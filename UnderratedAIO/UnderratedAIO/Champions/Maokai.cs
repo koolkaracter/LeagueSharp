@@ -290,7 +290,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useqrange", "   Q max range")).SetValue(new Slider((int)Q.Range, 0, (int)Q.Range));
             menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
-            menuC.AddItem(new MenuItem("blocke", "   Wait for root")).SetValue(true);
+            menuC.AddItem(new MenuItem("blocke", "   EW Combo if possible")).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R min")).SetValue(new Slider(1, 1, 5));
             menuC.AddItem(new MenuItem("rks", "   Deactivate to KS")).SetValue(true);
             menuC.AddItem(new MenuItem("rmana", "   Deactivate min mana")).SetValue(new Slider(20, 0, 100));
