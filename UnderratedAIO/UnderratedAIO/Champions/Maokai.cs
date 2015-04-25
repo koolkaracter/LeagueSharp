@@ -18,7 +18,7 @@ namespace UnderratedAIO.Champions
         public static Menu config;
         public static Orbwalking.Orbwalker orbwalker;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static Spell Q, W, E, R;
+        public static Spell Q, Qint, W, E, R;
 
         public Maokai()
         {
@@ -36,7 +36,7 @@ namespace UnderratedAIO.Champions
         {
             if (config.Item("useQint").GetValue<bool>())
             {
-                if (Q.CanCast(sender)) Q.Cast(sender, config.Item("packets").GetValue<bool>());
+                if (Qint.CanCast(sender)) Q.Cast(sender, config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -44,7 +44,7 @@ namespace UnderratedAIO.Champions
         {
             if (config.Item("useQgc").GetValue<bool>())
             {
-                if (gapcloser.Sender.IsValidTarget(Q.Range) && Q.IsReady()) Q.Cast(gapcloser.End, config.Item("packets").GetValue<bool>());
+                if (gapcloser.Sender.IsValidTarget(Qint.Range) && Q.IsReady()) Q.Cast(gapcloser.End, config.Item("packets").GetValue<bool>());
             }
         }
         private static bool maoR
@@ -164,20 +164,24 @@ namespace UnderratedAIO.Champions
                 return;
             }
             if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
-            if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && config.Item("usee").GetValue<bool>() && player.Distance(target) <= config.Item("useqrange").GetValue<Slider>().Value)
+            if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && config.Item("usee").GetValue<bool>() &&
+                player.Distance(target) <= config.Item("useqrange").GetValue<Slider>().Value &&
+                ((config.Item("useqroot").GetValue<bool>() && (!target.HasBuffOfType(BuffType.Snare) && !target.HasBuffOfType(BuffType.Slow) && !target.HasBuffOfType(BuffType.Stun) && !target.HasBuffOfType(BuffType.Suppression))) || !config.Item("useqroot").GetValue<bool>()))
             {
                 Q.Cast(target, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("usew").GetValue<bool>())
             {
                     
-                    if (config.Item("blocke").GetValue<bool>() && player.Distance(target)<W.Range && W.IsReady() && E.IsReady())
+                    if (config.Item("blocke").GetValue<bool>() && player.Distance(target)<W.Range && W.IsReady() && E.CanCast(target))
                     {
-                        E.Cast(target.ServerPosition, config.Item("packets").GetValue<bool>());
+                        E.Cast(target, config.Item("packets").GetValue<bool>());
+                        CastR(target);
                         Utility.DelayAction.Add(200, () => W.Cast(target, config.Item("packets").GetValue<bool>()));
                     }
                     else if(W.CanCast(target))
                     {
+                        CastR(target);
                         W.Cast(target, config.Item("packets").GetValue<bool>()); 
                     }
                     
@@ -211,6 +215,14 @@ namespace UnderratedAIO.Champions
                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
            }
 
+        }
+
+        private void CastR(Obj_AI_Hero target)
+        {
+            if (R.IsReady() && !maoR && player.ManaPercent > config.Item("rmana").GetValue<Slider>().Value && config.Item("user").GetValue<Slider>().Value <= target.CountEnemiesInRange(R.Range - 50))
+            {
+                R.Cast(config.Item("packets").GetValue<bool>());
+            }
         }
 
         private void Game_OnDraw(EventArgs args)
@@ -260,7 +272,8 @@ namespace UnderratedAIO.Champions
         {
  	        Q = new Spell(SpellSlot.Q, 600);
             Q.SetSkillshot(0.50f, 110f, 1200f, false, SkillshotType.SkillshotLine);
-            W = new Spell(SpellSlot.W, 525);
+            Qint = new Spell(SpellSlot.Q, 250f);
+            W = new Spell(SpellSlot.W, 500);
             E = new Spell(SpellSlot.E, 1100);
             E.SetSkillshot(1f, 250f, 1500f, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R, 450);
@@ -287,6 +300,7 @@ namespace UnderratedAIO.Champions
             // Combo settings
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q")).SetValue(true);
+            menuC.AddItem(new MenuItem("useqroot", "   Wait if the target stunned, slowed...")).SetValue(true);
             menuC.AddItem(new MenuItem("useqrange", "   Q max range")).SetValue(new Slider((int)Q.Range, 0, (int)Q.Range));
             menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
