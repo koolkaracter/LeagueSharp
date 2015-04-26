@@ -19,6 +19,7 @@ namespace UnderratedAIO.Champions
         public static Orbwalking.Orbwalker orbwalker;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, Qint, W, E, R;
+        public static bool turnOff = false;
 
         public Maokai()
         {
@@ -155,10 +156,17 @@ namespace UnderratedAIO.Champions
             {
                 if (maoR)
                 {
-                    R.Cast(config.Item("packets").GetValue<bool>()); 
+                    if (!turnOff)
+                    {
+                        turnOff = true;
+                        Utility.DelayAction.Add(2600, () => turnOffUlt());
+                        
+                    }
+                    
                 }
                 return;
             }
+            var manaperc = player.Mana / player.MaxMana * 100;
             if (player.HasBuff("MaokaiSapMagicMelee") && player.Distance(target)<Orbwalking.GetRealAutoAttackRange(player)+75)
             {
                 return;
@@ -177,7 +185,7 @@ namespace UnderratedAIO.Champions
                     {
                         E.Cast(target, config.Item("packets").GetValue<bool>());
                         CastR(target);
-                        Utility.DelayAction.Add(200, () => W.Cast(target, config.Item("packets").GetValue<bool>()));
+                        Utility.DelayAction.Add(100, () => W.Cast(target, config.Item("packets").GetValue<bool>()));
                     }
                     else if(W.CanCast(target))
                     {
@@ -199,11 +207,12 @@ namespace UnderratedAIO.Champions
                 bool enoughEnemies = config.Item("user").GetValue<Slider>().Value <= player.CountEnemiesInRange(R.Range-50);
                 Obj_AI_Hero targetR = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
 
-                if (maoR && ((config.Item("rks").GetValue<bool>() && Damage.GetSpellDamage(player, targetR, SpellSlot.R) + player.CalcDamage(target, Damage.DamageType.Magical, maoRStack) > targetR.Health) || player.ManaPercent < config.Item("rmana").GetValue<Slider>().Value || (!enoughEnemies && player.Distance(targetR) > R.Range - 50)))
+                if (maoR && ((config.Item("rks").GetValue<bool>() && Damage.GetSpellDamage(player, targetR, SpellSlot.R) + player.CalcDamage(target, Damage.DamageType.Magical, maoRStack) > targetR.Health) || manaperc < config.Item("rmana").GetValue<Slider>().Value || (!enoughEnemies && player.Distance(targetR) > R.Range - 50)))
                 {
                     R.Cast(config.Item("packets").GetValue<bool>());
                 }
-                if (targetR != null && !maoR && player.ManaPercent > config.Item("rmana").GetValue<Slider>().Value && (enoughEnemies || R.IsInRange(targetR)))
+
+                if (targetR != null && !maoR && manaperc > config.Item("rmana").GetValue<Slider>().Value && (enoughEnemies || R.IsInRange(targetR)))
                 {
                     R.Cast(config.Item("packets").GetValue<bool>());
                 }
@@ -217,9 +226,19 @@ namespace UnderratedAIO.Champions
 
         }
 
+        private void turnOffUlt()
+        {
+            turnOff = false;
+            if (maoR && config.Item("user").GetValue<Slider>().Value > player.CountEnemiesInRange(R.Range - 50))
+            {
+                R.Cast(config.Item("packets").GetValue<bool>());  
+            }
+            
+        }
+
         private void CastR(Obj_AI_Hero target)
         {
-            if (R.IsReady() && !maoR && player.ManaPercent > config.Item("rmana").GetValue<Slider>().Value && config.Item("user").GetValue<Slider>().Value <= target.CountEnemiesInRange(R.Range - 50))
+            if (R.IsReady() && !maoR && player.Mana / player.MaxMana * 100 > config.Item("rmana").GetValue<Slider>().Value && config.Item("user").GetValue<Slider>().Value <= target.CountEnemiesInRange(R.Range - 50))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
