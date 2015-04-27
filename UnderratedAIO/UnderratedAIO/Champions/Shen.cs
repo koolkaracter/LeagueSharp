@@ -38,9 +38,25 @@ namespace UnderratedAIO.Champions
             Obj_AI_Base.OnCreate += OnCreate;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapcloser;
             Interrupter2.OnInterruptableTarget += OnPossibleToInterrupt;
+            Obj_AI_Base.OnDamage += Obj_AI_Base_OnDamage;
             Jungle.setSmiteSlot();
 
         }
+
+        void Obj_AI_Base_OnDamage(AttackableUnit sender, AttackableUnitDamageEventArgs args)
+        {
+            var t = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(h => h.NetworkId == args.SourceNetworkId);
+            var s = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(h => h.NetworkId == args.TargetNetworkId);
+            if (t != null && s != null && (t.IsMe && ObjectManager.Get<Obj_AI_Turret>().FirstOrDefault(tw => tw.Distance(t) < 750 && tw.Distance(s) < 750) != null))
+            {
+                if (config.Item("autotauntattower").GetValue<bool>() && E.CanCast(s))
+                {
+                    E.Cast(s, config.Item("packets").GetValue<bool>());
+                }
+            }
+        }
+
+
 
         private void OnPossibleToInterrupt(Obj_AI_Hero unit, Interrupter2.InterruptableTargetEventArgs args)
         {
@@ -106,7 +122,7 @@ namespace UnderratedAIO.Champions
             Ulti();
             currEnergy = me.Mana;
             bool minionBlock = false;
-            foreach (Obj_AI_Minion minion in MinionManager.GetMinions(me.Position, me.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
+            foreach (var minion in MinionManager.GetMinions(me.Position, me.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
             {
                 if (HealthPrediction.GetHealthPrediction(minion, 3000) <= Damage.GetAutoAttackDamage(me, minion, false))
                     minionBlock = true;
@@ -137,11 +153,6 @@ namespace UnderratedAIO.Champions
                     }
                     break;
 
-            }
-            if (config.Item("autotauntattower").GetValue<bool>())
-            {
-                var enemy = getEnemiesAtMyTurret(me);
-                if (getEnemiesAtMyTurret(me).IsValid && E.CanCast(enemy)) E.Cast(enemy, config.Item("packets").GetValue<bool>()); 
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
@@ -285,14 +296,6 @@ namespace UnderratedAIO.Champions
                 me.Spellbook.CastSpell(me.GetSpellSlot("SummonerDot"), target);
             }
 
-        }
-        public static Obj_AI_Hero getEnemiesAtMyTurret(Obj_AI_Hero me, float distance=750f)
-        {
-            var myturret =
-                ObjectManager.Get<Obj_AI_Turret>()
-                    .Where(turret => turret.IsAlly && !turret.IsDead)
-                    .OrderBy(turret => me.Distance(turret.Position)).FirstOrDefault();
-            return ObjectManager.Get<Obj_AI_Hero>().Where(hero => !hero.IsDead && hero.IsEnemy && myturret.Distance(hero) < distance).OrderBy(hero => hero.Health).FirstOrDefault();
         }
 
         public static void CastEmin(Obj_AI_Base target, int min)
