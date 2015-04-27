@@ -36,7 +36,7 @@ namespace UnderratedAIO.Champions
         private void Game_OnGameUpdate(EventArgs args)
         {
             bool minionBlock = false;
-            foreach (Obj_AI_Minion minion in MinionManager.GetMinions(player.Position, player.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
+            foreach (var minion in MinionManager.GetMinions(player.Position, player.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
             {
                 if (HealthPrediction.GetHealthPrediction(minion, 3000) <= Damage.GetAutoAttackDamage(player, minion, false))
                     minionBlock = true;
@@ -121,7 +121,7 @@ namespace UnderratedAIO.Champions
                 Q.Cast(config.Item("packets").GetValue<bool>());
                 player.IssueOrder(GameObjectOrder.AutoAttack, target);
             }
-            if (config.Item("usee").GetValue<bool>() && E.IsReady() && !GarenQ && !GarenE && player.CountEnemiesInRange(E.Range)>0)
+            if (config.Item("usee").GetValue<bool>() && E.IsReady() && !Q.IsReady() && !GarenQ && !GarenE && player.CountEnemiesInRange(E.Range)>0)
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -134,7 +134,7 @@ namespace UnderratedAIO.Champions
                 Utility.DelayAction.Add(100, () => R.Cast(target, config.Item("packets").GetValue<bool>()));
                 
             }
-            if (config.Item("usew").GetValue<bool>() && W.IsReady() && player.CountEnemiesInRange(E.Range) > 0)
+            if (config.Item("usew").GetValue<bool>() && W.IsReady() && player.CountEnemiesInRange(E.Range) > 0 && target.IsFacing(player))
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
