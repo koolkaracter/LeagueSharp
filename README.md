@@ -14,7 +14,7 @@ ru, ko, it,  be , vi, uk
 It detects the language of all the incoming chat-messages and translates them to your selected language.
 
 #Underrated AIO
-* Cho'Gath, Evelynn, Fiora, Garen, Kennen, Mordekasier, Poppy, Renekton, Sejuani, Shen, Yorick
+* Cho'Gath, Evelynn, Fiora, Garen, Kennen,Maokai Mordekasier, Poppy, Renekton, Sejuani, Shen, Yorick
 * **[More info](http://www.joduska.me/forum/topic/8093-51underrated-champions-aio/)**
 
 #L# Update checker
