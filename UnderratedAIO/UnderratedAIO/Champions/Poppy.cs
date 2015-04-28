@@ -84,6 +84,11 @@ namespace UnderratedAIO.Champions
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
             if (target == null) return;
+            if (config.Item("selected").GetValue<bool>())
+            {
+                target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
+                orbwalker.ForceTarget(target);
+            }
             if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
             bool hasFlash = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready;
 
@@ -235,6 +240,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("user", "Use R to maximize dmg")).SetValue(true);
             menuC.AddItem(new MenuItem("userindanger", "Auto activate if more than")).SetValue(new Slider(3, 1, 6));
             menuC.AddItem(new MenuItem("userOnweakest", "Use on the weakest enemy")).SetValue(true);
+            menuC.AddItem(new MenuItem("selected", "Focus Selected target")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);

@@ -27,6 +27,7 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.setSmiteSlot();
         }
 
+
         private void Game_OnGameUpdate(EventArgs args)
         {
             if (config.Item("Enabledcomm").GetValue<bool>())

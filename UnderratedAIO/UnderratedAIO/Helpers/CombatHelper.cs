@@ -39,6 +39,14 @@ namespace UnderratedAIO.Helpers
         private static List<int> defItems =
             new List<int>(new int[] { ItemHandler.Qss.Id, ItemHandler.Qss.Id, ItemHandler.Dervish.Id });
 
+        public static Obj_AI_Hero SetTarget(Obj_AI_Hero target, Obj_AI_Hero targetSelected)
+        {
+            if (targetSelected != null && player.Distance(targetSelected)<1500f)
+            {
+                return targetSelected;
+            }
+            return target;
+        }
         #region Poppy
 
         public static Vector3 bestVectorToPoppyFlash(Obj_AI_Base target)

@@ -79,8 +79,14 @@ namespace UnderratedAIO.Champions
 
        private static void AfterAttack(AttackableUnit unit, AttackableUnit target)
        {
+
            if (unit.IsMe && Q.IsReady() && ((orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && config.Item("useq").GetValue<bool>() && target.IsEnemy && target.Team != player.Team) || (config.Item("useqLC").GetValue<bool>() && Jungle.GetNearest(player.Position).Distance(player.Position) < player.AttackRange + 30)))
            {
+               var starget = TargetSelector.GetSelectedTarget();
+               if (config.Item("selected").GetValue<bool>() && starget != null && target.Name != starget.Name)
+               {
+                 return;  
+               }
                Q.Cast(config.Item("packets").GetValue<bool>());
                Orbwalking.ResetAutoAttackTimer();
                //player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
@@ -90,6 +96,11 @@ namespace UnderratedAIO.Champions
        {
            Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
            if (target == null) return;
+           if (config.Item("selected").GetValue<bool>())
+           {
+               target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
+               orbwalker.ForceTarget(target);
+           }
            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
            var combodmg = ComboDamage(target);
            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
@@ -246,6 +257,7 @@ namespace UnderratedAIO.Champions
            menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
            menuC.AddItem(new MenuItem("user", "Use R")).SetValue(true);
            menuC.AddItem(new MenuItem("ultDef", "Don't use on Qss/barrier etc...")).SetValue(true);
+           menuC.AddItem(new MenuItem("selected", "Focus Selected target")).SetValue(true);
            menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
            menuC = ItemHandler.addItemOptons(menuC);
            config.AddSubMenu(menuC);

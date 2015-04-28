@@ -70,12 +70,16 @@ namespace UnderratedAIO.Champions
                Q.Cast(config.Item("useqLH").GetValue<bool>());
            }
        }
-
-
+        
        private void Combo()
        {
            Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
            if (target == null) return;
+           if (config.Item("selected").GetValue<bool>())
+           {
+               target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
+               orbwalker.ForceTarget(target);
+           }
            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
 
@@ -213,6 +217,7 @@ namespace UnderratedAIO.Champions
            menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
            menuC.AddItem(new MenuItem("user", "Use R")).SetValue(true);
            menuC.AddItem(new MenuItem("useRmin", "R minimum target")).SetValue(new Slider(2, 1, 5));
+           menuC.AddItem(new MenuItem("selected", "Focus Selected target")).SetValue(true);
            menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
            menuC = ItemHandler.addItemOptons(menuC);
            config.AddSubMenu(menuC);

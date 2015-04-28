@@ -160,11 +160,15 @@ namespace UnderratedAIO.Champions
                     {
                         turnOff = true;
                         Utility.DelayAction.Add(2600, () => turnOffUlt());
-                        
                     }
                     
                 }
                 return;
+            }
+            if (config.Item("selected").GetValue<bool>())
+            {
+                target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
+                orbwalker.ForceTarget(target);
             }
             var manaperc = player.Mana / player.MaxMana * 100;
             if (player.HasBuff("MaokaiSapMagicMelee") && player.Distance(target)<Orbwalking.GetRealAutoAttackRange(player)+75)
@@ -207,7 +211,7 @@ namespace UnderratedAIO.Champions
                 bool enoughEnemies = config.Item("user").GetValue<Slider>().Value <= player.CountEnemiesInRange(R.Range-50);
                 Obj_AI_Hero targetR = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
 
-                if (maoR && ((config.Item("rks").GetValue<bool>() && Damage.GetSpellDamage(player, targetR, SpellSlot.R) + player.CalcDamage(target, Damage.DamageType.Magical, maoRStack) > targetR.Health) || manaperc < config.Item("rmana").GetValue<Slider>().Value || (!enoughEnemies && player.Distance(targetR) > R.Range - 50)))
+                if (maoR && targetR != null && ((config.Item("rks").GetValue<bool>() && (Damage.GetSpellDamage(player, targetR, SpellSlot.R) + player.CalcDamage(target, Damage.DamageType.Magical, maoRStack)) > targetR.Health) || manaperc < config.Item("rmana").GetValue<Slider>().Value || (!enoughEnemies && player.Distance(targetR) > R.Range - 50)))
                 {
                     R.Cast(config.Item("packets").GetValue<bool>());
                 }
@@ -325,8 +329,9 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
             menuC.AddItem(new MenuItem("blocke", "   EW Combo if possible")).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R min")).SetValue(new Slider(1, 1, 5));
-            menuC.AddItem(new MenuItem("rks", "   Deactivate to KS")).SetValue(true);
+            menuC.AddItem(new MenuItem("rks", "   Deactivate to KS target")).SetValue(true);
             menuC.AddItem(new MenuItem("rmana", "   Deactivate min mana")).SetValue(new Slider(20, 0, 100));
+            menuC.AddItem(new MenuItem("selected", "Focus Selected target")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);

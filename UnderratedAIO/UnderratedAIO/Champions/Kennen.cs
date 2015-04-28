@@ -157,6 +157,11 @@ namespace UnderratedAIO.Champions
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
             if (target == null) return;
+            if (config.Item("selected").GetValue<bool>())
+            {
+                target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
+                orbwalker.ForceTarget(target);
+            }
             if (config.Item("useItems").GetValue<bool>())
                 ItemHandler.UseItems(target, config);
             if (player.HasBuff("KennenLightningRush") && player.Health>target.Health && target.UnderTurret(true))
@@ -275,6 +280,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useemin", "Min healt to E")).SetValue(new Slider(50, 0, 100));
             menuC.AddItem(new MenuItem("user", "Use R min")).SetValue(new Slider(1, 1, 5));
             menuC.AddItem(new MenuItem("userrange", "R activate range")).SetValue(new Slider(350, 0, 550));
+            menuC.AddItem(new MenuItem("selected", "Focus Selected target")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
