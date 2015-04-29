@@ -72,7 +72,6 @@ namespace UnderratedAIO.Helpers
 
                     if (smite.CanCast(target) && smiteReady && player.Distance(target.Position) <= smite.Range && smiteDamage(target) >= target.Health)
                     {
-                        setSmiteSlot();
                         CastSmite(target);
                     }
                 }

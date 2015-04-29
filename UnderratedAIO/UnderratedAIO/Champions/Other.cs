@@ -97,6 +97,7 @@ namespace UnderratedAIO.Champions
 
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("Enabledcomm", "Enabled")).SetValue(false);
+            config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
         }
     }
