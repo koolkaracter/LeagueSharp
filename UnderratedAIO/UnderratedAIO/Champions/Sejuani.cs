@@ -15,6 +15,7 @@ namespace UnderratedAIO.Champions
         private static Orbwalking.Orbwalker orbwalker;
         private static readonly Obj_AI_Hero me = ObjectManager.Player;
         public static Spell Q, W, E, R;
+        public static AutoLeveler autoLeveler;
 
         public Sejuani()
         {
@@ -295,6 +296,11 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("userint", "Use R to interrupt")).SetValue(false);
             menuU = Jungle.addJungleOptions(menuU);
             menuU = ItemHandler.addCleanseOptions(menuU);
+
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuU.AddSubMenu(autolvlM);
+
             config.AddSubMenu(menuU);
             var sulti = new Menu("Don't ult on ", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))

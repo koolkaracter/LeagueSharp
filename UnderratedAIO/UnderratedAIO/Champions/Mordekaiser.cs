@@ -21,6 +21,7 @@ namespace UnderratedAIO.Champions
         public static bool hasGhost = false;
         public static bool GhostDelay = false;
         public static int GhostRange = 2200;
+        public static AutoLeveler autoLeveler;
 
         public Mordekaiser()
         {
@@ -278,6 +279,11 @@ namespace UnderratedAIO.Champions
            Menu menuM = new Menu("Misc ", "Msettings");
            menuM.AddItem(new MenuItem("ghostTarget", "Ghost target priority")).SetValue(new StringList(new[] { "Targetselector", "Lowest health", "Closest to you" }, 0));
            menuM = ItemHandler.addCleanseOptions(menuM);
+
+           Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+           autoLeveler = new AutoLeveler(autolvlM);
+           menuM.AddSubMenu(autolvlM);
+
            config.AddSubMenu(menuM);
            var sulti = new Menu("Don't ult on ", "dontult");
            foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))

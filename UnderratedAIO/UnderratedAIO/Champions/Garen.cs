@@ -21,6 +21,8 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, W, E, R;
         private static float lastE;
+        public static AutoLeveler autoLeveler;
+
         public Garen()
         {
             if (player.BaseSkinName != "Garen") return;
@@ -226,6 +228,11 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useqAAA", "Use Q after AA")).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
+
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuM.AddSubMenu(autolvlM);
+
             config.AddSubMenu(menuM);
             var sulti = new Menu("TeamFight Ult block", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))

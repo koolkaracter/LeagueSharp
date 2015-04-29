@@ -21,6 +21,7 @@ namespace UnderratedAIO.Champions
         private static Orbwalking.Orbwalker orbwalker;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, W, E, R;
+        public static AutoLeveler autoLeveler;
 
         public Kennen()
         {
@@ -306,6 +307,11 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("autoq", "Auto Q to prepare stun")).SetValue(true);
             menuM.AddItem(new MenuItem("autow", "Auto W to stun")).SetValue(true);
             menuM = ItemHandler.addCleanseOptions(menuM);
+
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuM.AddSubMenu(autolvlM);
+
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

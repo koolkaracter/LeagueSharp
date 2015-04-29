@@ -18,6 +18,7 @@ namespace UnderratedAIO.Champions
         private static Orbwalking.Orbwalker orbwalker;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, W, E, R;
+        public static AutoLeveler autoLeveler;
 
         public Evelynn()
         {
@@ -239,6 +240,11 @@ namespace UnderratedAIO.Champions
            Menu menuM = new Menu("Misc ", "Msettings");
            menuM = Jungle.addJungleOptions(menuM);
            menuM = ItemHandler.addCleanseOptions(menuM);
+
+           Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+           autoLeveler = new AutoLeveler(autolvlM);
+           menuM.AddSubMenu(autolvlM);
+
            config.AddSubMenu(menuM);
            config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
            config.AddToMainMenu();

@@ -23,6 +23,8 @@ namespace UnderratedAIO.Champions
         private static float lastE;
         private static Vector3 lastEpos;
         private static Bool wChancel=false;
+        public static AutoLeveler autoLeveler;
+
         public Renekton()
         {
             if (player.BaseSkinName != "Renekton") return;
@@ -35,9 +37,6 @@ namespace UnderratedAIO.Champions
             Drawing.OnDraw += Game_OnDraw;
             Jungle.setSmiteSlot();
         }
-
-
-
 
         private void Game_OnGameUpdate(EventArgs args)
         {
@@ -364,6 +363,11 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
+
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuM.AddSubMenu(autolvlM);
+
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

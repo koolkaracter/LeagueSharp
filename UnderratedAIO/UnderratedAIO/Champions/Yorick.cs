@@ -21,6 +21,7 @@ namespace UnderratedAIO.Champions
         public static bool hasGhost=false;
         public static bool GhostDelay = false;
         public static int GhostRange = 2200;
+        public static AutoLeveler autoLeveler;
 
        public Yorick()
         {
@@ -297,6 +298,11 @@ namespace UnderratedAIO.Champions
            Menu menuM = new Menu("Misc ", "Msettings");
            menuM = Jungle.addJungleOptions(menuM);
            menuM = ItemHandler.addCleanseOptions(menuM);
+
+           Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+           autoLeveler = new AutoLeveler(autolvlM);
+           menuM.AddSubMenu(autolvlM);
+
            menuM.AddItem(new MenuItem("ghostTarget", "Ghost target priority")).SetValue(new StringList(new[] { "Targetselector", "Lowest health", "Closest to you" }, 0));
            config.AddSubMenu(menuM);
            var sulti = new Menu("Don't ult on ", "dontult");

@@ -20,6 +20,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, Qint, W, E, R;
         public static bool turnOff = false;
+        public static AutoLeveler autoLeveler;
 
         public Maokai()
         {
@@ -355,6 +356,11 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useQint", "Use W to interrupt")).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
+
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuM.AddSubMenu(autolvlM);
+
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

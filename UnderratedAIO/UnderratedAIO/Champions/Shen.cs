@@ -26,6 +26,7 @@ namespace UnderratedAIO.Champions
         private const int Width = 103;
         private const int Height = 8;
         private static readonly Render.Text Text = new Render.Text(0, 0, "", 11, new ColorBGRA(255, 0, 0, 255), "monospace");
+        public static AutoLeveler autoLeveler;
 
         public Shen()
         {
@@ -478,12 +479,20 @@ namespace UnderratedAIO.Champions
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
 
+            // Harass Settings
+            Menu menuH = new Menu("Harass ", "hsettings");
+            menuH.AddItem(new MenuItem("harassq", "Harass with Q")).SetValue(true);
+            menuH.AddItem(new MenuItem("harassqwithe", "Keep energy for E")).SetValue(true);
+            config.AddSubMenu(menuH);
+
+            // Lasthit Settings
+            Menu menuLH = new Menu("Lasthit ", "lhsettings");
+            menuLH.AddItem(new MenuItem("autoqls", "Lasthit with Q")).SetValue(true);
+            menuLH.AddItem(new MenuItem("autoqwithe", "Keep energy for E")).SetValue(true);
+            config.AddSubMenu(menuLH);
+
             // Misc Settings
             Menu menuU = new Menu("Misc ", "usettings");
-            menuU.AddItem(new MenuItem("harassq", "Harass with Q")).SetValue(true);
-            menuU.AddItem(new MenuItem("harassqwithe", "Keep energy for E")).SetValue(true);
-            menuU.AddItem(new MenuItem("autoqls", "Lasthit with Q")).SetValue(true);
-            menuU.AddItem(new MenuItem("autoqwithe", "Keep energy for E")).SetValue(true);
             menuU.AddItem(new MenuItem("autow", "Try to block non-skillshot spells")).SetValue(true);
             menuU.AddItem(new MenuItem("wabove", "Min damage in shield %")).SetValue(new Slider(50, 0, 100));
             menuU.AddItem(new MenuItem("autowwithe", "Keep energy for E")).SetValue(true);
@@ -495,6 +504,11 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("atpercent", "Friend under")).SetValue(new Slider(20, 0, 100));
             menuU = Jungle.addJungleOptions(menuU);
             menuU = ItemHandler.addCleanseOptions(menuU);
+
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuU.AddSubMenu(autolvlM);
+
             config.AddSubMenu(menuU);
             var sulti = new Menu("Don't ult on ", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsAlly))

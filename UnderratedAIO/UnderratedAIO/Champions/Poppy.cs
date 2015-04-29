@@ -19,6 +19,8 @@ namespace UnderratedAIO.Champions
         public static Spell Q, W, E, R;
         public static double[] ultMod=new double[3]{1.2, 1.3, 1.4};
         public static double[] eSecond = new double[5] { 75, 125, 175, 225, 275};
+        public static AutoLeveler autoLeveler;
+
         public Poppy()
         {
             if (player.BaseSkinName != "Poppy") return;
@@ -250,6 +252,11 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useEgap", "Use E on gapcloser near walls")).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
+
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuM.AddSubMenu(autolvlM);
+
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();

@@ -16,6 +16,7 @@ namespace UnderratedAIO.Champions
     {
         public static Menu config;
         public static Orbwalking.Orbwalker orbwalker;
+        public static AutoLeveler autoLeveler;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
 
         public Other()
@@ -32,6 +33,7 @@ namespace UnderratedAIO.Champions
         {
             if (config.Item("Enabledcomm").GetValue<bool>())
             {
+                autoLeveler.enabled = true;
                 switch (orbwalker.ActiveMode)
                 {
                     case Orbwalking.OrbwalkingMode.Combo:
@@ -47,7 +49,12 @@ namespace UnderratedAIO.Champions
                         break;
                 }
                 Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-                if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
+                if (config.Item("QSSEnabled").GetValue<bool>())
+                    ItemHandler.UseCleanse(config);
+            }
+            else
+            {
+                autoLeveler.enabled = false;
             }
         }
 
@@ -83,6 +90,11 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
+
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuM.AddSubMenu(autolvlM);
+
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("Enabledcomm", "Enabled")).SetValue(false);
             config.AddToMainMenu();

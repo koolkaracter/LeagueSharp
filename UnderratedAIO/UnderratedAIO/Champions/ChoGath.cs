@@ -20,7 +20,8 @@ namespace UnderratedAIO.Champions
         public static Spell Q, W, E, R, RFlash;
         public static List<int> silence = new List<int>(new int[] { 1500, 1750, 2000, 2250, 2500});
         public static int knockUp = 1000;
-        public static bool flashRblock = false; 
+        public static bool flashRblock = false;
+        public static AutoLeveler autoLeveler;
 
         public Chogath()
         {
@@ -391,6 +392,11 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useRJ", "Use R")).SetValue(false);
             menuM.AddItem(new MenuItem("priorizeSmite", "Use smite if possible")).SetValue(false);
             menuM.AddItem(new MenuItem("useFlashJ", "Use Flash+R to steal buffs")).SetValue(true);
+
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuM.AddSubMenu(autolvlM);
+
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddToMainMenu();
