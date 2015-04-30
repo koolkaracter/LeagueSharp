@@ -104,7 +104,7 @@ namespace UnderratedAIO.Champions
                E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
            }
            var ally = ObjectManager.Get<Obj_AI_Hero>().Where(i =>!i.IsDead && (i.Health * 100 / i.MaxHealth) <= config.Item("atpercenty").GetValue<Slider>().Value && i.IsAlly && player.Distance(i) < R.Range && !config.Item("ulty" + i.SkinName).GetValue<bool>()).OrderByDescending(i => Environment.Hero.GetAdOverFive(i)).FirstOrDefault();
-           if (!Yorickghost && config.Item("user").GetValue<bool>() && R.IsInRange(ally) && R.IsReady() && ally != null)
+           if (!Yorickghost && ally!=null && config.Item("user").GetValue<bool>() && R.IsInRange(ally) && R.IsReady() && ally != null)
            {
                R.Cast(ally, config.Item("packets").GetValue<bool>());
            }
@@ -160,24 +160,24 @@ namespace UnderratedAIO.Champions
        {
            float perc = (float)config.Item("minmana").GetValue<Slider>().Value / 100f;
            if (player.Mana < player.MaxMana * perc) return;
-           var bestpos = Environment.Minion.bestVectorToAoeFarm(player.Position, W.Range+200, 100f);
-           if (config.Item("usewLC").GetValue<bool>() && W.IsReady() && player.Distance(bestpos) <= W.Range && bestpos.IsValid())
+           var bestpos = W.GetCircularFarmLocation(MinionManager.GetMinions(W.Range, MinionTypes.All, MinionTeam.NotAlly, MinionOrderTypes.MaxHealth),100);
+           if (config.Item("usewLC").GetValue<bool>() && W.IsReady() && config.Item("usewLChit").GetValue<Slider>().Value <= bestpos.MinionsHit)
            {
-               W.Cast(bestpos, config.Item("packets").GetValue<bool>());
+               W.Cast(bestpos.Position, config.Item("packets").GetValue<bool>());
            }
            var target =
                ObjectManager.Get<Obj_AI_Minion>()
-                   .Where(i => i.Distance(player) < E.Range && i.Health < E.GetDamage(i))
+                   .Where(i => i.Distance(player) < E.Range && !i.IsAlly && i.Health < E.GetDamage(i))
                    .OrderByDescending(i => i.Distance(player))
                    .FirstOrDefault();
            var targetJ =
             ObjectManager.Get<Obj_AI_Minion>()
-                .Where(i => i.Distance(player) < E.Range && i.Health>700f)
+                .Where(i => i.Distance(player) < E.Range && !i.IsAlly && i.Health > 500f)
                 .OrderByDescending(i => i.Health)
                 .FirstOrDefault();
            if (target==null)
            {
-               target = (Obj_AI_Minion)targetJ;
+               target = targetJ;
            }
            if (config.Item("useeLC").GetValue<bool>() && E.CanCast(target))
            {
@@ -291,6 +291,7 @@ namespace UnderratedAIO.Champions
            Menu menuLC = new Menu("LaneClear ", "Lcsettings");
            menuLC.AddItem(new MenuItem("useqLC", "Use Q")).SetValue(true);
            menuLC.AddItem(new MenuItem("usewLC", "Use W")).SetValue(true);
+           menuLC.AddItem(new MenuItem("usewLChit", "Min hit")).SetValue(new Slider(3, 1, 8));
            menuLC.AddItem(new MenuItem("useeLC", "Use E")).SetValue(true);
            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
            config.AddSubMenu(menuLC);
