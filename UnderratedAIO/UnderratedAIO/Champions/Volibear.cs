@@ -130,9 +130,15 @@ namespace UnderratedAIO.Champions
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (R.IsReady() && ((config.Item("usee").GetValue<bool>() && player.Distance(target)<200 && ComboDamage(target)+R.GetDamage(target)*10>target.Health && ComboDamage(target)<target.Health) || (config.Item("usertf").GetValue<Slider>().Value <= player.CountEnemiesInRange(300))))
+            if (R.IsReady() && ((config.Item("usee").GetValue<bool>() && player.Distance(target) < 200 && ComboDamage(target) + R.GetDamage(target) * 10 > target.Health && ComboDamage(target) < target.Health) || (config.Item("usertf").GetValue<Slider>().Value <= player.CountEnemiesInRange(300))))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
+            }
+            var ignitedmg = (float)player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
+            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite && !W.CanCast(target))
+            {
+                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
         }
         private static bool QEnabled
