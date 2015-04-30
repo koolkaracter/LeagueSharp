@@ -24,6 +24,7 @@ namespace UnderratedAIO.Champions
 
         public Maokai()
         {
+            if (player.BaseSkinName != "Maokai") return;
             InitMao();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Maokai</font>");
