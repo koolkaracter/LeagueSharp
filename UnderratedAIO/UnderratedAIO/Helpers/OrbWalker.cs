@@ -365,8 +365,8 @@ namespace UnderratedAIO.Helpers
                 }
                 if (CanMove(extraWindup))
                 {
-                    if (IsMelee(player) && target != null &&
-                        target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) && target is Obj_AI_Hero && target.Position.Distance(Player.Position)>GetRealAutoAttackRange(player) &&
+                    if (player.IsMelee() && target != null &&
+                        target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) && target is Obj_AI_Hero && target.Position.Distance(Player.Position)>Player.AttackRange &&
                         Game.CursorPos.Distance(target.Position) < 300)
                     {
                         AutoAttack.Delay = player.BasicAttack.SpellCastTime;
