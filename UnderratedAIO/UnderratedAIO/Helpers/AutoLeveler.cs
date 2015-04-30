@@ -27,6 +27,7 @@ namespace UnderratedAIO.Helpers
             Game.OnUpdate +=Game_OnUpdate;
         }
 
+
         public bool Enabled
         {
             get { return enabled; }
