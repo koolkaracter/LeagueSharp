@@ -77,6 +77,15 @@ namespace UnderratedAIO.Helpers
                 }
             }
         }
+        public static bool SmiteReady(bool enabled)
+        {
+            if (enabled && smiteSlot != SpellSlot.Unknown)
+            {
+                return ObjectManager.Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready;
+            }
+            return false;
+        }
+
         //Kurisu
         public static readonly int[] SmitePurple = { 3713, 3726, 3725, 3726, 3723 };
         public static readonly int[] SmiteGrey = { 3711, 3722, 3721, 3720, 3719 };
