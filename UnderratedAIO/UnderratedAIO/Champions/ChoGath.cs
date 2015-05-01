@@ -223,8 +223,12 @@ namespace UnderratedAIO.Champions
                     
                     if (target.IsValidTarget(Q.Range) && Q.CanCast(target))
                     {
-                       var nextpos= Q.GetPrediction(target);
-                        Q.Cast(nextpos.CastPosition, config.Item("packets").GetValue<bool>());
+                        var nextpos = target.Position.Extend(target.ServerPosition, target.MoveSpeed * 0.7f);
+                        if (target.HasBuff("OdinCaptureChanner"))
+                        {
+                            nextpos = target.Position;
+                        }
+                        Q.Cast(nextpos, config.Item("packets").GetValue<bool>());
                     }   
                 }
                 else
