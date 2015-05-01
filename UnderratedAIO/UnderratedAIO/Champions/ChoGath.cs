@@ -121,7 +121,7 @@ namespace UnderratedAIO.Champions
                 {
                 return;    
                 }
-                if (R.CanCast(target) && config.Item("useSmite").GetValue<KeyBind>().Active && config.Item("useRSJ").GetValue<bool>() && smiteReady && 1000f + player.FlatMagicDamageMod * 0.7f + Helpers.Jungle.smiteDamage(target) >= target.Health)
+                if (R.CanCast(target) && config.Item("useSmite").GetValue<KeyBind>().Active && target.CountEnemiesInRange(750f)>0 &&  config.Item("useRSJ").GetValue<bool>() && smiteReady && 1000f + player.FlatMagicDamageMod * 0.7f + Helpers.Jungle.smiteDamage(target) >= target.Health)
                 {
                     R.Cast(target, config.Item("packets").GetValue<bool>());
                 }
