@@ -36,6 +36,7 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.setSmiteSlot();
         }
 
+
         private void OnPossibleToInterrupt(Obj_AI_Hero sender, Interrupter2.InterruptableTargetEventArgs args)
         {
             if (config.Item("useQint").GetValue<bool>())
@@ -195,8 +196,8 @@ namespace UnderratedAIO.Champions
                 target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
                 orbwalker.ForceTarget(target);
             }
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
             var combodmg = ComboDamage(target);
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, combodmg);
             bool hasFlash = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready;
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             var ignitedmg=(float)player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
@@ -323,7 +324,7 @@ namespace UnderratedAIO.Champions
         private static void InitChoGath()
         {
             Q = new Spell(SpellSlot.Q, 950);
-            Q.SetSkillshot(0.5f, 175f, 750f, false, SkillshotType.SkillshotCircle);
+            Q.SetSkillshot(500f, 175f, 750f, false, SkillshotType.SkillshotCircle);
             W = new Spell(SpellSlot.W, 700);
             W.SetSkillshot(W.Instance.SData.SpellCastTime, W.Instance.SData.LineWidth, W.Speed, false, SkillshotType.SkillshotCone);
             E = new Spell(SpellSlot.E, 500);
