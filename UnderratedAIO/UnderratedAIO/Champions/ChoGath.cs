@@ -85,7 +85,7 @@ namespace UnderratedAIO.Champions
                     }
                     break;
             }
-            if (config.Item("useRJ").GetValue<bool>() || config.Item("useSmite").GetValue<bool>())
+            if (config.Item("useRJ").GetValue<bool>() || config.Item("useSmite").GetValue<KeyBind>().Active)
             {
                 Jungle();
             }
@@ -99,7 +99,7 @@ namespace UnderratedAIO.Champions
         private static void Jungle()
         {
             var target = Helpers.Jungle.GetNearest(player.Position);
-            bool smiteReady = ObjectManager.Player.Spellbook.CanUseSpell(Helpers.Jungle.smiteSlot) == SpellState.Ready;
+            bool smiteReady = Helpers.Jungle.SmiteReady(config.Item("useSmite").GetValue<KeyBind>().Active);
             if (target != null)
             {
                 if (target.CountEnemiesInRange(760f) > 0)
@@ -120,6 +120,10 @@ namespace UnderratedAIO.Champions
                 if (Helpers.Jungle.smiteSlot == SpellSlot.Unknown)
                 {
                 return;    
+                }
+                if (R.CanCast(target) && config.Item("useSmite").GetValue<KeyBind>().Active && config.Item("useRSJ").GetValue<bool>() && smiteReady && 1000f + player.FlatMagicDamageMod * 0.7f + Helpers.Jungle.smiteDamage(target) >= target.Health)
+                {
+                    R.Cast(target, config.Item("packets").GetValue<bool>());
                 }
                 if (config.Item("useSmite").GetValue<KeyBind>().Active && Helpers.Jungle.smite.CanCast(target) && smiteReady && Helpers.Jungle.smiteSlot != SpellSlot.Unknown && player.Distance(target) <= Helpers.Jungle.smite.Range && Helpers.Jungle.smiteDamage(target) >= target.Health)
                 {
@@ -154,15 +158,12 @@ namespace UnderratedAIO.Champions
 
             if (config.Item("useqLC").GetValue<bool>() && Q.IsReady() && player.Spellbook.GetSpell(SpellSlot.Q).ManaCost <= player.Mana)
             {
-               /* var minionsForQ =
-                    ObjectManager.Get<Obj_AI_Minion>()
-                        .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i.Position) < Q.Range && CF.countMinionsInrange(i, 170f)>1)
-                        .OrderByDescending(i => CF.countMinionsInrange(i, 170f))
-                        .FirstOrDefault();
-                */
-                var minionsForQ = Environment.Minion.bestVectorToAoeFarm(player.Position, Q.Range, 170f, config.Item("qhitLC").GetValue<Slider>().Value);
-                
-                if (minionsForQ.IsValid())Q.Cast(minionsForQ, config.Item("packets").GetValue<bool>());
+                var minionsForQ = MinionManager.GetMinions(ObjectManager.Player.ServerPosition, Q.Range, MinionTypes.All, MinionTeam.NotAlly);
+                MinionManager.FarmLocation bestPositionQ = Q.GetCircularFarmLocation(minionsForQ);
+                if (Q.IsReady() && bestPositionQ.MinionsHit > config.Item("qhitLC").GetValue<Slider>().Value)
+                {
+                    Q.Cast(bestPositionQ.Position, config.Item("packets").GetValue<bool>());
+                }
             }
         }
 
@@ -390,7 +391,8 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useWgc", "Use W on gapclosers")).SetValue(false);
             menuM = Helpers.Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
-            menuM.AddItem(new MenuItem("useRJ", "Use R")).SetValue(false);
+            menuM.AddItem(new MenuItem("useRJ", "Use R in jungle")).SetValue(false);
+            menuM.AddItem(new MenuItem("useRSJ", "Use R+Smite")).SetValue(false);
             menuM.AddItem(new MenuItem("priorizeSmite", "Use smite if possible")).SetValue(false);
             menuM.AddItem(new MenuItem("useFlashJ", "Use Flash+R to steal buffs")).SetValue(true);
 
