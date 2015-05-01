@@ -223,12 +223,8 @@ namespace UnderratedAIO.Champions
                     
                     if (target.IsValidTarget(Q.Range) && Q.CanCast(target))
                     {
-                        var nextpos = target.Position.Extend(target.ServerPosition, target.MoveSpeed * 0.7f);
-                        if (target.HasBuff("OdinCaptureChanner"))
-                        {
-                            nextpos = target.Position;
-                        }
-                        Q.Cast(nextpos, config.Item("packets").GetValue<bool>());
+                       var nextpos= Q.GetPrediction(target);
+                        Q.Cast(nextpos.CastPosition, config.Item("packets").GetValue<bool>());
                     }   
                 }
                 else
@@ -323,7 +319,7 @@ namespace UnderratedAIO.Champions
         private static void InitChoGath()
         {
             Q = new Spell(SpellSlot.Q, 950);
-            Q.SetSkillshot(Q.Instance.SData.SpellCastTime, Q.Instance.SData.LineWidth, 1337f, false, SkillshotType.SkillshotCircle);
+            Q.SetSkillshot(0.5f, 175f, 750f, false, SkillshotType.SkillshotCircle);
             W = new Spell(SpellSlot.W, 700);
             W.SetSkillshot(W.Instance.SData.SpellCastTime, W.Instance.SData.LineWidth, W.Speed, false, SkillshotType.SkillshotCone);
             E = new Spell(SpellSlot.E, 500);
