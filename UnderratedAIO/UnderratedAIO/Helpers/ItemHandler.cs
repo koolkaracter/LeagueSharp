@@ -26,6 +26,10 @@ namespace UnderratedAIO.Helpers
         public static Items.Item lich = new Items.Item(3100, player.AttackRange);
         public static Items.Item youmuu = new Items.Item(3142, player.AttackRange);
 
+        public static Items.Item frost = new Items.Item(3092, 850);
+        public static Items.Item mountain = new Items.Item(3401, 700);
+        public static Items.Item solari = new Items.Item(3190, 600);
+
         public static Items.Item Qss = new Items.Item(3140, 0);
         public static Items.Item Mercurial = new Items.Item(3139, 0);
         public static Items.Item Dervish = new Items.Item(3137, 0);
@@ -75,7 +79,8 @@ namespace UnderratedAIO.Helpers
                     }
                 }
                 else if ((player.Distance(target) > config.Item("bilminr").GetValue<Slider>().Value &&
-                          IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 && (target.Health / target.MaxHealth * 100f) < 40) ||
+                          IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 &&
+                          (target.Health / target.MaxHealth * 100f) < 40) ||
                          (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     bilgewater.Cast(target);
@@ -96,7 +101,8 @@ namespace UnderratedAIO.Helpers
                           config.Item("botrmyhealth").GetValue<Slider>().Value &&
                           (target.Health / target.MaxHealth * 100f) <
                           config.Item("botrenemyhealth").GetValue<Slider>().Value) ||
-                         (IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 && (target.Health / target.MaxHealth * 100f) < 40) ||
+                         (IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 &&
+                          (target.Health / target.MaxHealth * 100f) < 40) ||
                          (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     botrk.Cast(target);
@@ -113,7 +119,8 @@ namespace UnderratedAIO.Helpers
                     }
                 }
                 else if ((player.Distance(target) > config.Item("hexminr").GetValue<Slider>().Value &&
-                          IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 && (target.Health / target.MaxHealth * 100f) < 40) ||
+                          IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 &&
+                          (target.Health / target.MaxHealth * 100f) < 40) ||
                          (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     hexgun.Cast(target);
@@ -131,6 +138,60 @@ namespace UnderratedAIO.Helpers
                 target != null && player.Distance(target) < player.AttackRange + 50)
             {
                 youmuu.Cast();
+            }
+
+            if (Items.HasItem(frost.Id) && Items.CanUseItem(frost.Id) && target != null &&
+                config.Item("frost").GetValue<bool>())
+            {
+                if (player.Distance(target) < frost.Range &&
+                    (config.Item("frostmin").GetValue<Slider>().Value <= target.CountEnemiesInRange(225f) &&
+                     ((target.Health / target.MaxHealth * 100f) < 40 && config.Item("frostlow").GetValue<bool>() ||
+                      !config.Item("frostlow").GetValue<bool>())))
+                {
+                    frost.Cast(target);
+                }
+            }
+            if (Items.HasItem(solari.Id) && Items.CanUseItem(solari.Id) && config.Item("solari").GetValue<bool>())
+            {
+                if ((config.Item("solariminally").GetValue<Slider>().Value <= player.CountAlliesInRange(solari.Range) &&
+                     config.Item("solariminenemy").GetValue<Slider>().Value <= player.CountEnemiesInRange(solari.Range)) ||
+                    ObjectManager.Get<Obj_AI_Hero>()
+                        .FirstOrDefault(
+                            h => h.IsAlly && !h.IsDead && solari.IsInRange(h) && CombatHelper.CheckCriticalBuffs(h)) !=
+                    null)
+                {
+                    solari.Cast();
+                }
+            }
+            if (Items.HasItem(mountain.Id) && Items.CanUseItem(mountain.Id) && config.Item("mountain").GetValue<bool>())
+            {
+                if (config.Item("castonme").GetValue<bool>() &&
+                    (player.Health / player.MaxHealth * 100f) < config.Item("mountainmin").GetValue<Slider>().Value &&
+                    (player.CountEnemiesInRange(700f) > 0 || CombatHelper.CheckCriticalBuffs(player)))
+                {
+                    mountain.Cast(player);
+                    return;
+                }
+                var targ =
+                    ObjectManager.Get<Obj_AI_Hero>()
+                        .Where(
+                            h =>
+                                h.IsAlly && !h.IsMe && !h.IsDead && player.Distance(h) < mountain.Range &&
+                                (h.Health / h.MaxHealth * 100f) < config.Item("mountainmin").GetValue<Slider>().Value);
+                if (targ != null)
+                {
+                    var finaltarg =
+                        targ.OrderByDescending(
+                            t => config.Item("mountainpriority" + t.ChampionName).GetValue<Slider>().Value)
+                            .ThenBy(t => t.Health)
+                            .FirstOrDefault();
+                    if (finaltarg != null &&
+                        (finaltarg.CountEnemiesInRange(700f) > 0 || finaltarg.UnderTurret(true) ||
+                         CombatHelper.CheckCriticalBuffs(finaltarg)))
+                    {
+                        mountain.Cast(finaltarg);
+                    }
+                }
             }
         }
 
@@ -165,11 +226,13 @@ namespace UnderratedAIO.Helpers
             menuRan.AddItem(new MenuItem("ran", "Enabled")).SetValue(true);
             menuRan.AddItem(new MenuItem("ranmin", "Min enemy")).SetValue(new Slider(2, 1, 6));
             menuI.AddSubMenu(menuRan);
+
             Menu menuOdin = new Menu("Odyn's Veil ", "Odyns");
             menuOdin.AddItem(new MenuItem("odin", "Enabled")).SetValue(true);
             menuOdin.AddItem(new MenuItem("odinonlyks", "KS only")).SetValue(false);
             menuOdin.AddItem(new MenuItem("odinmin", "Min enemy")).SetValue(new Slider(2, 1, 6));
             menuI.AddSubMenu(menuOdin);
+
             Menu menuBilgewater = new Menu("Bilgewater Cutlass ", "Bilgewaters");
             menuBilgewater.AddItem(new MenuItem("bil", "Enabled")).SetValue(true);
             menuBilgewater.AddItem(new MenuItem("bilonlyks", "KS only")).SetValue(false);
@@ -197,6 +260,7 @@ namespace UnderratedAIO.Helpers
             menuBlade.AddItem(new MenuItem("botrenemyhealth", "Use if enemy healt lower"))
                 .SetValue(new Slider(50, 0, 100));
             menuI.AddSubMenu(menuBlade);
+
             Menu menuHextech = new Menu("Hextech Gunblade", "Hextechs");
             menuHextech.AddItem(new MenuItem("hex", "Enabled")).SetValue(true);
             menuHextech.AddItem(new MenuItem("hexonlyks", "KS only")).SetValue(false);
@@ -208,6 +272,32 @@ namespace UnderratedAIO.Helpers
                                 ? (int) Orbwalking.GetRealAutoAttackRange(player)
                                 : hexgun.Range - 20), 0, (int) hexgun.Range));
             menuI.AddSubMenu(menuHextech);
+
+            Menu menuFrost = new Menu("Frost Queen's Claim ", "Frost");
+            menuFrost.AddItem(new MenuItem("frost", "Enabled")).SetValue(true);
+            menuFrost.AddItem(new MenuItem("frostlow", "Use on low HP")).SetValue(true);
+            menuFrost.AddItem(new MenuItem("frostmin", "Min enemy")).SetValue(new Slider(2, 1, 6));
+            menuI.AddSubMenu(menuFrost);
+
+            Menu menuMountain = new Menu("Face of the Mountain ", "Mountain");
+            menuMountain.AddItem(new MenuItem("mountain", "Enabled")).SetValue(true);
+            menuMountain.AddItem(new MenuItem("castonme", "SelfCast")).SetValue(true);
+            menuMountain.AddItem(new MenuItem("mountainmin", "Under x % health")).SetValue(new Slider(20, 0, 100));
+            Menu menuMountainprior = new Menu("Target priority", "MountainPriorityMenu");
+            foreach (var ally in ObjectManager.Get<Obj_AI_Hero>().Where(h => h.IsAlly && !h.IsMe))
+            {
+                menuMountainprior.AddItem(new MenuItem("mountainpriority" + ally.ChampionName, ally.ChampionName))
+                    .SetValue(new Slider(5, 0, 5));
+            }
+            menuMountain.AddSubMenu(menuMountainprior);
+            menuI.AddSubMenu(menuMountain);
+
+            Menu menuSolari = new Menu("Locket of the Iron Solari ", "Solari");
+            menuSolari.AddItem(new MenuItem("solari", "Enabled")).SetValue(true);
+            menuSolari.AddItem(new MenuItem("solariminally", "Min ally")).SetValue(new Slider(2, 1, 6));
+            menuSolari.AddItem(new MenuItem("solariminenemy", "Min enemy")).SetValue(new Slider(2, 1, 6));
+            menuI.AddSubMenu(menuSolari);
+
             menuI.AddItem(new MenuItem("you", "Youmuu's Ghostblade")).SetValue(true);
             menuI.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             mConfig.AddSubMenu(menuI);
