@@ -146,15 +146,15 @@ namespace UnderratedAIO.Helpers
         {
             foreach (BuffInstance buff in i.Buffs)
             {
-                if (i.Health <= 30 && dotsSmallDmg.Contains(buff.Name))
+                if (i.Health <= 6 * player.Level && dotsSmallDmg.Contains(buff.Name))
                 {
                     return true;
                 }
-                if (i.Health <= 60 && dotsMedDmg.Contains(buff.Name))
+                if (i.Health <= 12*player.Level && dotsMedDmg.Contains(buff.Name))
                 {
                     return true;
                 }
-                if (i.Health <= 150 && dotsHighDmg.Contains(buff.Name))
+                if (i.Health <= 25*player.Level && dotsHighDmg.Contains(buff.Name))
                 {
                     return true;
                 }
