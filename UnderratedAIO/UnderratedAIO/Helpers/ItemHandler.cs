@@ -34,7 +34,7 @@ namespace UnderratedAIO.Helpers
 
         public static bool QssUsed = false;
 
-        public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg=0f)
+        public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg = 0f)
         {
             if (config.Item("hyd").GetValue<bool>() && player.BaseSkinName != "Renekton")
             {
@@ -48,47 +48,56 @@ namespace UnderratedAIO.Helpers
                     Items.UseItem(randuins.Id);
                 }
             }
-            if (config.Item("odin").GetValue<bool>() && target != null && Items.HasItem(odins.Id) && Items.CanUseItem(odins.Id))
+            if (config.Item("odin").GetValue<bool>() && target != null && Items.HasItem(odins.Id) &&
+                Items.CanUseItem(odins.Id))
             {
                 if (config.Item("odinonlyks").GetValue<bool>())
                 {
-                    if ( Damage.GetItemDamage(player, target, Damage.DamageItems.OdingVeils) > target.Health)
+                    if (Damage.GetItemDamage(player, target, Damage.DamageItems.OdingVeils) > target.Health)
                     {
                         odins.Cast(target);
                     }
                 }
-                else if (player.CountEnemiesInRange(odins.Range) >= config.Item("odinmin").GetValue<Slider>().Value || comboDmg > target.Health)
+                else if (player.CountEnemiesInRange(odins.Range) >= config.Item("odinmin").GetValue<Slider>().Value ||
+                         comboDmg > target.Health && player.Distance(target) < odins.Range)
                 {
                     odins.Cast();
                 }
             }
-            if (config.Item("bil").GetValue<bool>() && Items.HasItem(bilgewater.Id) && Items.CanUseItem(bilgewater.Id))
+            if (target != null && config.Item("bil").GetValue<bool>() && Items.HasItem(bilgewater.Id) &&
+                Items.CanUseItem(bilgewater.Id))
             {
                 if (config.Item("bilonlyks").GetValue<bool>())
                 {
-                    if (target != null && Damage.GetItemDamage(player, target, Damage.DamageItems.Bilgewater) > target.Health)
+                    if (Damage.GetItemDamage(player, target, Damage.DamageItems.Bilgewater) > target.Health)
                     {
                         bilgewater.Cast(target);
                     }
                 }
-                else if (player.Distance(target) > config.Item("bilminr").GetValue<Slider>().Value)
+                else if ((player.Distance(target) > config.Item("bilminr").GetValue<Slider>().Value &&
+                          IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 && (target.Health / target.MaxHealth * 100f) < 40) ||
+                         (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     bilgewater.Cast(target);
                 }
             }
-            if (config.Item("botr").GetValue<bool>() && Items.HasItem(botrk.Id) && Items.CanUseItem(botrk.Id))
+            if (target != null && config.Item("botr").GetValue<bool>() && Items.HasItem(botrk.Id) &&
+                Items.CanUseItem(botrk.Id))
             {
                 if (config.Item("botronlyks").GetValue<bool>())
                 {
-                    if (target != null && Damage.GetItemDamage(player, target, Damage.DamageItems.Botrk) > target.Health)
+                    if (Damage.GetItemDamage(player, target, Damage.DamageItems.Botrk) > target.Health)
                     {
                         botrk.Cast(target);
                     }
                 }
-                else if (target != null && player.Distance(target) > config.Item("botrminr").GetValue<Slider>().Value &&
-                         (player.Health / player.MaxHealth * 100f) < config.Item("botrmyhealth").GetValue<Slider>().Value &&
-                         (target.Health / target.MaxHealth * 100f) >
-                         config.Item("botrenemyhealth").GetValue<Slider>().Value)
+                else if ((player.Distance(target) > config.Item("botrminr").GetValue<Slider>().Value &&
+                          (player.Health / player.MaxHealth * 100f) <
+                          config.Item("botrmyhealth").GetValue<Slider>().Value &&
+                          (target.Health / target.MaxHealth * 100f) <
+                          config.Item("botrenemyhealth").GetValue<Slider>().Value) ||
+                         (IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 && (target.Health / target.MaxHealth * 100f) < 40) ||
+                         (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     botrk.Cast(target);
                 }
@@ -97,12 +106,15 @@ namespace UnderratedAIO.Helpers
             {
                 if (config.Item("hexonlyks").GetValue<bool>())
                 {
-                    if (target != null && Damage.GetItemDamage(player, target, Damage.DamageItems.Hexgun) > target.Health)
+                    if (target != null &&
+                        Damage.GetItemDamage(player, target, Damage.DamageItems.Hexgun) > target.Health)
                     {
                         hexgun.Cast(target);
                     }
                 }
-                else if (player.Distance(target) > config.Item("hexminr").GetValue<Slider>().Value)
+                else if ((player.Distance(target) > config.Item("hexminr").GetValue<Slider>().Value &&
+                          IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 && (target.Health / target.MaxHealth * 100f) < 40) ||
+                         (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     hexgun.Cast(target);
                 }
@@ -115,16 +127,23 @@ namespace UnderratedAIO.Helpers
             {
                 Bft.Cast(target);
             }
-            if (config.Item("you").GetValue<bool>() && Items.HasItem(youmuu.Id) && Items.CanUseItem(youmuu.Id) && target != null &&
-                player.Distance(target) < player.AttackRange + 50)
+            if (config.Item("you").GetValue<bool>() && Items.HasItem(youmuu.Id) && Items.CanUseItem(youmuu.Id) &&
+                target != null && player.Distance(target) < player.AttackRange + 50)
             {
                 youmuu.Cast();
             }
         }
 
+        public static bool IsHeRunAway(Obj_AI_Hero target)
+        {
+            return (!target.IsFacing(player) &&
+                    Prediction.GetPrediction(target, 600, 100f).CastPosition.Distance(player.Position) >
+                    target.Position.Distance(player.Position));
+        }
+
         public static void castHydra(Obj_AI_Hero target)
         {
-            if (target !=null && player.Distance(target) < hydra.Range && !LeagueSharp.Common.Orbwalking.CanAttack())
+            if (target != null && player.Distance(target) < hydra.Range && !LeagueSharp.Common.Orbwalking.CanAttack())
             {
                 if (Items.HasItem(tiamat.Id) && Items.CanUseItem(tiamat.Id))
                 {
@@ -175,7 +194,7 @@ namespace UnderratedAIO.Helpers
                                 : botrk.Range - 20), 0, (int) botrk.Range));
             menuBlade.AddItem(new MenuItem("botrmyhealth", "Use if player healt lower"))
                 .SetValue(new Slider(40, 0, 100));
-            menuBlade.AddItem(new MenuItem("botrenemyhealth", "Use if enemy healt higher"))
+            menuBlade.AddItem(new MenuItem("botrenemyhealth", "Use if enemy healt lower"))
                 .SetValue(new Slider(50, 0, 100));
             menuI.AddSubMenu(menuBlade);
             Menu menuHextech = new Menu("Hextech Gunblade", "Hextechs");
@@ -438,7 +457,7 @@ namespace UnderratedAIO.Helpers
                                     QssUsed = false;
                                 });
                             break;
-                        case "mordekaiserchildrenofthegrave":
+                        case "MordekaiserChildrenOfTheGrave":
                             QssUsed = true;
                             Utility.DelayAction.Add(
                                 delay, () =>
