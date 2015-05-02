@@ -36,24 +36,34 @@ namespace UnderratedAIO.Helpers
 
         private static List<string> defSpells = new List<string>(new string[] { "summonerheal", "summonerbarrier" });
 
+        private static List<string> autoAttacks =
+            new List<string>(
+                new string[]
+                {
+                    "frostarrow", "CaitlynHeadshotMissile", "KennenMegaProc", "QuinnWEnhanced", "TrundleQ",
+                    "XenZhaoThrust", "XenZhaoThrust2", "XenZhaoThrust3",  "RenektonExecute", "RenektonSuperExecute",
+                    "MasterYiDoubleStrike", "Parley"
+                });
+
         private static List<int> defItems =
             new List<int>(new int[] { ItemHandler.Qss.Id, ItemHandler.Qss.Id, ItemHandler.Dervish.Id });
 
         public static Obj_AI_Hero SetTarget(Obj_AI_Hero target, Obj_AI_Hero targetSelected)
         {
-            if (targetSelected != null && player.Distance(targetSelected)<1500f)
+            if (targetSelected != null && player.Distance(targetSelected) < 1500f)
             {
                 return targetSelected;
             }
             return target;
         }
+
         #region Poppy
 
         public static Vector3 bestVectorToPoppyFlash(Obj_AI_Base target)
         {
-            if (target==null)
+            if (target == null)
             {
-                return new Vector3(); 
+                return new Vector3();
             }
             Vector3 newPos = new Vector3();
             for (int i = 1; i < 7; i++)
@@ -64,7 +74,9 @@ namespace UnderratedAIO.Helpers
                     var rotated = newPos.To2D().RotateAroundPoint(target.Position.To2D(), 45 * i).To3D();
                     if (rotated.IsValid() && Environment.Map.CheckWalls(rotated, target.Position) &&
                         player.Distance(rotated) < 400)
+                    {
                         return rotated;
+                    }
                 }
             }
 
@@ -94,12 +106,20 @@ namespace UnderratedAIO.Helpers
 
         public static int SejuaniCountFrostHero(float p)
         {
-            return ObjectManager.Get<Obj_AI_Hero>().Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) < p).SelectMany(enemy => enemy.Buffs).Count(buff => buff.Name == "sejuanifrost");
+            return
+                ObjectManager.Get<Obj_AI_Hero>()
+                    .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) < p)
+                    .SelectMany(enemy => enemy.Buffs)
+                    .Count(buff => buff.Name == "sejuanifrost");
         }
 
         public static int KennenCountMarkHero(float p)
         {
-            return ObjectManager.Get<Obj_AI_Hero>().Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) < p).SelectMany(enemy => enemy.Buffs).Count(buff => buff.Name == "KennenMarkOfStorm");
+            return
+                ObjectManager.Get<Obj_AI_Hero>()
+                    .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) < p)
+                    .SelectMany(enemy => enemy.Buffs)
+                    .Count(buff => buff.Name == "KennenMarkOfStorm");
         }
 
         public static int SejuaniCountFrostMinion(float p)
@@ -110,12 +130,14 @@ namespace UnderratedAIO.Helpers
                 foreach (BuffInstance buff in enemy.Buffs)
                 {
                     if (buff.Name == "sejuanifrost")
+                    {
                         num++;
+                    }
                 }
             }
             return num;
         }
-        
+
         #endregion
 
         #region Common
@@ -161,18 +183,14 @@ namespace UnderratedAIO.Helpers
             int attacks = (int) Math.Floor(enemy.AttackSpeedMod * 5);
             for (int i = 0; i < attacks; i++)
             {
-
                 if (enemy.Crit > 0)
                 {
-
                     basicDmg += enemy.GetAutoAttackDamage(player) * (1 + enemy.Crit / attacks);
                 }
                 else
                 {
-
                     basicDmg += enemy.GetAutoAttackDamage(player);
                 }
-
             }
             result += basicDmg;
             var spells = enemy.Spellbook.Spells;
@@ -190,7 +208,9 @@ namespace UnderratedAIO.Helpers
                                 result += (Damage.GetSpellDamage(enemy, player, spell.Slot, 1));
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Akali":
                             if (spell.Slot == SpellSlot.R)
@@ -203,7 +223,9 @@ namespace UnderratedAIO.Helpers
                                 result += (Damage.GetSpellDamage(enemy, player, spell.Slot, 1));
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Amumu":
                             if (spell.Slot == SpellSlot.W)
@@ -211,7 +233,9 @@ namespace UnderratedAIO.Helpers
                                 result += (Damage.GetSpellDamage(enemy, player, spell.Slot) * 5);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Cassiopeia":
                             if (spell.Slot == SpellSlot.Q || spell.Slot == SpellSlot.E || spell.Slot == SpellSlot.W)
@@ -219,7 +243,9 @@ namespace UnderratedAIO.Helpers
                                 result += (Damage.GetSpellDamage(enemy, player, spell.Slot) * 2);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Fiddlesticks":
                             if (spell.Slot == SpellSlot.W || spell.Slot == SpellSlot.E)
@@ -227,7 +253,9 @@ namespace UnderratedAIO.Helpers
                                 result += (Damage.GetSpellDamage(enemy, player, spell.Slot) * 5);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Garen":
                             if (spell.Slot == SpellSlot.E)
@@ -235,7 +263,9 @@ namespace UnderratedAIO.Helpers
                                 result += (Damage.GetSpellDamage(enemy, player, spell.Slot) * 3);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Irelia":
                             if (spell.Slot == SpellSlot.W)
@@ -243,7 +273,9 @@ namespace UnderratedAIO.Helpers
                                 result += (Damage.GetSpellDamage(enemy, player, spell.Slot) * attacks);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Karthus":
                             if (spell.Slot == SpellSlot.Q)
@@ -251,7 +283,9 @@ namespace UnderratedAIO.Helpers
                                 result += (Damage.GetSpellDamage(enemy, player, spell.Slot) * 4);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "KogMaw":
                             if (spell.Slot == SpellSlot.W)
@@ -259,7 +293,9 @@ namespace UnderratedAIO.Helpers
                                 result += (Damage.GetSpellDamage(enemy, player, spell.Slot) * attacks);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "LeeSin":
                             if (spell.Slot == SpellSlot.Q)
@@ -268,7 +304,9 @@ namespace UnderratedAIO.Helpers
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot, 1);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Lucian":
                             if (spell.Slot == SpellSlot.R)
@@ -276,7 +314,9 @@ namespace UnderratedAIO.Helpers
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot) * 4;
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Nunu":
                             if (spell.Slot != SpellSlot.R && spell.Slot != SpellSlot.Q)
@@ -284,7 +324,9 @@ namespace UnderratedAIO.Helpers
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "MasterYi":
                             if (spell.Slot != SpellSlot.E)
@@ -292,7 +334,9 @@ namespace UnderratedAIO.Helpers
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot) * attacks;
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "MonkeyKing":
                             if (spell.Slot != SpellSlot.R)
@@ -300,7 +344,9 @@ namespace UnderratedAIO.Helpers
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot) * 4;
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Pantheon":
                             if (spell.Slot == SpellSlot.E)
@@ -312,7 +358,9 @@ namespace UnderratedAIO.Helpers
                                 result += 0;
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
 
                             break;
                         case "Rammus":
@@ -321,7 +369,9 @@ namespace UnderratedAIO.Helpers
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot) * 6;
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Riven":
                             if (spell.Slot == SpellSlot.Q)
@@ -329,7 +379,9 @@ namespace UnderratedAIO.Helpers
                                 result += RivenDamageQ(spell, enemy, player);
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Viktor":
                             if (spell.Slot == SpellSlot.R)
@@ -338,16 +390,19 @@ namespace UnderratedAIO.Helpers
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot, 1) * 5;
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         case "Vladimir":
                             if (spell.Slot == SpellSlot.E)
                             {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot) * 2;
-
                             }
                             else
+                            {
                                 result += Damage.GetSpellDamage(enemy, player, spell.Slot);
+                            }
                             break;
                         default:
                             result += Damage.GetSpellDamage(enemy, player, spell.Slot);
@@ -359,14 +414,13 @@ namespace UnderratedAIO.Helpers
             {
                 result += enemy.GetSummonerSpellDamage(player, Damage.SummonerSpell.Ignite);
             }
-            foreach (
-                var minions in
-                    ObjectManager.Get<Obj_AI_Minion>()
-                        .Where(i => i.Distance(player.Position) < 750 && i.IsMinion && !i.IsAlly && !i.IsDead))
+            foreach (var minions in
+                ObjectManager.Get<Obj_AI_Minion>()
+                    .Where(i => i.Distance(player.Position) < 750 && i.IsMinion && !i.IsAlly && !i.IsDead))
             {
                 result += minions.GetAutoAttackDamage(player, false);
             }
-            return (float)result;
+            return (float) result;
         }
 
         public static bool HasDef(Obj_AI_Hero target)
@@ -380,7 +434,7 @@ namespace UnderratedAIO.Helpers
             }
             foreach (var item in target.InventoryItems)
             {
-                if (defItems.Contains((int)item.Id))
+                if (defItems.Contains((int) item.Id))
                 {
                     return true;
                 }
@@ -392,13 +446,22 @@ namespace UnderratedAIO.Helpers
         {
             var distance = player.Distance(target);
             var diff = Math.Abs((player.MoveSpeed * (1 + moveSpeedBuff)) - target.MoveSpeed);
-            if (diff*duration>distance)
+            if (diff * duration > distance)
             {
                 return true;
             }
             return false;
         }
-        
+
+        public static bool IsAutoattack(string spellName)
+        {
+            if (autoAttacks.Contains(spellName))
+            {
+                return true;
+            }
+            return false;
+        }
+
         #endregion
     }
 }
