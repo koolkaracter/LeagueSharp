@@ -27,8 +27,6 @@ namespace UnderratedAIO.Helpers
 
         public delegate void OnTargetChangeH(AttackableUnit oldTarget, AttackableUnit newTarget);
 
-        public static Obj_AI_Hero player = ObjectManager.Player;
-        public static Spell AutoAttack;
         public enum OrbwalkingMode
         {
             LastHit,
@@ -38,6 +36,8 @@ namespace UnderratedAIO.Helpers
             None
         }
 
+        public static Obj_AI_Hero player = ObjectManager.Player;
+        public static Spell AutoAttack;
         //Spells that reset the attack timer.
         private static readonly string[] AttackResets =
         {
@@ -54,7 +54,7 @@ namespace UnderratedAIO.Helpers
         {
             "jarvanivcataclysmattack", "monkeykingdoubleattack",
             "shyvanadoubleattack", "shyvanadoubleattackdragon", "zyragraspingplantattack", "zyragraspingplantattack2",
-            "zyragraspingplantattackfire", "zyragraspingplantattack2fire"
+            "zyragraspingplantattackfire", "zyragraspingplantattack2fire", "viktorpowertransfer"
         };
 
         //Spells that are attacks even if they dont have the "attack" word in their name.
@@ -63,7 +63,7 @@ namespace UnderratedAIO.Helpers
             "caitlynheadshotmissile", "frostarrow", "garenslash2",
             "kennenmegaproc", "lucianpassiveattack", "masteryidoublestrike", "quinnwenhanced", "renektonexecute",
             "renektonsuperexecute", "rengarnewpassivebuffdash", "trundleq", "xenzhaothrust", "xenzhaothrust2",
-            "xenzhaothrust3"
+            "xenzhaothrust3", "viktorqbuff"
         };
 
         // Champs whose auto attacks can't be cancelled
@@ -93,25 +93,7 @@ namespace UnderratedAIO.Helpers
             AutoAttack.SetTargetted(player.BasicAttack.SpellCastTime, player.BasicAttack.MissileSpeed);
             Player = ObjectManager.Player;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
-            GameObject.OnCreate += Obj_SpellMissile_OnCreate;
             Spellbook.OnStopCast += SpellbookOnStopCast;
-        }
-
-        private static void Obj_SpellMissile_OnCreate(GameObject sender, EventArgs args)
-        {
-            // Deny InvalidCastException
-            if (sender is Obj_LampBulb)
-            {
-                return;
-            }
-            if (sender.IsValid<Obj_SpellMissile>())
-            {
-                var missile = (Obj_SpellMissile) sender;
-                if (missile.SpellCaster.IsValid<Obj_AI_Hero>() && IsAutoAttack(missile.SData.Name))
-                {
-                    FireAfterAttack(missile.SpellCaster, _lastTarget);
-                }
-            }
         }
 
         /// <summary>
@@ -252,7 +234,8 @@ namespace UnderratedAIO.Helpers
         {
             if (LastAATick <= System.Environment.TickCount)
             {
-                return System.Environment.TickCount + Game.Ping / 2 + 25 >= LastAATick + Player.AttackDelay * 1000 && Attack;
+                return System.Environment.TickCount + Game.Ping / 2 + 25 >= LastAATick + Player.AttackDelay * 1000 &&
+                       Attack;
             }
             return false;
         }
@@ -266,7 +249,8 @@ namespace UnderratedAIO.Helpers
             {
                 return Move && NoCancelChamps.Contains(Player.ChampionName)
                     ? (System.Environment.TickCount - LastAATick > 250)
-                    : (System.Environment.TickCount + Game.Ping / 2 >= LastAATick + Player.AttackCastDelay * 1000 + extraWindup);
+                    : (System.Environment.TickCount + Game.Ping / 2 >=
+                       LastAATick + Player.AttackCastDelay * 1000 + extraWindup);
             }
             return false;
         }
@@ -302,7 +286,7 @@ namespace UnderratedAIO.Helpers
                 return;
             }
             LastMoveCommandT = System.Environment.TickCount;
-            if (Player.ServerPosition.Distance(position) <  holdAreaRadius)
+            if (Player.ServerPosition.Distance(position) < holdAreaRadius)
             {
                 if (Player.Path.Count() > 1)
                 {
@@ -366,7 +350,8 @@ namespace UnderratedAIO.Helpers
                 if (CanMove(extraWindup))
                 {
                     if (player.IsMelee() && target != null &&
-                        target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) && target is Obj_AI_Hero && target.Position.Distance(Player.Position)>Player.AttackRange &&
+                        target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) &&
+                        target is Obj_AI_Hero && target.Position.Distance(Player.Position) > Player.AttackRange &&
                         Game.CursorPos.Distance(target.Position) < 300)
                     {
                         AutoAttack.Delay = player.BasicAttack.SpellCastTime;
@@ -377,7 +362,6 @@ namespace UnderratedAIO.Helpers
                     {
                         MoveTo(position, holdAreaRadius, false, useFixedDistance, randomizeMinDistance);
                     }
-                    
                 }
             }
             catch (Exception e)
@@ -393,15 +377,21 @@ namespace UnderratedAIO.Helpers
         {
             LastAATick = 0;
         }
+
         public static float GetAutoAttackRange(Obj_AI_Base source = null, AttackableUnit target = null)
         {
             if (source == null)
+            {
                 source = player;
+            }
             var ret = source.AttackRange + player.BoundingRadius;
             if (target != null)
+            {
                 ret += target.BoundingRadius;
+            }
             return ret;
         }
+
         private static void SpellbookOnStopCast(Spellbook spellbook, SpellbookStopCastEventArgs args)
         {
             if (spellbook.Owner.IsValid && spellbook.Owner.IsMe && args.DestroyMissile && args.StopAnimation)
@@ -432,11 +422,9 @@ namespace UnderratedAIO.Helpers
                         FireOnTargetSwitch(target);
                         _lastTarget = target;
                     }
-                    if (IsMelee(unit))
-                    {
-                        Utility.DelayAction.Add(
-                            (int) (unit.AttackCastDelay * 1000 + 40), () => FireAfterAttack(unit, _lastTarget));
-                    }
+                    //Trigger it for ranged until the missiles catch normal attacks again!
+                    Utility.DelayAction.Add(
+                        (int) (unit.AttackCastDelay * 1000 + 40), () => FireAfterAttack(unit, _lastTarget));
                 }
                 FireOnAttack(unit, _lastTarget);
             }
