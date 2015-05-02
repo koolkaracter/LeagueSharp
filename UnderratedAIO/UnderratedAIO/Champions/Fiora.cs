@@ -84,7 +84,7 @@ namespace UnderratedAIO.Champions
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical);
             if (target == null) return;
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && lastQ.Equals(0))
             {
@@ -129,13 +129,16 @@ namespace UnderratedAIO.Champions
 
         public static void Game_ProcessSpell(Obj_AI_Base hero, GameObjectProcessSpellCastEventArgs args)
         {
-            String spellName = args.SData.Name;
-            if (W.IsReady() && args.Target.IsMe && Orbwalking.IsAutoAttack(spellName) && config.Item("autoW").GetValue<bool>() && !(hero is Obj_AI_Turret) && player.Distance(hero)<500 && ((hero is Obj_AI_Hero && player.CountEnemiesInRange(2000) > 0) || player.CountEnemiesInRange(2000) == 0))
+            if (args==null || hero==null)
             {
-                float perc = (float)config.Item("minmanaP").GetValue<Slider>().Value / 100f;
-                if (player.Mana > player.MaxMana * perc && hero.TotalAttackDamage>50 && (!(player.UnderTurret(true) && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) || !player.UnderTurret(true)))
+                return;
+            }
+            var spellName = args.SData.Name;
+            if (W.IsReady() && args.Target.IsMe && (Orbwalking.IsAutoAttack(spellName) || CombatHelper.IsAutoattack(spellName)) && ((config.Item("usew").GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) || config.Item("autoW").GetValue<bool>()) && !(hero is Obj_AI_Turret || hero.Name=="OdinNeutralGuardian") && player.Distance(hero) < 700)
+            {
+                var perc = config.Item("minmanaP").GetValue<Slider>().Value / 100f;
+                if (player.Mana > player.MaxMana * perc && hero.TotalAttackDamage>50 && ((player.UnderTurret(true) && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) || !player.UnderTurret(true)))
                 {
-
                     W.Cast(config.Item("packets").GetValue<bool>());
                 } 
                 
@@ -169,16 +172,16 @@ namespace UnderratedAIO.Champions
                         R.Cast(TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical));
                     }
                 }
-                if (spellName == "BlindMonkRKick" || spellName == "syndrar" || spellName == "VeigarPrimordialBurst" || spellName == "AlZaharNetherGrasp")
+                if (spellName == "BlindMonkRKick" || spellName == "SyndraR" || spellName == "VeigarPrimordialBurst" || spellName == "AlZaharNetherGrasp")
                 {
                     if (args.Target.IsMe)
                     {
                         R.Cast(TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical));
                     }
                 }
-                if (spellName == "BusterShot" || spellName == "ViR")
+                if (spellName == "TristanaR" || spellName == "ViR")
                 {
-                    if (args.Target.IsMe || player.Distance(args.Target.Position) <= 50f)
+                    if (args.Target.IsMe || player.Distance(args.Target.Position) <= 100f)
                     {
                         R.Cast(TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical));
                     }
