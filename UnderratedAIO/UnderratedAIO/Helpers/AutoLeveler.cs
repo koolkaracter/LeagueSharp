@@ -37,7 +37,7 @@ namespace UnderratedAIO.Helpers
         {
             switch (p)
             {
-                case 0:         //lvl  1  2  3  4  5  6  7  8  9  10 11 12 12 13 14 15 16 17  
+                case 0:         //lvl  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18  
                     return new int[] { 0, 1, 0, 2, 0, 3, 0, 1, 0, 1, 3, 1, 1, 2, 2, 3, 2, 2 };
                     break;
                 case 1:
