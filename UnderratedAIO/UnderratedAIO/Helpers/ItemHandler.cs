@@ -492,7 +492,7 @@ namespace UnderratedAIO.Helpers
                         });
                     return;
                 }
-                if (config.Item("fear").GetValue<bool>() && buff.Type == BuffType.Fear)
+                if (config.Item("fear").GetValue<bool>() && (buff.Type == BuffType.Fear || buff.Type == BuffType.Flee))
                 {
                     QssUsed = true;
                     Utility.DelayAction.Add(
