@@ -178,7 +178,7 @@ namespace UnderratedAIO.Champions
             var minHit = config.Item("useemin").GetValue<Slider>().Value;
             Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
 
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
 
             var buffs = CombatHelper.SejuaniCountFrostHero(E.Range);
             if (E.IsReady() && me.Distance(target.Position) < E.Range && buffs > 0 && (

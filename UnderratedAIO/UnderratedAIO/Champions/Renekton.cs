@@ -128,7 +128,7 @@ namespace UnderratedAIO.Champions
                 target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
                 orbwalker.ForceTarget(target);
             }
-            if (config.Item("useItems").GetValue<bool>())ItemHandler.UseItems(target,config);
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             var FuryQ = Damage.GetSpellDamage(player, target, SpellSlot.Q) * 0.5;
             var FuryW = Damage.GetSpellDamage(player, target, SpellSlot.W) * 0.5;

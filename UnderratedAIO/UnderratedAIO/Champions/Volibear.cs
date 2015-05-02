@@ -117,7 +117,7 @@ namespace UnderratedAIO.Champions
                 target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
                 orbwalker.ForceTarget(target);
             }
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
             if (config.Item("useq").GetValue<bool>() && Q.IsReady() && !QEnabled && player.Distance(target) >= config.Item("useqmin").GetValue<Slider>().Value && player.Distance(target) < (player.MoveSpeed * MsBonus(target)) * 3.0f)
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());

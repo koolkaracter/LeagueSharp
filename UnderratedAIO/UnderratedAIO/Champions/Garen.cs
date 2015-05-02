@@ -102,10 +102,9 @@ namespace UnderratedAIO.Champions
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(700, TargetSelector.DamageType.Physical);
             if (target == null) return;
-            if (config.Item("useItems").GetValue<bool>())
-                ItemHandler.UseItems(target, config);
-            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             var combodamage = ComboDamage(target);
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, combodamage);
+            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite").GetValue<bool>() && combodamage > target.Health && hasIgnite)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);

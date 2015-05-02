@@ -163,8 +163,7 @@ namespace UnderratedAIO.Champions
                 target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
                 orbwalker.ForceTarget(target);
             }
-            if (config.Item("useItems").GetValue<bool>())
-                ItemHandler.UseItems(target, config);
+            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
             if (player.HasBuff("KennenLightningRush") && player.Health>target.Health && target.UnderTurret(true))
             {
                 player.IssueOrder(GameObjectOrder.MoveTo, target);
