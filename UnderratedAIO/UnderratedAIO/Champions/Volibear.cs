@@ -19,6 +19,8 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static float[] MsBuff = new float[5] { 0.3f, 0.35f, 0.4f, 0.45f, 0.5f };
+        private float passivetime=0f;
+        private bool passivecd = false;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
 
         public Volibear()
@@ -34,6 +36,17 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
+            var hasbuff = player.HasBuff("volibearpassivecd");
+            if (hasbuff && !passivecd)
+            {
+                passivecd = true;
+                passivetime = Game.Time;
+            }
+            if (!hasbuff)
+            {
+                passivecd = false;
+                passivetime = 0f;
+            }
                 switch (orbwalker.ActiveMode)
                 {
                     case Orbwalking.OrbwalkingMode.Combo:
@@ -122,7 +135,7 @@ namespace UnderratedAIO.Champions
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("usew").GetValue<bool>() && CanW && W.CanCast(target) && player.CalcDamage(target, Damage.DamageType.Physical, Wdmg(target)) > target.Health)
+            if (config.Item("usew").GetValue<bool>() && CanW && W.CanCast(target) && (player.CalcDamage(target, Damage.DamageType.Physical, Wdmg(target)) > target.Health || player.HealthPercent<10))
             {
                 W.Cast(target, config.Item("packets").GetValue<bool>());  
             }
@@ -130,7 +143,7 @@ namespace UnderratedAIO.Champions
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (R.IsReady() && ((config.Item("usee").GetValue<bool>() && player.Distance(target) < 200 && ComboDamage(target) + R.GetDamage(target) * 10 > target.Health && ComboDamage(target) < target.Health) || (config.Item("usertf").GetValue<Slider>().Value <= player.CountEnemiesInRange(300))))
+            if (R.IsReady() && player.HealthPercent>20 && ((config.Item("user").GetValue<bool>() && player.Distance(target) < 200 && ComboDamage(target) + R.GetDamage(target) * 10 > target.Health && ComboDamage(target) < target.Health) || (config.Item("usertf").GetValue<Slider>().Value <= player.CountEnemiesInRange(300))))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -169,6 +182,10 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), (player.MoveSpeed * msBonus) * 4.0f);
             DrawHelper.DrawCircle(config.Item("drawww", true).GetValue<Circle>(), W.Range);
             DrawHelper.DrawCircle(config.Item("drawee", true).GetValue<Circle>(), E.Range);
+            if (config.Item("drawpass").GetValue<Circle>().Active && !player.IsDead)
+            {
+                DrawPassive();
+            }
             DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), 300);
             if (QEnabled)
             {
@@ -184,6 +201,27 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
+        }
+
+        private void DrawPassive()
+        {
+            float baseTime = 0.3f;
+            if (player.HasBuff("volibearpassivecd") && passivecd)
+            {
+                var time = Game.Time - passivetime;
+                if (time <= 5)
+                {
+                    baseTime =baseTime - time * 0.05f;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            var percentHealth = Math.Max(0, player.MaxHealth - player.Health) / player.MaxHealth;
+            var barPos = player.HPBarPosition;
+            var xPos = barPos.X + 36 + 103 * (1 - percentHealth);
+            Drawing.DrawLine(xPos, barPos.Y + 9, xPos, barPos.Y + 17, -105f * baseTime, config.Item("drawpass").GetValue<Circle>().Color);
         }
 
         public static double Wdmg(Obj_AI_Base target)
@@ -241,6 +279,7 @@ namespace UnderratedAIO.Champions
             menuD.AddItem(new MenuItem("drawww", "Draw W range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawee", "Draw E range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawrr", "Draw R range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawpass", "Draw passive")).SetValue(new Circle(true, Color.FromArgb(140, 30, 197, 22)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage")).SetValue(true);
             config.AddSubMenu(menuD);
             // Combo settings
