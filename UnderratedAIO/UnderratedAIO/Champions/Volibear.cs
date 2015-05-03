@@ -167,7 +167,6 @@ namespace UnderratedAIO.Champions
         private void Game_OnDraw(EventArgs args)
         {
             float msBonus = 1f;
-            
             if (Q.IsReady() && !QEnabled)
             {
                 if (ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(h => h.IsEnemy && player.Distance(h) < 2000 && player.IsFacing(h)) != null)
@@ -187,17 +186,6 @@ namespace UnderratedAIO.Champions
                 DrawPassive();
             }
             DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), 300);
-            if (QEnabled)
-            {
-                //Drawing.DrawCircle(player.Position,200,Color.Chartreuse);
-                   
-            }
-            Obj_AI_Hero target = TargetSelector.GetTarget(1490, TargetSelector.DamageType.Physical);
-            if (false)
-            {
-                Drawing.DrawText(player.HPBarPosition.X, player.HPBarPosition.Y, Color.Aquamarine, CombatHelper.IsPossibleToReachHim(target, player.IsFacing(target) ? MsBuff[Q.Level - 1] : 0.15f, 4.0f).ToString());
-            }
-            
             Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
@@ -209,7 +197,7 @@ namespace UnderratedAIO.Champions
             if (player.HasBuff("volibearpassivecd") && passivecd)
             {
                 var time = Game.Time - passivetime;
-                if (time <= 5)
+                if (time <= 6f)
                 {
                     baseTime =baseTime - time * 0.05f;
                 }
