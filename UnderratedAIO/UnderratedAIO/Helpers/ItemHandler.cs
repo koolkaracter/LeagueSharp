@@ -176,7 +176,7 @@ namespace UnderratedAIO.Helpers
                     ObjectManager.Get<Obj_AI_Hero>()
                         .Where(
                             h =>
-                                h.IsAlly && !h.IsMe && !h.IsDead && player.Distance(h) < mountain.Range &&
+                                h.IsAlly && !h.IsMe && !h.IsDead && player.Distance(h) < mountain.Range && config.Item("mountainpriority" + h.ChampionName).GetValue<Slider>().Value>0 &&
                                 (h.Health / h.MaxHealth * 100f) < config.Item("mountainmin").GetValue<Slider>().Value);
                 if (targ != null)
                 {
@@ -289,6 +289,7 @@ namespace UnderratedAIO.Helpers
                 menuMountainprior.AddItem(new MenuItem("mountainpriority" + ally.ChampionName, ally.ChampionName))
                     .SetValue(new Slider(5, 0, 5));
             }
+            menuMountainprior.AddItem(new MenuItem("off", "0 is off"));
             menuMountain.AddSubMenu(menuMountainprior);
             menuI.AddSubMenu(menuMountain);
 
