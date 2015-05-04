@@ -20,27 +20,27 @@ namespace UnderratedAIO
 
         private static void OnGameLoad(EventArgs args)
         {
-          try
-          {
-              var type = Type.GetType("UnderratedAIO.Champions." + player.ChampionName);
-              if (type != null)
-              {
-                  Helpers.DynamicInitializer.NewInstance(type);
-              }
-              else
-              {
-                  var common = Type.GetType("UnderratedAIO.Champions." + "Other");
-                  if (common != null)
-                  {
-                      Helpers.DynamicInitializer.NewInstance(common);
-                  }
-              }
+            try
+            {
+                var type = Type.GetType("UnderratedAIO.Champions." + player.ChampionName);
+                if (type != null)
+                {
+                    Helpers.DynamicInitializer.NewInstance(type);
+                }
+                else
+                {
+                    var common = Type.GetType("UnderratedAIO.Champions." + "Other");
+                    if (common != null)
+                    {
+                        Helpers.DynamicInitializer.NewInstance(common);
+                    }
+                }
 
-          }
-          catch (Exception e)
-          {
-              Console.WriteLine(e.ToString());
-          }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
         }
     }
 }
