@@ -34,6 +34,7 @@ namespace UnderratedAIO.Champions
             Orbwalking.BeforeAttack += BeforeAttack;
             Drawing.OnDraw += Game_OnDraw;
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
+            Helpers.Jungle.setSmiteSlot();
         }
 
        private void Game_OnGameUpdate(EventArgs args)
@@ -115,7 +116,7 @@ namespace UnderratedAIO.Champions
            {
                E.Cast(target.Position, config.Item("packets").GetValue<bool>());
            }
-           if (config.Item("user").GetValue<bool>() && !MordeGhost && (!config.Item("ultDef").GetValue<bool>() || (config.Item("ultDef").GetValue<bool>() && !CombatHelper.HasDef(target))) && (player.Distance(target.Position) <= 400f || (R.CanCast(target) && target.Health < 250f && Environment.Hero.countChampsAtrangeA(target.Position, 600f) >= 1)) && !config.Item("ult" + target.SkinName).GetValue<bool>() && combodmg-50 > target.Health)
+           if (config.Item("user").GetValue<bool>() && !MordeGhost && (!config.Item("ultDef").GetValue<bool>() || (config.Item("ultDef").GetValue<bool>() && !CombatHelper.HasDef(target))) && (player.Distance(target.Position) <= 400f || (R.CanCast(target) && target.Health < 250f && Environment.Hero.countChampsAtrangeA(target.Position, 600f) >= 1)) && !config.Item("ult" + target.SkinName).GetValue<bool>() && combodmg*0.7f > target.Health)
            {
                R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
            }
@@ -165,7 +166,7 @@ namespace UnderratedAIO.Champions
 
        private void Clear()
        {
-           MinionManager.FarmLocation bestPosition = E.GetLineFarmLocation(MinionManager.GetMinions(E.Range,MinionTypes.All,MinionTeam.NotAlly));
+           MinionManager.FarmLocation bestPosition = E.GetCircularFarmLocation(MinionManager.GetMinions(E.Range,MinionTypes.All,MinionTeam.NotAlly),E.Range);
            if (config.Item("useeLC").GetValue<bool>() && E.IsReady() && bestPosition.MinionsHit > config.Item("ehitLC").GetValue<Slider>().Value)
            {
                E.Cast(bestPosition.Position, config.Item("packets").GetValue<bool>());
@@ -182,6 +183,7 @@ namespace UnderratedAIO.Champions
            DrawHelper.DrawCircle(config.Item("drawww").GetValue<Circle>(), W.Range);
            DrawHelper.DrawCircle(config.Item("drawee").GetValue<Circle>(), E.Range);
            DrawHelper.DrawCircle(config.Item("drawrr").GetValue<Circle>(), R.Range);
+           Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
            Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
        }
 
@@ -269,15 +271,16 @@ namespace UnderratedAIO.Champions
            // LaneClear Settings
            Menu menuLC = new Menu("LaneClear ", "Lcsettings");
            menuLC.AddItem(new MenuItem("useqLC", "Use Q")).SetValue(true);
-           menuLC.AddItem(new MenuItem("qhitLC", "More than x minion").SetValue(new Slider(2, 1, 3)));
+           menuLC.AddItem(new MenuItem("qhitLC", "   Min hit").SetValue(new Slider(2, 1, 3)));
            menuLC.AddItem(new MenuItem("usewLC", "Use W")).SetValue(true);
-           menuLC.AddItem(new MenuItem("whitLC", "More than x minion").SetValue(new Slider(2, 1, 5)));
+           menuLC.AddItem(new MenuItem("whitLC", "   Min hit").SetValue(new Slider(2, 1, 5)));
            menuLC.AddItem(new MenuItem("useeLC", "Use E")).SetValue(true);
-           menuLC.AddItem(new MenuItem("ehitLC", "More than x minion").SetValue(new Slider(2, 1, 5)));
+           menuLC.AddItem(new MenuItem("ehitLC", "   Min hit").SetValue(new Slider(2, 1, 5)));
            config.AddSubMenu(menuLC);
            // Misc Settings
            Menu menuM = new Menu("Misc ", "Msettings");
            menuM.AddItem(new MenuItem("ghostTarget", "Ghost target priority")).SetValue(new StringList(new[] { "Targetselector", "Lowest health", "Closest to you" }, 0));
+           menuM = Jungle.addJungleOptions(menuM);
            menuM = ItemHandler.addCleanseOptions(menuM);
 
            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
