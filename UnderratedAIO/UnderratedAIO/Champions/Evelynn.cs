@@ -125,9 +125,10 @@ namespace UnderratedAIO.Champions
            }
            var target =
     ObjectManager.Get<Obj_AI_Minion>()
-        .Where(i => i.Distance(player) < E.Range)
+        .Where(i => i.Distance(player) < 600)
         .OrderByDescending(i => i.MaxHealth)
         .FirstOrDefault();
+           orbwalker.ForceTarget(target);
            if (config.Item("useeLC").GetValue<bool>() && E.CanCast(target))
            {
                E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
