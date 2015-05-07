@@ -126,7 +126,7 @@ namespace UnderratedAIO.Champions
            var target =
     ObjectManager.Get<Obj_AI_Minion>()
         .Where(i => i.Distance(player) < E.Range)
-        .OrderByDescending(i => i.Health)
+        .OrderByDescending(i => i.MaxHealth)
         .FirstOrDefault();
            if (config.Item("useeLC").GetValue<bool>() && E.CanCast(target))
            {
