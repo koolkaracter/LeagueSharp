@@ -52,15 +52,16 @@ namespace UnderratedAIO.Champions
             {
                 lastR = 0f;
             }
+            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
-                    Combo();
+                    Combo(target);
                     break;
                 case Orbwalking.OrbwalkingMode.Mixed:
                     if (!minionBlock)
                     {
-                        Harass();
+                        Harass(target);
                     }
                     break;
                 case Orbwalking.OrbwalkingMode.LaneClear:
@@ -81,9 +82,8 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private void Combo()
+        private void Combo(Obj_AI_Hero target)
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
             if (target == null)
             {
                 return;
@@ -98,8 +98,7 @@ namespace UnderratedAIO.Champions
                 dist < config.Item("useqMaxRange").GetValue<Slider>().Value)
             {
                 var pos = Q.GetPrediction(target, true);
-                Console.WriteLine(pos.Hitchance);
-                if ((pos.Hitchance >= HitChance.Medium && dist < E.Range) || pos.Hitchance >= HitChance.High)
+                if ((pos.Hitchance >= HitChance.Medium && dist < 650) || pos.Hitchance >= HitChance.High)
                 {
                     Q.Cast(target, config.Item("packets").GetValue<bool>());
                 }
@@ -109,19 +108,26 @@ namespace UnderratedAIO.Champions
             {
                 E.Cast(target, config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("user").GetValue<bool>() && lastR.Equals(0) && R.CanCast(target) && qTrailOnMe &&
-                (((eBuff(target) || target.HasBuffOfType(BuffType.Flee)) && target.MoveSpeed > player.MoveSpeed &&
-                  dist > 340) ||
-                 (dist < 1000 && dist > 400 && target.CountAlliesInRange(1000) == 1 && cmbdmg+Environment.Hero.GetAdOverFive(target) > target.Health &&
-                  (target.Health > Q.GetDamage(target) || !Q.IsReady()))))
+            if (config.Item("user").GetValue<bool>() && lastR.Equals(0) && !target.UnderTurret(true) &&
+                R.CanCast(target) &&
+                ((qTrailOnMe && (eBuff(target) || target.HasBuffOfType(BuffType.Flee)) &&
+                  target.MoveSpeed > player.MoveSpeed && dist > 340) ||
+                 (dist < E.Range && dist > E.Range && target.CountAlliesInRange(1000) == 1 &&
+                  cmbdmg + Environment.Hero.GetAdOverFive(target) > target.Health &&
+                  (target.Health > Q.GetDamage(target) || !Q.IsReady())) ||
+                 (player.HealthPercent < 40 && target.HealthPercent < 40 && target.CountAlliesInRange(1000) == 1 &&
+                 target.CountEnemiesInRange(1000) == 1)))
             {
                 R.Cast(target, config.Item("packets").GetValue<bool>());
                 lastR = System.Environment.TickCount;
             }
-            if (config.Item("user").GetValue<bool>() && !lastR.Equals(0) && R.CanCast(target) && ((cmbdmg+Environment.Hero.GetAdOverFive(target) > target.Health || R.GetDamage(target)>target.Health)))
+            if (config.Item("user").GetValue<bool>() && !lastR.Equals(0) && R.CanCast(target) &&
+                ((cmbdmg * 1.6 + Environment.Hero.GetAdOverFive(target) > target.Health ||
+                  R.GetDamage(target) > target.Health)))
             {
                 var time = System.Environment.TickCount - lastR;
-                if (time > 3500f || player.Distance(target) > E.Range || cmbdmg > target.Health)
+                if (time > 3500f || player.Distance(target) > E.Range || cmbdmg > target.Health ||
+                    (player.HealthPercent < 40 && target.HealthPercent < 40))
                 {
                     R.Cast(target, config.Item("packets").GetValue<bool>());
                     lastR = 0f;
@@ -152,14 +158,13 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private void Harass()
+        private void Harass(Obj_AI_Hero target)
         {
             float perc = config.Item("minmanaH").GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc)
             {
                 return;
             }
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
             if (target == null)
             {
                 return;
@@ -211,7 +216,8 @@ namespace UnderratedAIO.Champions
                         spellName == "ZedUlt" || spellName == "LuluW" || spellName == "PantheonW" || spellName == "ViR" ||
                         spellName == "JudicatorReckoning" || spellName == "IreliaEquilibriumStrike" ||
                         spellName == "InfiniteDuress" || spellName == "SkarnerImpale" || spellName == "SowTheWind" ||
-                        spellName == "PuncturingTaunt" || spellName == "UrgotSwap2" || spellName == "NasusW")
+                        spellName == "PuncturingTaunt" || spellName == "UrgotSwap2" || spellName == "NasusW" ||
+                        spellName == "VolibearW" || spellName == "Feast")
                     {
                         W.Cast(config.Item("packets").GetValue<bool>());
                     }
@@ -240,7 +246,8 @@ namespace UnderratedAIO.Champions
                 {
                     W.Cast(config.Item("packets").GetValue<bool>());
                 }
-                if (sender.Distance(player) < 600 && spellName == "CassiopeiaPetrifyingGaze" && player.IsFacing(sender) && sender.IsFacing(player))
+                if (sender.Distance(player) < 600 && spellName == "CassiopeiaPetrifyingGaze" && player.IsFacing(sender) &&
+                    sender.IsFacing(player))
                 {
                     W.Cast(config.Item("packets").GetValue<bool>());
                 }
