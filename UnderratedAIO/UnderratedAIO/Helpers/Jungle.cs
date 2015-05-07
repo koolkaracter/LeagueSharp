@@ -64,7 +64,6 @@ namespace UnderratedAIO.Helpers
         {
             if (enabled && smiteSlot != SpellSlot.Unknown)
             {
-
                 var target = GetNearest(player.Position);
                 bool smiteReady = ObjectManager.Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready;
                 if (target != null)

@@ -352,7 +352,7 @@ namespace UnderratedAIO.Helpers
                     if (player.IsMelee() && target != null &&
                         target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) &&
                         target is Obj_AI_Hero && target.Position.Distance(Player.Position) > Player.AttackRange &&
-                        Game.CursorPos.Distance(target.Position) < 300)
+                        Game.CursorPos.Distance(target.Position) < 450)
                     {
                         AutoAttack.Delay = player.BasicAttack.SpellCastTime;
                         AutoAttack.Speed = player.BasicAttack.MissileSpeed;
