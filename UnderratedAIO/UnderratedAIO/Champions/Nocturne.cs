@@ -112,13 +112,13 @@ namespace UnderratedAIO.Champions
             if (config.Item("user").GetValue<bool>() && lastR.Equals(0) && R.CanCast(target) && qTrailOnMe &&
                 (((eBuff(target) || target.HasBuffOfType(BuffType.Flee)) && target.MoveSpeed > player.MoveSpeed &&
                   dist > 340) ||
-                 (dist < 1000 && dist > 400 && target.CountAlliesInRange(1000) == 1 && cmbdmg > target.Health &&
+                 (dist < 1000 && dist > 400 && target.CountAlliesInRange(1000) == 1 && cmbdmg+Environment.Hero.GetAdOverFive(target) > target.Health &&
                   (target.Health > Q.GetDamage(target) || !Q.IsReady()))))
             {
                 R.Cast(target, config.Item("packets").GetValue<bool>());
                 lastR = System.Environment.TickCount;
             }
-            if (config.Item("user").GetValue<bool>() && !lastR.Equals(0) && R.CanCast(target) && ((cmbdmg*1.6f > target.Health && !target.UnderTurret(true)) || R.GetDamage(target)>target.Health))
+            if (config.Item("user").GetValue<bool>() && !lastR.Equals(0) && R.CanCast(target) && ((cmbdmg+Environment.Hero.GetAdOverFive(target) > target.Health || R.GetDamage(target)>target.Health)))
             {
                 var time = System.Environment.TickCount - lastR;
                 if (time > 3500f || player.Distance(target) > E.Range || cmbdmg > target.Health)
