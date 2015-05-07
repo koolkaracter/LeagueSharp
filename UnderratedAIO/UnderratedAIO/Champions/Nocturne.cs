@@ -88,6 +88,7 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+            var eTarget = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
             var cmbdmg = ComboDamage(target);
             if (config.Item("useItems").GetValue<bool>())
             {
@@ -103,20 +104,21 @@ namespace UnderratedAIO.Champions
                     Q.Cast(target, config.Item("packets").GetValue<bool>());
                 }
             }
-            if (config.Item("usee").GetValue<bool>() && E.CanCast(target) &&
+            if (config.Item("usee").GetValue<bool>() && E.CanCast(eTarget) &&
                 dist < config.Item("useeMaxRange").GetValue<Slider>().Value)
             {
-                E.Cast(target, config.Item("packets").GetValue<bool>());
+                E.Cast(eTarget, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("user").GetValue<bool>() && lastR.Equals(0) && !target.UnderTurret(true) &&
                 R.CanCast(target) &&
                 ((qTrailOnMe && (eBuff(target) || target.HasBuffOfType(BuffType.Flee)) &&
                   target.MoveSpeed > player.MoveSpeed && dist > 340) ||
-                 (dist < E.Range && dist > E.Range && target.CountAlliesInRange(1000) == 1 &&
+                 (dist < 2000 && dist > E.Range && target.CountAlliesInRange(2000) ==
+                  target.CountEnemiesInRange(2000) &&
                   cmbdmg + Environment.Hero.GetAdOverFive(target) > target.Health &&
                   (target.Health > Q.GetDamage(target) || !Q.IsReady())) ||
                  (player.HealthPercent < 40 && target.HealthPercent < 40 && target.CountAlliesInRange(1000) == 1 &&
-                 target.CountEnemiesInRange(1000) == 1)))
+                  target.CountEnemiesInRange(1000) == 1)))
             {
                 R.Cast(target, config.Item("packets").GetValue<bool>());
                 lastR = System.Environment.TickCount;
