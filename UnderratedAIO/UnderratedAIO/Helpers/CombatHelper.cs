@@ -41,9 +41,21 @@ namespace UnderratedAIO.Helpers
                 new string[]
                 {
                     "frostarrow", "CaitlynHeadshotMissile", "KennenMegaProc", "QuinnWEnhanced", "TrundleQ",
-                    "XenZhaoThrust", "XenZhaoThrust2", "XenZhaoThrust3",  "RenektonExecute", "RenektonSuperExecute",
+                    "XenZhaoThrust", "XenZhaoThrust2", "XenZhaoThrust3", "RenektonExecute", "RenektonSuperExecute",
                     "MasterYiDoubleStrike", "Parley"
                 });
+
+        public static List<string> TargetedCC =
+            new List<string>(
+                new string[]
+                {
+                    "TristanaR", "BlindMonkRKick", "AlZaharNetherGrasp", "VayneCondemn", "JayceThunderingBlow", "Headbutt",
+                    "Drain", "BlindingDart", "RunePrison", "IceBlast", "Dazzle", "Fling", "MaokaiUnstableGrowth",
+                    "MordekaiserChildrenOfTheGrave", "ZedUlt", "LuluW", "PantheonW", "ViR", "JudicatorReckoning",
+                    "IreliaEquilibriumStrike", "InfiniteDuress", "SkarnerImpale", "SowTheWind", "PuncturingTaunt",
+                    "UrgotSwap2", "NasusW", "VolibearW", "Feast", "NocturneUnspeakableHorror"
+                });
+
 
         private static List<int> defItems =
             new List<int>(new int[] { ItemHandler.Qss.Id, ItemHandler.Qss.Id, ItemHandler.Dervish.Id });
@@ -150,11 +162,11 @@ namespace UnderratedAIO.Helpers
                 {
                     return true;
                 }
-                if (i.Health <= 12*player.Level && dotsMedDmg.Contains(buff.Name))
+                if (i.Health <= 12 * player.Level && dotsMedDmg.Contains(buff.Name))
                 {
                     return true;
                 }
-                if (i.Health <= 25*player.Level && dotsHighDmg.Contains(buff.Name))
+                if (i.Health <= 25 * player.Level && dotsHighDmg.Contains(buff.Name))
                 {
                     return true;
                 }
@@ -440,6 +452,10 @@ namespace UnderratedAIO.Helpers
                 }
             }
             return false;
+        }
+        public static bool isTargetedCC(string Spellname)
+        {
+            return TargetedCC.Contains(Spellname);
         }
 
         public static bool IsPossibleToReachHim(Obj_AI_Hero target, float moveSpeedBuff, float duration)

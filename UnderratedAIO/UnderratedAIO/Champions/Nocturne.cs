@@ -180,7 +180,7 @@ namespace UnderratedAIO.Champions
         private static float ComboDamage(Obj_AI_Hero hero)
         {
             double damage = 0;
-            if (Q.IsReady() && Q.Instance.ManaCost < player.Mana)
+            if (Q.IsReady() && Q.Instance.ManaCost<player.Mana)
             {
                 damage += Damage.GetSpellDamage(player, hero, SpellSlot.Q);
             }
@@ -210,16 +210,7 @@ namespace UnderratedAIO.Champions
                 var spellName = args.SData.Name;
                 if (args.Target.IsMe)
                 {
-                    if (spellName == "TristanaR" || spellName == "BlindMonkRKick" || spellName == "AlZaharNetherGrasp" ||
-                        spellName == "VayneCondemn" || spellName == "JayceThunderingBlow" || spellName == "Headbutt" ||
-                        spellName == "Drain" || spellName == "BlindingDart" || spellName == "RunePrison" ||
-                        spellName == "IceBlast" || spellName == "Dazzle" || spellName == "Fling" ||
-                        spellName == "MaokaiUnstableGrowth" || spellName == "MordekaiserChildrenOfTheGrave" ||
-                        spellName == "ZedUlt" || spellName == "LuluW" || spellName == "PantheonW" || spellName == "ViR" ||
-                        spellName == "JudicatorReckoning" || spellName == "IreliaEquilibriumStrike" ||
-                        spellName == "InfiniteDuress" || spellName == "SkarnerImpale" || spellName == "SowTheWind" ||
-                        spellName == "PuncturingTaunt" || spellName == "UrgotSwap2" || spellName == "NasusW" ||
-                        spellName == "VolibearW" || spellName == "Feast")
+                    if (CombatHelper.isTargetedCC(spellName))
                     {
                         W.Cast(config.Item("packets").GetValue<bool>());
                     }
