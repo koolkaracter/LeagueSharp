@@ -48,10 +48,6 @@ namespace UnderratedAIO.Champions
                     minionBlock = true;
                 }
             }
-            if (lastR > 4000f)
-            {
-                lastR = 0f;
-            }
             Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
             switch (orbwalker.ActiveMode)
             {
@@ -89,12 +85,16 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var eTarget = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
-            var cmbdmg = ComboDamage(target);
+            var cmbdmg = ComboDamage(target) + ItemHandler.GetItemsDamage(target);
             if (config.Item("useItems").GetValue<bool>())
             {
                 ItemHandler.UseItems(target, config, cmbdmg);
             }
             var dist = player.Distance(target);
+            if (lastR > 4000f)
+            {
+                lastR = 0f;
+            }
             if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) &&
                 dist < config.Item("useqMaxRange").GetValue<Slider>().Value)
             {
@@ -111,9 +111,9 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("user").GetValue<bool>() && lastR.Equals(0) && !target.UnderTurret(true) &&
                 R.CanCast(target) &&
-                ((qTrailOnMe && (eBuff(target) || target.HasBuffOfType(BuffType.Flee)) &&
-                  target.MoveSpeed > player.MoveSpeed && dist > 340) ||
-                 (dist < 2000 && dist > E.Range && target.CountAlliesInRange(2000) ==
+                ((qTrailOnMe && eBuff(target) &&
+                  target.MoveSpeed > player.MoveSpeed && dist > 360 && target.HealthPercent<60) ||
+                 (dist < 2000 && dist > 900 && target.CountAlliesInRange(2000) ==
                   target.CountEnemiesInRange(2000) &&
                   cmbdmg + Environment.Hero.GetAdOverFive(target) > target.Health &&
                   (target.Health > Q.GetDamage(target) || !Q.IsReady())) ||
@@ -125,7 +125,8 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("user").GetValue<bool>() && !lastR.Equals(0) && R.CanCast(target) &&
                 ((cmbdmg * 1.6 + Environment.Hero.GetAdOverFive(target) > target.Health ||
-                  R.GetDamage(target) > target.Health)))
+                  R.GetDamage(target) > target.Health || (qTrailOnMe && eBuff(target) &&
+                  target.MoveSpeed > player.MoveSpeed && dist > 360 && target.HealthPercent < 60))))
             {
                 var time = System.Environment.TickCount - lastR;
                 if (time > 3500f || player.Distance(target) > E.Range || cmbdmg > target.Health ||
@@ -192,7 +193,7 @@ namespace UnderratedAIO.Champions
             {
                 damage += Damage.GetSpellDamage(player, hero, SpellSlot.R);
             }
-            damage += ItemHandler.GetItemsDamage(hero);
+            //damage += ItemHandler.GetItemsDamage(hero);
             var ignitedmg = player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
             if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready &&
                 hero.Health < damage + ignitedmg)
