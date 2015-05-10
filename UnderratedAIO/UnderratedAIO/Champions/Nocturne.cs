@@ -37,17 +37,6 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            bool minionBlock = false;
-            foreach (var minion in
-                MinionManager.GetMinions(
-                    player.Position, player.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
-            {
-                if (HealthPrediction.GetHealthPrediction(minion, 3000) <=
-                    Damage.GetAutoAttackDamage(player, minion, false))
-                {
-                    minionBlock = true;
-                }
-            }
             Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
             switch (orbwalker.ActiveMode)
             {
@@ -55,16 +44,10 @@ namespace UnderratedAIO.Champions
                     Combo(target);
                     break;
                 case Orbwalking.OrbwalkingMode.Mixed:
-                    if (!minionBlock)
-                    {
                         Harass(target);
-                    }
                     break;
                 case Orbwalking.OrbwalkingMode.LaneClear:
-                    if (!minionBlock)
-                    {
                         Clear();
-                    }
                     break;
                 case Orbwalking.OrbwalkingMode.LastHit:
                     break;
@@ -147,6 +130,10 @@ namespace UnderratedAIO.Champions
 
         private void Clear()
         {
+            if (Environment.Minion.KillableMinion(player.AttackRange))
+            {
+                return;
+            }
             float perc = config.Item("minmana").GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc)
             {
@@ -163,6 +150,10 @@ namespace UnderratedAIO.Champions
 
         private void Harass(Obj_AI_Hero target)
         {
+            if (Environment.Minion.KillableMinion(player.AttackRange))
+            {
+                return;
+            }
             float perc = config.Item("minmanaH").GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc)
             {

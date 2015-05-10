@@ -38,12 +38,6 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            bool minionBlock = false;
-            foreach (var minion in MinionManager.GetMinions(player.Position, player.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
-            {
-                if (HealthPrediction.GetHealthPrediction(minion, 3000) <= Damage.GetAutoAttackDamage(player, minion, false))
-                    minionBlock = true;
-            }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
             switch (orbwalker.ActiveMode)

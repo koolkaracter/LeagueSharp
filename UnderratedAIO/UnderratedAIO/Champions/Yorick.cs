@@ -39,22 +39,13 @@ namespace UnderratedAIO.Champions
 
        private void Game_OnGameUpdate(EventArgs args)
        {
-           bool minionBlock = false;
-           foreach (Obj_AI_Minion minion in MinionManager.GetMinions(player.Position, player.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
-           {
-               if (HealthPrediction.GetHealthPrediction(minion, 3000) <= Damage.GetAutoAttackDamage(player, minion, false))
-                   minionBlock = true;
-           }
            switch (orbwalker.ActiveMode)
            {
                case Orbwalking.OrbwalkingMode.Combo:
                    Combo();
                    break;
                case Orbwalking.OrbwalkingMode.Mixed:
-                   if (!minionBlock)
-                   {
                        Harass();
-                   }
                    break;
                case Orbwalking.OrbwalkingMode.LaneClear:
                    Clear();
@@ -62,9 +53,6 @@ namespace UnderratedAIO.Champions
                case Orbwalking.OrbwalkingMode.LastHit:
                    break;
                default:
-                   if (!minionBlock)
-                   {
-                   }
                    break;
            }
            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);

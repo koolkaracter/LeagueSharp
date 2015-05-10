@@ -67,12 +67,6 @@ namespace UnderratedAIO.Champions
 
         private static void Game_OnGameUpdate(EventArgs args)
         {
-            bool minionBlock = false;
-            foreach (Obj_AI_Minion minion in MinionManager.GetMinions(me.Position, me.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
-            {
-                if (HealthPrediction.GetHealthPrediction(minion, 3000) <= Damage.GetAutoAttackDamage(me, minion, false))
-                    minionBlock = true;
-            }
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -82,7 +76,7 @@ namespace UnderratedAIO.Champions
                     //if (!minionBlock) Harass();
                     break;
                 case Orbwalking.OrbwalkingMode.LaneClear:
-                    if (!minionBlock) Clear();
+                    Clear();
                     break;
                 case Orbwalking.OrbwalkingMode.LastHit:
                     break;

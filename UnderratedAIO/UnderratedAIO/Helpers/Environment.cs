@@ -18,12 +18,13 @@ namespace UnderratedAIO.Helpers
             {
                 return ObjectManager.Get<Obj_AI_Minion>().Count(i => !i.IsDead && i.IsEnemy && l.Distance(i) < p);
             }
+
             public static int countMinionsInrange(Vector3 l, float p)
             {
                 return ObjectManager.Get<Obj_AI_Minion>().Count(i => !i.IsDead && i.IsEnemy && i.Distance(l) < p);
             }
-            
-            public static Vector3 bestVectorToAoeFarm(Vector3 center, float spellrange, float spellWidth, int hit=0)
+
+            public static Vector3 bestVectorToAoeFarm(Vector3 center, float spellrange, float spellWidth, int hit = 0)
             {
                 var minions = MinionManager.GetMinions(center, spellrange, MinionTypes.All, MinionTeam.NotAlly);
                 Vector3 bestPos = new Vector3();
@@ -49,6 +50,17 @@ namespace UnderratedAIO.Helpers
 
                 return bestPos;
             }
+
+            public static bool KillableMinion(float range)
+            {
+                return
+                    MinionManager.GetMinions(
+                        player.Position, player.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None)
+                        .Any(
+                            minion =>
+                                HealthPrediction.GetHealthPrediction(minion, 3000) <=
+                                Damage.GetAutoAttackDamage(player, minion, false));
+            }
         }
 
         public class Hero
@@ -57,15 +69,23 @@ namespace UnderratedAIO.Helpers
             {
                 return ObjectManager.Get<Obj_AI_Hero>().Count(i => !i.IsDead && i.IsEnemy && i.Distance(l) < p);
             }
+
             public static int countChampsAtrangeA(Vector3 l, float p)
             {
                 return ObjectManager.Get<Obj_AI_Hero>().Count(i => !i.IsDead && i.IsAlly && i.Distance(l) < p);
             }
-            public static Obj_AI_Hero mostEnemyAtFriend(Obj_AI_Hero player, float spellRange, float spellWidth, int min=0)
+
+            public static Obj_AI_Hero mostEnemyAtFriend(Obj_AI_Hero player,
+                float spellRange,
+                float spellWidth,
+                int min = 0)
             {
                 return
                     ObjectManager.Get<Obj_AI_Hero>()
-                        .Where(i => !i.IsDead && i.IsAlly && i.CountEnemiesInRange(spellWidth) > min && i.Distance(player) < spellRange)
+                        .Where(
+                            i =>
+                                !i.IsDead && i.IsAlly && i.CountEnemiesInRange(spellWidth) > min &&
+                                i.Distance(player) < spellRange)
                         .OrderByDescending(i => i.CountEnemiesInRange(spellWidth))
                         .FirstOrDefault();
             }
@@ -78,7 +98,6 @@ namespace UnderratedAIO.Helpers
                 int hits = 0;
                 foreach (var hero in heroes)
                 {
-
                     if (countChampsAtrange(hero.Position, spellwidth) > hits)
                     {
                         bestPos = hero.Position;
@@ -101,26 +120,21 @@ namespace UnderratedAIO.Helpers
 
             public static float GetAdOverFive(Obj_AI_Hero hero)
             {
-                    double basicDmg = 0;
-                    int attacks = (int)Math.Floor(hero.AttackSpeedMod * 5);
-                    for (int i = 0; i < attacks; i++)
+                double basicDmg = 0;
+                int attacks = (int) Math.Floor(hero.AttackSpeedMod * 5);
+                for (int i = 0; i < attacks; i++)
+                {
+                    if (hero.Crit > 0)
                     {
-
-                        if (hero.Crit > 0)
-                        {
-
-                            basicDmg += hero.GetAutoAttackDamage(player) * (1 + hero.Crit / attacks);
-                        }
-                        else
-                        {
-
-                            basicDmg += hero.GetAutoAttackDamage(player);
-                        }
-                    } 
-                return (float)basicDmg;
+                        basicDmg += hero.GetAutoAttackDamage(player) * (1 + hero.Crit / attacks);
+                    }
+                    else
+                    {
+                        basicDmg += hero.GetAutoAttackDamage(player);
+                    }
                 }
-
-             
+                return (float) basicDmg;
+            }
         }
 
         public class Turret
@@ -128,7 +142,6 @@ namespace UnderratedAIO.Helpers
             public static int countTurretsInRange(Obj_AI_Hero l)
             {
                 return ObjectManager.Get<Obj_AI_Turret>().Count(i => !i.IsDead && i.IsEnemy && l.Distance(i) < 750f);
-
             }
         }
 
@@ -140,7 +153,9 @@ namespace UnderratedAIO.Helpers
                 for (int i = 1; i < 6; i++)
                 {
                     if (player.Extend(enemy, distance + 60 * i).IsWall())
+                    {
                         return true;
+                    }
                 }
                 return false;
             }

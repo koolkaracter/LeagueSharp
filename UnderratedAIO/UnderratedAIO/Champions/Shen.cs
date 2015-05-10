@@ -122,16 +122,10 @@ namespace UnderratedAIO.Champions
             GetPassive();
             Ulti();
             currEnergy = me.Mana;
-            bool minionBlock = false;
-            foreach (var minion in MinionManager.GetMinions(me.Position, me.AttackRange, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.None))
-            {
-                if (HealthPrediction.GetHealthPrediction(minion, 3000) <= Damage.GetAutoAttackDamage(me, minion, false))
-                    minionBlock = true;
-            }
-			            if (config.Item("useeflash").GetValue<KeyBind>().Active && me.Spellbook.CanUseSpell(me.GetSpellSlot("SummonerFlash")) == SpellState.Ready)
-			            {
-			                FlashCombo();
-			            }
+			if (config.Item("useeflash").GetValue<KeyBind>().Active && me.Spellbook.CanUseSpell(me.GetSpellSlot("SummonerFlash")) == SpellState.Ready)
+			{
+			    FlashCombo();
+			}
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -139,7 +133,7 @@ namespace UnderratedAIO.Champions
                     break;
                 case Orbwalking.OrbwalkingMode.Mixed:
                     LasthitQ();
-                    if (!minionBlock) Harass();
+                    Harass();
                     break;
                 case Orbwalking.OrbwalkingMode.LaneClear:
                     LasthitQ();
@@ -149,9 +143,6 @@ namespace UnderratedAIO.Champions
                     LasthitQ();
                     break;
                 default:
-                    if (!minionBlock)
-                    {
-                    }
                     break;
 
             }
