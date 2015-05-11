@@ -328,10 +328,17 @@ namespace UnderratedAIO.Helpers
             float extraWindup = 90,
             float holdAreaRadius = 0,
             bool useFixedDistance = true,
-            bool randomizeMinDistance = true)
+            bool randomizeMinDistance = true,
+            bool autoWindup=false)
         {
             try
             {
+                if (autoWindup)
+                {
+                        extraWindup =25 + Game.Ping * (1.4f + Player.AttackCastDelay*2) ;
+                        Console.WriteLine(extraWindup);
+                    
+                }
                 if (target.IsValidTarget() && CanAttack())
                 {
                     DisableNextAttack = false;
@@ -485,10 +492,13 @@ namespace UnderratedAIO.Helpers
                 misc.AddItem(
                     new MenuItem("HoldPosRadius", "Hold Position Radius").SetShared().SetValue(new Slider(90, 0, 150)));
                 misc.AddItem(new MenuItem("PriorizeFarm", "Priorize farm over harass").SetShared().SetValue(true));
+                misc.AddItem(
+                    new MenuItem("LastHitDmg", "Percentage of damage for lasthit").SetShared().SetValue(new Slider(100, 0, 100)));
                 _config.AddSubMenu(misc);
                 /* Delay sliders */
                 _config.AddItem(
                     new MenuItem("ExtraWindup", "Extra windup time").SetShared().SetValue(new Slider(80, 0, 200)));
+                _config.AddItem(new MenuItem("AutoWindup", "Try to fix stuttering").SetShared().SetValue(false));
                 _config.AddItem(new MenuItem("FarmDelay", "Farm delay").SetShared().SetValue(new Slider(0, 0, 200)));
                 _config.AddItem(
                     new MenuItem("MovementDelay", "Movement delay").SetShared().SetValue(new Slider(80, 0, 150)))
@@ -620,7 +630,12 @@ namespace UnderratedAIO.Helpers
                             {
                                 FireOnNonKillableMinion(minion);
                             }
-                            if (predHealth > 0 && predHealth <= Player.GetAutoAttackDamage(minion, true))
+                            var damage = Player.GetAutoAttackDamage(minion, true);
+                            if (ActiveMode != OrbwalkingMode.LaneClear)
+                            {
+                                damage = damage / 100 * _config.Item("LastHitDmg").GetValue<Slider>().Value;
+                            }
+                            if (predHealth > 0 && predHealth <= damage)
                             {
                                 return minion;
                             }
@@ -732,7 +747,8 @@ namespace UnderratedAIO.Helpers
                     Orbwalk(
                         target, (_orbwalkingPoint.To2D().IsValid()) ? _orbwalkingPoint : Game.CursorPos,
                         _config.Item("ExtraWindup").GetValue<Slider>().Value,
-                        _config.Item("HoldPosRadius").GetValue<Slider>().Value);
+                        _config.Item("HoldPosRadius").GetValue<Slider>().Value,true,true,
+                        _config.Item("AutoWindup").GetValue<bool>());
                 }
                 catch (Exception e)
                 {
