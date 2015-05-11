@@ -336,7 +336,6 @@ namespace UnderratedAIO.Helpers
                 if (autoWindup)
                 {
                         extraWindup =25 + Game.Ping * (1.4f + Player.AttackCastDelay*2) ;
-                        Console.WriteLine(extraWindup);
                     
                 }
                 if (target.IsValidTarget() && CanAttack())
