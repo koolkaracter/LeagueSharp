@@ -79,8 +79,8 @@ namespace UnderratedAIO.Helpers
                     }
                 }
                 else if ((player.Distance(target) > config.Item("bilminr").GetValue<Slider>().Value &&
-                          IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 &&
-                          (target.Health / target.MaxHealth * 100f) < 40) ||
+                          IsHeRunAway(target) &&
+                          (target.Health / target.MaxHealth * 100f) < 40 && target.Distance(player)>player.AttackRange) ||
                          (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     bilgewater.Cast(target);
@@ -101,8 +101,8 @@ namespace UnderratedAIO.Helpers
                           config.Item("botrmyhealth").GetValue<Slider>().Value &&
                           (target.Health / target.MaxHealth * 100f) <
                           config.Item("botrenemyhealth").GetValue<Slider>().Value) ||
-                         (IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 &&
-                          (target.Health / target.MaxHealth * 100f) < 40) ||
+                         (IsHeRunAway(target) &&
+                          (target.Health / target.MaxHealth * 100f) < 40 && target.Distance(player) > player.AttackRange) ||
                          (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     botrk.Cast(target);
@@ -119,8 +119,8 @@ namespace UnderratedAIO.Helpers
                     }
                 }
                 else if ((player.Distance(target) > config.Item("hexminr").GetValue<Slider>().Value &&
-                          IsHeRunAway(target) && player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) + 50 &&
-                          (target.Health / target.MaxHealth * 100f) < 40) ||
+                          IsHeRunAway(target) &&
+                          (target.Health / target.MaxHealth * 100f) < 40 && target.Distance(player) > player.AttackRange) ||
                          (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     hexgun.Cast(target);

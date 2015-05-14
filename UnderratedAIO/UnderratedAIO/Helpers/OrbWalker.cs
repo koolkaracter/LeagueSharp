@@ -470,7 +470,7 @@ namespace UnderratedAIO.Helpers
             private Vector3 _orbwalkingPoint;
             private Obj_AI_Minion _prevMinion;
             private readonly Obj_AI_Hero Player;
-
+            public bool Enabled = true;
             public Orbwalker(Menu attachToMenu)
             {
                 _config = attachToMenu;
@@ -729,6 +729,10 @@ namespace UnderratedAIO.Helpers
             {
                 try
                 {
+                    if (!Enabled)
+                    {
+                      return;  
+                    }
                     if (ActiveMode == OrbwalkingMode.None)
                     {
                         return;

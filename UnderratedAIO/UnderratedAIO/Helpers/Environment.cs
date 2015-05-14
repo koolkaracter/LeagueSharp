@@ -159,6 +159,19 @@ namespace UnderratedAIO.Helpers
                 }
                 return false;
             }
+
+            public static float GetPath(Obj_AI_Hero hero, Vector3 b)
+            {
+                var path = hero.GetPath(b);
+                var lastPoint = path[0];
+                var distance = 0f;
+                foreach (var point in path.Where(point => !point.Equals(lastPoint)))
+                {
+                    distance += lastPoint.Distance(point);
+                    lastPoint = point;
+                }
+                return distance;
+            }
         }
     }
 }

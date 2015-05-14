@@ -2,20 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using Color = System.Drawing.Color;
-
 using LeagueSharp;
 using LeagueSharp.Common;
-
 using UnderratedAIO.Helpers;
 using Environment = UnderratedAIO.Helpers.Environment;
 using Orbwalking = UnderratedAIO.Helpers.Orbwalking;
 
 namespace UnderratedAIO.Champions
 {
-    class Other
+    internal class Other
     {
         public static Menu config;
         public static Orbwalking.Orbwalker orbwalker;
+        public static LastPositions positions;
         public static AutoLeveler autoLeveler;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
 
@@ -31,9 +30,19 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
+            if (config.Item("Enabledorb").GetValue<bool>())
+            {
+                orbwalker.Enabled = true;
+            }
+            else
+            {
+                orbwalker.Enabled = false;
+            }
+
             if (config.Item("Enabledcomm").GetValue<bool>())
             {
                 autoLeveler.enabled = true;
+                positions.enabled = true;
                 switch (orbwalker.ActiveMode)
                 {
                     case Orbwalking.OrbwalkingMode.Combo:
@@ -50,27 +59,37 @@ namespace UnderratedAIO.Champions
                 }
                 Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
                 if (config.Item("QSSEnabled").GetValue<bool>())
+                {
                     ItemHandler.UseCleanse(config);
+                }
             }
             else
             {
                 autoLeveler.enabled = false;
+                positions.enabled = false;
             }
         }
 
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(900, TargetSelector.DamageType.Physical);
-            if (target == null) return;
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config);
+            if (target == null)
+            {
+                return;
+            }
+            if (config.Item("useItems").GetValue<bool>())
+            {
+                ItemHandler.UseItems(target, config);
+            }
         }
 
         private void Game_OnDraw(EventArgs args)
         {
             if (config.Item("Enabledcomm").GetValue<bool>())
             {
-                Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
-            } 
+                Helpers.Jungle.ShowSmiteStatus(
+                    config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
+            }
         }
 
         private void InitMenu()
@@ -83,6 +102,7 @@ namespace UnderratedAIO.Champions
             // Orbwalker
             Menu menuOrb = new Menu("Orbwalker", "orbwalker");
             orbwalker = new Orbwalking.Orbwalker(menuOrb);
+            menuOrb.AddItem(new MenuItem("Enabledorb", "Enable OrbWalker")).SetValue(true);
             config.AddSubMenu(menuOrb);
             Menu menuC = new Menu("Combo ", "csettings");
             menuC = ItemHandler.addItemOptons(menuC);
@@ -94,9 +114,15 @@ namespace UnderratedAIO.Champions
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);
-
+            if (player.ChampionName == "Ezreal" || player.ChampionName == "Jinx" || player.ChampionName == "Draven" ||
+                player.ChampionName == "Ashe")
+            {
+                Menu RandomUltM = new Menu("RandomUlt", "RandomUlt");
+                positions = new LastPositions(RandomUltM);
+                menuM.AddSubMenu(RandomUltM);
+            }
             config.AddSubMenu(menuM);
-            config.AddItem(new MenuItem("Enabledcomm", "Enabled")).SetValue(false);
+            config.AddItem(new MenuItem("Enabledcomm", "Enable Utilies")).SetValue(false);
             config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
         }

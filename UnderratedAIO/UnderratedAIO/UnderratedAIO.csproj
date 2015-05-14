@@ -80,6 +80,7 @@
     <Compile Include="Helpers\Environment.cs" />
     <Compile Include="Helpers\ItemHandler.cs" />
     <Compile Include="Helpers\Jungle.cs" />
+    <Compile Include="Helpers\LastPositions.cs" />
     <Compile Include="Helpers\OrbWalker.cs">
       <SubType>Code</SubType>
     </Compile>

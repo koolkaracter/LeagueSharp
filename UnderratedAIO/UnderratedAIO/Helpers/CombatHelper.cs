@@ -154,6 +154,70 @@ namespace UnderratedAIO.Helpers
 
         #region Common
 
+        public static List<Vector3> PointsAroundTheTarget(Obj_AI_Base target, float dist)
+        {
+            if (target == null)
+            {
+                return new List<Vector3>();
+            }
+            List<Vector3> list = new List<Vector3>();
+            var newPos = new Vector3();
+            var prec = 15;
+            if (dist>1)
+            {
+                prec = 30;
+            }
+            var k = (float)((2 * dist * Math.PI)/prec);
+            for (int i = 1; i < prec+1; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    var perimeter=target.Position.Extend(new Vector3(target.Direction.X, target.Direction.Y, target.Position.Z),dist);
+                    newPos = new Vector3(perimeter.X + 65 * j, perimeter.Y + 65 * j, target.Position.Z);
+                    var rotated = newPos.To2D().RotateAroundPoint(target.Position.To2D(), k * i).To3D();
+                    list.Add(rotated);
+                }
+            }
+
+            return list;
+        }
+        public static List<Vector3> PointsAroundTheTarget(Vector3 pos, float dist, float prec=15, float prec2=6)
+        {
+            if (!pos.IsValid())
+            {
+                return new List<Vector3>();
+            }
+            List<Vector3> list = new List<Vector3>();
+            if (dist > 205)
+            {
+                prec = 30;
+                prec2 = 8;
+            }
+            if (dist > 805)
+            {
+                dist = (float) (dist * 1.5);
+                prec = 45;
+                prec2 = 10;
+            }
+            var angle = 360 / prec * Math.PI / 180.0f;
+            var step = dist * 2 / prec2;
+            for (int i = 0; i < prec; i++)
+            {
+                for (int j = 0; j < 6; j++)
+                {
+                    list.Add(new Vector3(pos.X + (float)(Math.Cos(angle * i) * (j * step)), pos.Y + (float)(Math.Sin(angle * i) * (j * step)) - 90, pos.Z));
+                }
+                
+            }
+
+            return list;
+        }
+        public static bool IsFacing(Obj_AI_Base source, Vector3 target)
+        {
+            if (source==null || !target.IsValid())
+                return false;
+            return (double)Geometry.AngleBetween(Geometry.To2D(source.Direction), Geometry.To2D(target - source.Position)) < 90.0;
+        }
         public static bool CheckCriticalBuffs(Obj_AI_Hero i)
         {
             foreach (BuffInstance buff in i.Buffs)
