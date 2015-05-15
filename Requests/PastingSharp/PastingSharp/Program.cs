@@ -14,6 +14,7 @@ namespace PastingSharp
         public static string contents = "";
         public static string[] linestoprint;
         public static Menu menu;
+        public static bool sent = false;
         public static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
@@ -23,8 +24,9 @@ namespace PastingSharp
         {
 
             menu = new Menu("PastingSharp", "pasting", true);
-            menu.AddItem(new MenuItem("sleep", "Pause between pastes (seconds)").SetValue(new Slider(0, 0, 15)));
+            menu.AddItem(new MenuItem("sleep", "Pause between pastes (seconds)").SetValue(new Slider(5, 0, 15)));
             menu.AddItem(new MenuItem("paste", "Paste").SetValue(new KeyBind("P".ToCharArray()[0], KeyBindType.Press)));
+            menu.AddItem(new MenuItem("pasteall", "Paste for all").SetValue(new KeyBind("O".ToCharArray()[0], KeyBindType.Press)));
             menu.AddToMainMenu();
             Game.PrintChat("PastingSharp loaded. Press P to paste.");
 
@@ -32,7 +34,10 @@ namespace PastingSharp
         }
         public static void Game_OnGameUpdate(EventArgs args)
         {
-
+            if (sent)
+            {
+                return;
+            }
             if (forms.Clipboard.ContainsText())
             {
                 contents = forms.Clipboard.GetText();
@@ -45,9 +50,11 @@ namespace PastingSharp
 
             if (menu.Item("paste").GetValue<KeyBind>().Active)
             {
-                if (linestoprint == null)
+                if (!contents.Contains("\n"))
                 {
                     Game.Say(contents);
+                    sent = true;
+                    Utility.DelayAction.Add(menu.Item("sleep").GetValue<Slider>().Value * 1000, () => sent = false);
                 }
                 else
                 {
@@ -55,13 +62,30 @@ namespace PastingSharp
                     {
                         Game.Say(s);
                     }
+                    sent = true;
+                    Utility.DelayAction.Add(menu.Item("sleep").GetValue<Slider>().Value * 1000, () => sent = false);
                     var linestoprintsize = contents.Count();
                     Array.Clear(linestoprint, 0, linestoprintsize);
                 }
-                var sleep = (menu.Item("sleep").GetValue<int>()) * 1000;
-                if (sleep != 0)
+            }
+            if (menu.Item("pasteall").GetValue<KeyBind>().Active)
+            {
+                if (!contents.Contains("\n"))
                 {
-                    System.Threading.Thread.Sleep(sleep);
+                    Game.Say("/all " + contents);
+                    sent = true;
+                    Utility.DelayAction.Add(menu.Item("sleep").GetValue<Slider>().Value * 1000, () => sent = false);
+                }
+                else
+                {
+                    foreach (string s in linestoprint)
+                    {
+                        Game.Say("/all " + s);
+                    }
+                    sent = true;
+                    Utility.DelayAction.Add(menu.Item("sleep").GetValue<Slider>().Value * 1000, () => sent = false);
+                    var linestoprintsize = contents.Count();
+                    Array.Clear(linestoprint, 0, linestoprintsize);
                 }
             }
             
