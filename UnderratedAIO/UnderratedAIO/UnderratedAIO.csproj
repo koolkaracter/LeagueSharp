@@ -64,6 +64,7 @@
     <Compile Include="Champions\Garen.cs" />
     <Compile Include="Champions\Maokai.cs" />
     <Compile Include="Champions\Mordekaiser.cs" />
+    <Compile Include="Champions\Nasus.cs" />
     <Compile Include="Champions\Nocturne.cs" />
     <Compile Include="Champions\Other.cs" />
     <Compile Include="Champions\Poppy.cs" />
