@@ -234,9 +234,9 @@ namespace UnderratedAIO.Helpers
             if (player.ChampionName == "Draven" && player.ChampionName == "Ashe" && player.ChampionName == "Jinx")
             {
                 var width = 160f;
-                if (player.ChampionName == "130f")
+                if (player.ChampionName == "Ashe")
                 {
-                    width = 160f;
+                    width = 130f;
                 }
                 if (player.ChampionName == "Jinx")
                 {

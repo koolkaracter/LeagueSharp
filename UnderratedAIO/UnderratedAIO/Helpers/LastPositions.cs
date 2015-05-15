@@ -223,9 +223,9 @@ namespace UnderratedAIO.Helpers
             if (player.ChampionName == "Draven" && player.ChampionName == "Ashe" && player.ChampionName == "Jinx")
             {
                 var width = 160f;
-                if (player.ChampionName == "130f")
+                if (player.ChampionName == "Ashe")
                 {
-                    width = 160f;
+                    width = 130f;
                 }
                 if (player.ChampionName == "Jinx")
                 {
@@ -247,7 +247,7 @@ namespace UnderratedAIO.Helpers
             {
                 return (dist / 2000) * 1000 + 1000;
             }
-
+            //Beaving's calculations
             if (player.ChampionName == "Jinx" && dist > 1350)
             {
                 const float accelerationrate = 0.3f;
