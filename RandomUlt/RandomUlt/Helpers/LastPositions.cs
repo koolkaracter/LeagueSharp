@@ -43,7 +43,19 @@ namespace UnderratedAIO.Helpers
             {
                 R.SetSkillshot(400f, 160f, 2000f, false, SkillshotType.SkillshotLine);
             }
+            if (player.ChampionName == "Draven")
+            {
+                R.SetSkillshot(400f, 160f, 2000f, false, SkillshotType.SkillshotLine);
+            }
+            if (player.ChampionName == "Gangplank")
+            {
+                R.SetSkillshot(100f, 600f, R.Speed, false, SkillshotType.SkillshotCone);
+            }
             config.AddItem(new MenuItem("UseR", "Use R")).SetValue(true);
+            if (player.ChampionName == "Gangplank")
+            {
+                config.AddItem(new MenuItem("gpWaves", "GP ult waves to damage")).SetValue(new Slider(2, 1, 7));
+            }
             config.AddItem(new MenuItem("RandomUltDrawings", "Draw possible place")).SetValue(false);
             Menu DontUlt = new Menu("Don't Ult", "DontUltRandomUlt");
             foreach (var e in HeroManager.Enemies)
@@ -108,10 +120,7 @@ namespace UnderratedAIO.Helpers
                 {
                     pos =
                         PointsAroundTheTarget(enemy.Player.Position, trueDist)
-                            .Where(
-                                p =>
-                                    !p.IsWall() && line.Distance(p) < dist &&
-                                    GetPath(enemy.Player, p) < trueDist)
+                            .Where(p => !p.IsWall() && line.Distance(p) < dist / 1.2 && GetPath(enemy.Player, p) < trueDist)
                             .OrderByDescending(p => NavMesh.IsWallOfGrass(p, 10))
                             .ThenBy(p => line.Distance(p))
                             .FirstOrDefault();
@@ -120,7 +129,7 @@ namespace UnderratedAIO.Helpers
                 {
                     Drawing.DrawCircle(pos, 50, Color.Red);
                 }
-                Drawing.DrawCircle(line, dist, Color.LawnGreen);
+                Drawing.DrawCircle(line, dist / 1.2f, Color.LawnGreen);
             }
         }
 
@@ -184,10 +193,7 @@ namespace UnderratedAIO.Helpers
                     }
                     pos =
                         PointsAroundTheTarget(enemy.Player.Position, trueDist)
-                            .Where(
-                                p =>
-                                    !p.IsWall() && line.Distance(p) < dist &&
-                                    GetPath(enemy.Player, p) < trueDist)
+                            .Where(p => !p.IsWall() && line.Distance(p) < dist / 1.2 && GetPath(enemy.Player, p) < trueDist)
                             .OrderByDescending(p => NavMesh.IsWallOfGrass(p, 10))
                             .ThenBy(p => line.Distance(p))
                             .FirstOrDefault();
@@ -198,6 +204,7 @@ namespace UnderratedAIO.Helpers
                 }
             }
         }
+
         public static float GetPath(Obj_AI_Hero hero, Vector3 b)
         {
             var path = hero.GetPath(b);
@@ -210,6 +217,7 @@ namespace UnderratedAIO.Helpers
             }
             return distance;
         }
+
         private bool CheckShieldTower(Vector3 pos)
         {
             return
@@ -285,6 +293,7 @@ namespace UnderratedAIO.Helpers
             }
             return 0;
         }
+
         public static List<Vector3> PointsAroundTheTarget(Vector3 pos, float dist, float prec = 15, float prec2 = 6)
         {
             if (!pos.IsValid())
@@ -299,7 +308,7 @@ namespace UnderratedAIO.Helpers
             }
             if (dist > 805)
             {
-                dist = (float)(dist * 1.5);
+                dist = (float) (dist * 1.5);
                 prec = 45;
                 prec2 = 10;
             }
@@ -309,30 +318,36 @@ namespace UnderratedAIO.Helpers
             {
                 for (int j = 0; j < 6; j++)
                 {
-                    list.Add(new Vector3(pos.X + (float)(Math.Cos(angle * i) * (j * step)), pos.Y + (float)(Math.Sin(angle * i) * (j * step)) - 90, pos.Z));
+                    list.Add(
+                        new Vector3(
+                            pos.X + (float) (Math.Cos(angle * i) * (j * step)),
+                            pos.Y + (float) (Math.Sin(angle * i) * (j * step)) - 90, pos.Z));
                 }
-
             }
 
             return list;
         }
+
         private bool checkdmg(Obj_AI_Hero target)
         {
+            var dmg = R.GetDamage(target);
             if (player.ChampionName == "Ezreal" || player.ChampionName == "Draven")
             {
-                if (R.GetDamage(target) * 0.7 > target.Health)
+                if (dmg * 0.7 > target.Health)
                 {
                     return true;
                 }
             }
-            else
+            if (player.ChampionName == "Jinx")
             {
-                var dmg = R.GetDamage(target);
-                if (player.ChampionName == "Jinx")
+                if (R.GetDamage(target, 1) > target.Health)
                 {
-                    dmg = R.GetDamage(target, 1);
+                    return true;
                 }
-                if (dmg > target.Health)
+            }
+            if (player.ChampionName == "Gangplank")
+            {
+                if (configMenu.Item("gpWaves").GetValue<Slider>().Value * dmg > target.Health)
                 {
                     return true;
                 }
