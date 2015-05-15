@@ -352,6 +352,13 @@ namespace UnderratedAIO.Helpers
                     return true;
                 }
             }
+            if (player.ChampionName == "Ashe")
+            {
+                if (dmg > target.Health)
+                {
+                    return true;
+                }
+            }
             return false;
         }
     }
