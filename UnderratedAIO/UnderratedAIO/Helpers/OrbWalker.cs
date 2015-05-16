@@ -232,12 +232,8 @@ namespace UnderratedAIO.Helpers
         /// </summary>
         public static bool CanAttack()
         {
-            if (LastAATick <= System.Environment.TickCount)
-            {
-                return System.Environment.TickCount + Game.Ping / 2 + 25 >= LastAATick + Player.AttackDelay * 1000 &&
-                       Attack;
-            }
-            return false;
+            return Utils.TickCount + Game.Ping / 2 + 25 >= LastAATick + Player.AttackDelay * 1000 && Attack;
+
         }
 
         /// <summary>
@@ -245,14 +241,7 @@ namespace UnderratedAIO.Helpers
         /// </summary>
         public static bool CanMove(float extraWindup)
         {
-            if (LastAATick <= System.Environment.TickCount)
-            {
-                return Move && NoCancelChamps.Contains(Player.ChampionName)
-                    ? (System.Environment.TickCount - LastAATick > 250)
-                    : (System.Environment.TickCount + Game.Ping / 2 >=
-                       LastAATick + Player.AttackCastDelay * 1000 + extraWindup);
-            }
-            return false;
+            return NoCancelChamps.Contains(Player.ChampionName) || (Utils.TickCount + Game.Ping / 2 >= LastAATick + Player.AttackCastDelay * 1000 + extraWindup);
         }
 
         public static void SetMovementDelay(int delay)
@@ -281,11 +270,11 @@ namespace UnderratedAIO.Helpers
             bool useFixedDistance = true,
             bool randomizeMinDistance = true)
         {
-            if (System.Environment.TickCount - LastMoveCommandT < _delay && !overrideTimer)
+            if (Utils.TickCount - LastMoveCommandT < _delay && !overrideTimer)
             {
                 return;
             }
-            LastMoveCommandT = System.Environment.TickCount;
+            LastMoveCommandT = Utils.TickCount;
             if (Player.ServerPosition.Distance(position) < holdAreaRadius)
             {
                 if (Player.Path.Count() > 1)
@@ -347,7 +336,7 @@ namespace UnderratedAIO.Helpers
                         Player.IssueOrder(GameObjectOrder.AttackUnit, target);
                         if (_lastTarget != null && _lastTarget.IsValid && _lastTarget != target)
                         {
-                            LastAATick = System.Environment.TickCount + Game.Ping / 2;
+                            LastAATick = Utils.TickCount + Game.Ping / 2;
                         }
                         _lastTarget = target;
                         return;
@@ -421,7 +410,7 @@ namespace UnderratedAIO.Helpers
                 }
                 if (unit.IsMe && Spell.Target is Obj_AI_Base)
                 {
-                    LastAATick = System.Environment.TickCount - Game.Ping / 2;
+                    LastAATick = Utils.TickCount - Game.Ping / 2;
                     var target = (Obj_AI_Base) Spell.Target;
                     if (target.IsValid)
                     {
@@ -500,7 +489,7 @@ namespace UnderratedAIO.Helpers
                 _config.AddItem(new MenuItem("AutoWindup", "Try to fix stuttering").SetShared().SetValue(false));
                 _config.AddItem(new MenuItem("FarmDelay", "Farm delay").SetShared().SetValue(new Slider(0, 0, 200)));
                 _config.AddItem(
-                    new MenuItem("MovementDelay", "Movement delay").SetShared().SetValue(new Slider(80, 0, 150)))
+                    new MenuItem("MovementDelay", "Movement delay").SetShared().SetValue(new Slider(30, 0, 150)))
                     .ValueChanged += (sender, args) => SetMovementDelay(args.GetNewValue<Slider>().Value);
                 /*Load the menu*/
                 _config.AddItem(
