@@ -52,6 +52,7 @@ namespace UnderratedAIO.Helpers
                 R.SetSkillshot(100f, 600f, R.Speed, false, SkillshotType.SkillshotCone);
             }
             config.AddItem(new MenuItem("UseR", "Use R")).SetValue(true);
+            config.AddItem(new MenuItem("ComboBlock", "Disabled by keypress")).SetValue(new KeyBind(32, KeyBindType.Press));
             if (player.ChampionName == "Gangplank")
             {
                 config.AddItem(new MenuItem("gpWaves", "GP ult waves to damage")).SetValue(new Slider(2, 1, 7));
@@ -84,7 +85,7 @@ namespace UnderratedAIO.Helpers
 
         private void Drawing_OnDraw(EventArgs args)
         {
-            if (!configMenu.Item("RandomUltDrawings").GetValue<bool>() || !enabled)
+            if (!configMenu.Item("RandomUltDrawings").GetValue<bool>() || !enabled || configMenu.Item("ComboBlock").GetValue<KeyBind>().Active)
             {
                 return;
             }
@@ -157,7 +158,7 @@ namespace UnderratedAIO.Helpers
                     enemyInfo.predictedpos = prediction.UnitPosition;
                 }
             }
-            if (!configMenu.Item("UseR").GetValue<bool>() || !R.IsReady() || !enabled)
+            if (!configMenu.Item("UseR").GetValue<bool>() || !R.IsReady() || !enabled || configMenu.Item("ComboBlock").GetValue<KeyBind>().Active)
             {
                 return;
             }
@@ -170,7 +171,7 @@ namespace UnderratedAIO.Helpers
                         x.RecallData.Recall.Type == Packet.S2C.Teleport.Type.Recall)
                     .OrderBy(x => x.RecallData.GetRecallTime()))
             {
-                if (!checkdmg(enemy.Player))
+                if (!checkdmg(enemy.Player) || (checkdmg(enemy.Player) && CheckBuffs(enemy.Player)))
                 {
                     continue;
                 }
@@ -203,6 +204,29 @@ namespace UnderratedAIO.Helpers
                     kill(enemy, new Vector3(pos.X, pos.Y, 0));
                 }
             }
+        }
+
+        private bool CheckBuffs(Obj_AI_Hero enemy)
+        {
+            if (enemy.ChampionName=="Anivia")
+            {
+                if (enemy.HasBuff("rebirthcooldown"))
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            if (enemy.ChampionName == "Aatrox")
+            {
+                if (enemy.HasBuff("aatroxpassiveready"))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public static float GetPath(Obj_AI_Hero hero, Vector3 b)
@@ -333,14 +357,14 @@ namespace UnderratedAIO.Helpers
             var dmg = R.GetDamage(target);
             if (player.ChampionName == "Ezreal" || player.ChampionName == "Draven")
             {
-                if (dmg * 0.7 > target.Health)
+                if (dmg * 0.7-50 > target.Health)
                 {
                     return true;
                 }
             }
             if (player.ChampionName == "Jinx")
             {
-                if (R.GetDamage(target, 1) > target.Health)
+                if (R.GetDamage(target, 1)-50 > target.Health)
                 {
                     return true;
                 }
@@ -354,7 +378,7 @@ namespace UnderratedAIO.Helpers
             }
             if (player.ChampionName == "Ashe")
             {
-                if (dmg > target.Health)
+                if (dmg-50 > target.Health)
                 {
                     return true;
                 }
