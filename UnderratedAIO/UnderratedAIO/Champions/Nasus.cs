@@ -116,7 +116,7 @@ namespace UnderratedAIO.Champions
                 cmbdmg += R.GetDamage(target) * 15;
             }
             var bonusDmg = Environment.Hero.GetAdOverFive(target);
-            if ((config.Item("user").GetValue<bool>() && !Orbwalking.CanAttack() && player.Distance(target) < player.AttackRange + 50 &&
+            if ((config.Item("user").GetValue<bool>() && player.Distance(target) < player.AttackRange + 50 &&
                  cmbdmg + bonusDmg > target.Health && target.Health > bonusDmg + 200 && player.HealthPercent < 50) ||
                 (config.Item("usertf").GetValue<Slider>().Value <= player.CountEnemiesInRange(600) &&
                  player.HealthPercent < 80))
@@ -134,7 +134,7 @@ namespace UnderratedAIO.Champions
                 (player.Mana > R.Instance.ManaCost + E.Instance.ManaCost ||
                  (E.IsReady() && E.GetDamage(target) > target.Health)))
             {
-                if (config.Item("usee").GetValue<bool>() && E.IsReady() && !Orbwalking.CanAttack() &&
+                if (config.Item("usee").GetValue<bool>() && E.IsReady() &&
                     ((config.Item("useeslow").GetValue<bool>() && NasusW(target)) ||
                      !config.Item("useeslow").GetValue<bool>()))
                 {
@@ -154,7 +154,7 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
-            if (config.Item("usew").GetValue<bool>() && W.CanCast(target) && !Orbwalking.CanAttack())
+            if (config.Item("usew").GetValue<bool>() && W.CanCast(target))
             {
                 if (((config.Item("keepManaForR").GetValue<bool>() && R.IsReady()) || !R.IsReady()) &&
                     player.Mana > R.Instance.ManaCost + W.Instance.ManaCost)

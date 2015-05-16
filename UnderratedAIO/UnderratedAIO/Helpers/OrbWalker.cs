@@ -86,6 +86,7 @@ namespace UnderratedAIO.Helpers
         private static int _delay = 80;
         private static float _minDistance = 400;
         private static readonly Random _random = new Random(DateTime.Now.Millisecond);
+        private static bool _missileLaunched;
 
         static Orbwalking()
         {
@@ -94,6 +95,8 @@ namespace UnderratedAIO.Helpers
             Player = ObjectManager.Player;
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
             Spellbook.OnStopCast += SpellbookOnStopCast;
+            MissileClient.OnCreate += MissileClient_OnCreate;
+
         }
 
         /// <summary>
@@ -143,7 +146,7 @@ namespace UnderratedAIO.Helpers
 
         private static void FireAfterAttack(AttackableUnit unit, AttackableUnit target)
         {
-            if (AfterAttack != null)
+            if (AfterAttack != null && target.IsValidTarget())
             {
                 AfterAttack(unit, target);
             }
@@ -224,7 +227,7 @@ namespace UnderratedAIO.Helpers
         /// </summary>
         public static float GetMyProjectileSpeed()
         {
-            return IsMelee(Player) ? float.MaxValue : Player.BasicAttack.MissileSpeed;
+            return IsMelee(Player) || Player.ChampionName == "Azir" ? float.MaxValue : Player.BasicAttack.MissileSpeed;
         }
 
         /// <summary>
@@ -232,7 +235,7 @@ namespace UnderratedAIO.Helpers
         /// </summary>
         public static bool CanAttack()
         {
-            return Utils.TickCount + Game.Ping / 2 + 25 >= LastAATick + Player.AttackDelay * 1000 && Attack;
+            return Utils.GameTimeTickCount + Game.Ping / 2 + 25 >= LastAATick + Player.AttackDelay * 1000 && Attack;
 
         }
 
@@ -241,7 +244,17 @@ namespace UnderratedAIO.Helpers
         /// </summary>
         public static bool CanMove(float extraWindup)
         {
-            return NoCancelChamps.Contains(Player.ChampionName) || (Utils.TickCount + Game.Ping / 2 >= LastAATick + Player.AttackCastDelay * 1000 + extraWindup);
+            if (!Move)
+            {
+                return false;
+            }
+
+            if (_missileLaunched)
+            {
+                return true;
+            }
+
+            return NoCancelChamps.Contains(Player.ChampionName) || (Utils.GameTimeTickCount + Game.Ping / 2 >= LastAATick + Player.AttackCastDelay * 1000 + extraWindup);
         }
 
         public static void SetMovementDelay(int delay)
@@ -270,15 +283,16 @@ namespace UnderratedAIO.Helpers
             bool useFixedDistance = true,
             bool randomizeMinDistance = true)
         {
-            if (Utils.TickCount - LastMoveCommandT < _delay && !overrideTimer)
+            if (Utils.GameTimeTickCount - LastMoveCommandT < _delay && !overrideTimer)
             {
                 return;
             }
-            LastMoveCommandT = Utils.TickCount;
+            LastMoveCommandT = Utils.GameTimeTickCount;
             if (Player.ServerPosition.Distance(position) < holdAreaRadius)
             {
                 if (Player.Path.Count() > 1)
                 {
+                    Player.IssueOrder((GameObjectOrder)10, Player.ServerPosition);
                     Player.IssueOrder(GameObjectOrder.HoldPosition, Player.ServerPosition);
                     LastMoveCommandPosition = Player.ServerPosition;
                 }
@@ -308,7 +322,14 @@ namespace UnderratedAIO.Helpers
             Player.IssueOrder(GameObjectOrder.MoveTo, point);
             LastMoveCommandPosition = point;
         }
-
+        private static void MissileClient_OnCreate(GameObject sender, EventArgs args)
+        {
+            var missile = sender as MissileClient;
+            if (missile != null && missile.SpellCaster.IsMe && IsAutoAttack(missile.SData.Name))
+            {
+                _missileLaunched = true;
+            }
+        }
         /// <summary>
         ///     Orbwalk a target while moving to Position.
         /// </summary>
@@ -333,11 +354,12 @@ namespace UnderratedAIO.Helpers
                     FireBeforeAttack(target);
                     if (!DisableNextAttack)
                     {
-                        Player.IssueOrder(GameObjectOrder.AttackUnit, target);
-                        if (_lastTarget != null && _lastTarget.IsValid && _lastTarget != target)
+                        if (!NoCancelChamps.Contains(Player.ChampionName))
                         {
-                            LastAATick = Utils.TickCount + Game.Ping / 2;
+                            LastAATick = Utils.GameTimeTickCount + Game.Ping + 100 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
+                            _missileLaunched = false;
                         }
+                        Player.IssueOrder(GameObjectOrder.AttackUnit, target);
                         _lastTarget = target;
                         return;
                     }
@@ -400,27 +422,38 @@ namespace UnderratedAIO.Helpers
             try
             {
                 var spellName = Spell.SData.Name;
+
                 if (IsAutoAttackReset(spellName) && unit.IsMe)
                 {
                     Utility.DelayAction.Add(250, ResetAutoAttackTimer);
                 }
+
                 if (!IsAutoAttack(spellName))
                 {
                     return;
                 }
-                if (unit.IsMe && Spell.Target is Obj_AI_Base)
+
+                if (unit.IsMe &&
+                    (Spell.Target is Obj_AI_Base || Spell.Target is Obj_BarracksDampener || Spell.Target is Obj_HQ))
                 {
-                    LastAATick = Utils.TickCount - Game.Ping / 2;
-                    var target = (Obj_AI_Base) Spell.Target;
-                    if (target.IsValid)
+                    LastAATick = Utils.GameTimeTickCount - Game.Ping / 2;
+                    _missileLaunched = false;
+
+                    if (Spell.Target is Obj_AI_Base)
                     {
-                        FireOnTargetSwitch(target);
-                        _lastTarget = target;
+                        var target = (Obj_AI_Base)Spell.Target;
+                        if (target.IsValid)
+                        {
+                            FireOnTargetSwitch(target);
+                            _lastTarget = target;
+                        }
+
+                        //Trigger it for ranged until the missiles catch normal attacks again!
+                        Utility.DelayAction.Add(
+                            (int)(unit.AttackCastDelay * 1000 + 40), () => FireAfterAttack(unit, _lastTarget));
                     }
-                    //Trigger it for ranged until the missiles catch normal attacks again!
-                    Utility.DelayAction.Add(
-                        (int) (unit.AttackCastDelay * 1000 + 40), () => FireAfterAttack(unit, _lastTarget));
                 }
+
                 FireOnAttack(unit, _lastTarget);
             }
             catch (Exception e)
@@ -727,13 +760,9 @@ namespace UnderratedAIO.Helpers
                         return;
                     }
                     //Prevent canceling important channeled spells
-                    if (Player.IsChannelingImportantSpell())
+                    if (Player.IsCastingInterruptableSpell(true))
                     {
-                        if (!NoInterruptSpells.ContainsKey(Player.ChampionName) ||
-                            !NoInterruptSpells[Player.ChampionName].Contains(Player.LastCastedSpellName()))
-                        {
-                            return;
-                        }
+                        return;
                     }
                     var target = GetTarget();
                     Orbwalk(
@@ -759,7 +788,7 @@ namespace UnderratedAIO.Helpers
                 if (_config.Item("AACircle2").GetValue<Circle>().Active)
                 {
                     foreach (var target in
-                        ObjectManager.Get<Obj_AI_Hero>().Where(target => target.IsValidTarget(1175)))
+                        HeroManager.Enemies.FindAll(target => target.IsValidTarget(1175)))
                     {
                         Render.Circle.DrawCircle(
                             target.Position, GetRealAutoAttackRange(target) + 65,
