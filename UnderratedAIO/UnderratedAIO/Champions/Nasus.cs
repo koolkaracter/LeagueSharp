@@ -34,12 +34,25 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Orbwalking.BeforeAttack += Orbwalking_BeforeAttack;
             Orbwalking.OnAttack += Orbwalking_OnAttack;
+            Orbwalking.AfterAttack += Orbwalking_AfterAttack;
+        }
+
+        void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target)
+        {
+            var tar = target as Obj_AI_Base;
+            if (Q.IsReady() && unit.IsMe && tar is Obj_AI_Hero && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && tar.HasBuffOfType(BuffType.Slow) && target.Health > Q.GetDamage(tar) + player.GetAutoAttackDamage(tar) + 50)
+            {
+                Q.Cast(config.Item("packets").GetValue<bool>());
+                Orbwalking.ResetAutoAttackTimer();
+            }
         }
 
         private void Orbwalking_OnAttack(AttackableUnit unit, AttackableUnit target)
         {
-            if (unit.IsMe && Q.IsReady() && config.Item("autoQ").GetValue<bool>() &&
-                target.Health < Q.GetDamage((Obj_AI_Base) target) + player.GetAutoAttackDamage((Obj_AI_Base) target))
+            if (unit.IsMe && Q.IsReady() &&
+                ((config.Item("autoQ").GetValue<bool>() &&
+                  target.Health < Q.GetDamage((Obj_AI_Base) target) + player.GetAutoAttackDamage((Obj_AI_Base) target)) ||
+                 (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear && target.Health > 1000)))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -47,10 +60,11 @@ namespace UnderratedAIO.Champions
 
         private void Orbwalking_BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
         {
-            if (Q.IsReady() &&
-                ((args.Target is Obj_AI_Hero && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) ||
-                 args.Target.Health <
-                 Q.GetDamage((Obj_AI_Base) args.Target) + player.GetAutoAttackDamage((Obj_AI_Base) args.Target)))
+            var target = args.Target as Obj_AI_Base;
+            if (Q.IsReady() && target!=null &&
+                ((target is Obj_AI_Hero && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && !target.HasBuffOfType(BuffType.Slow)) ||
+                 target.Health <
+                 Q.GetDamage(target) + player.GetAutoAttackDamage(target)))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -97,33 +111,12 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config, cmbdmg);
             }
-            if (config.Item("usee").GetValue<bool>() && E.IsReady() &&
-                ((config.Item("useeslow").GetValue<bool>() && NasusW(target)) || !config.Item("useeslow").GetValue<bool>()))
-            {
-                if (E.CanCast(target))
-                {
-                    E.Cast(target, config.Item("packets").GetValue<bool>());
-                }
-                else
-                {
-                    var ePred = E.GetPrediction(target);
-                    if (ePred.CastPosition.Distance(player.Position) < 925)
-                    {
-                        E.Cast(
-                            player.Position.Extend(target.Position, E.Range), config.Item("packets").GetValue<bool>());
-                    }
-                }
-            }
-            if (config.Item("usew").GetValue<bool>() && W.CanCast(target))
-            {
-                W.Cast(target, config.Item("packets").GetValue<bool>());
-            }
             if (!config.Item("Rdamage").GetValue<bool>())
             {
                 cmbdmg += R.GetDamage(target) * 15;
             }
             var bonusDmg = Environment.Hero.GetAdOverFive(target);
-            if ((config.Item("user").GetValue<bool>() && player.Distance(target) < player.AttackRange + 50 &&
+            if ((config.Item("user").GetValue<bool>() && !Orbwalking.CanAttack() && player.Distance(target) < player.AttackRange + 50 &&
                  cmbdmg + bonusDmg > target.Health && target.Health > bonusDmg + 200 && player.HealthPercent < 50) ||
                 (config.Item("usertf").GetValue<Slider>().Value <= player.CountEnemiesInRange(600) &&
                  player.HealthPercent < 80))
@@ -136,6 +129,38 @@ namespace UnderratedAIO.Champions
                 !E.CanCast(target))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
+            }
+            if (((config.Item("keepManaForR").GetValue<bool>() && R.IsReady()) || !R.IsReady()) &&
+                (player.Mana > R.Instance.ManaCost + E.Instance.ManaCost ||
+                 (E.IsReady() && E.GetDamage(target) > target.Health)))
+            {
+                if (config.Item("usee").GetValue<bool>() && E.IsReady() && !Orbwalking.CanAttack() &&
+                    ((config.Item("useeslow").GetValue<bool>() && NasusW(target)) ||
+                     !config.Item("useeslow").GetValue<bool>()))
+                {
+                    var ePred = E.GetPrediction(target);
+                    if (E.Range > ePred.CastPosition.Distance(player.Position) && target.Distance(ePred.CastPosition) < 400)
+                    {
+                        E.Cast(ePred.CastPosition, config.Item("packets").GetValue<bool>());
+                    }
+                    else
+                    {
+                        if (ePred.CastPosition.Distance(player.Position) < 925 && target.Distance(ePred.CastPosition)<400)
+                        {
+                            E.Cast(
+                                player.Position.Extend(target.Position, E.Range),
+                                config.Item("packets").GetValue<bool>());
+                        }
+                    }
+                }
+            }
+            if (config.Item("usew").GetValue<bool>() && W.CanCast(target) && !Orbwalking.CanAttack())
+            {
+                if (((config.Item("keepManaForR").GetValue<bool>() && R.IsReady()) || !R.IsReady()) &&
+                    player.Mana > R.Instance.ManaCost + W.Instance.ManaCost)
+                {
+                    W.Cast(target, config.Item("packets").GetValue<bool>());
+                }
             }
         }
 
@@ -159,7 +184,7 @@ namespace UnderratedAIO.Champions
                 return;
             }
             MinionManager.FarmLocation bestPositionE =
-                E.GetCircularFarmLocation(MinionManager.GetMinions(E.Range, MinionTypes.All, MinionTeam.NotAlly));
+                E.GetCircularFarmLocation(MinionManager.GetMinions(E.Range, MinionTypes.All, MinionTeam.NotAlly), 400f);
             if (config.Item("useeLC").GetValue<bool>() && Q.IsReady() &&
                 bestPositionE.MinionsHit >= config.Item("ehitLC").GetValue<Slider>().Value)
             {
@@ -195,14 +220,14 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("useeH").GetValue<bool>() && E.IsReady())
             {
-                if (E.CanCast(target))
+                var ePred = E.GetPrediction(target);
+                if (E.Range > ePred.CastPosition.Distance(player.Position) && target.Distance(ePred.CastPosition) < 400)
                 {
-                    E.Cast(target, config.Item("packets").GetValue<bool>());
+                    E.Cast(ePred.CastPosition, config.Item("packets").GetValue<bool>());
                 }
                 else
                 {
-                    var ePred = E.GetPrediction(target);
-                    if (ePred.CastPosition.Distance(player.Position) < 1000)
+                    if (ePred.CastPosition.Distance(player.Position) < 925 && target.Distance(ePred.CastPosition) < 400)
                     {
                         E.Cast(
                             player.Position.Extend(target.Position, E.Range), config.Item("packets").GetValue<bool>());
@@ -221,6 +246,10 @@ namespace UnderratedAIO.Champions
             if (R.IsReady() && config.Item("Rdamage").GetValue<bool>())
             {
                 damage += Damage.GetSpellDamage(player, hero, SpellSlot.R) * 15;
+            }
+            if (Q.IsReady() && config.Item("Qdamage").GetValue<bool>())
+            {
+                damage += Q.GetDamage(hero) + player.GetAutoAttackDamage(hero);
             }
             //damage += ItemHandler.GetItemsDamage(hero);
             var ignitedmg = player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
@@ -250,7 +279,7 @@ namespace UnderratedAIO.Champions
             E.SetSkillshot(
                 E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false,
                 SkillshotType.SkillshotCircle);
-            R = new Spell(SpellSlot.R, 175);
+            R = new Spell(SpellSlot.R, 350f);
         }
 
         private static bool NasusW(Obj_AI_Hero target)
@@ -284,10 +313,12 @@ namespace UnderratedAIO.Champions
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage")).SetValue(true);
             config.AddSubMenu(menuD);
+            // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q")).SetValue(true);
             menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
+            menuC.AddItem(new MenuItem("keepManaForR", "   Keep mana for R")).SetValue(true);
             menuC.AddItem(new MenuItem("useeslow", "Use E only for slowed enemy")).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R in 1v1")).SetValue(true);
             menuC.AddItem(new MenuItem("usertf", "R min enemy in teamfight")).SetValue(new Slider(2, 1, 5));
@@ -311,6 +342,7 @@ namespace UnderratedAIO.Champions
             menuM = ItemHandler.addCleanseOptions(menuM);
             menuM.AddItem(new MenuItem("autoQ", "Auto Q")).SetValue(true);
             menuM.AddItem(new MenuItem("Rdamage", "Combo damage with R")).SetValue(true);
+            menuM.AddItem(new MenuItem("Qdamage", "Combo damage with Q")).SetValue(true);
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);
