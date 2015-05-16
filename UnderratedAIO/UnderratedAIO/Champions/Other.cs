@@ -14,10 +14,8 @@ namespace UnderratedAIO.Champions
     {
         public static Menu config;
         public static Orbwalking.Orbwalker orbwalker;
-        public static LastPositions positions;
         public static AutoLeveler autoLeveler;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static bool UsePositions=false;
 
         public Other()
         {
@@ -43,10 +41,6 @@ namespace UnderratedAIO.Champions
             if (config.Item("Enabledcomm").GetValue<bool>())
             {
                 autoLeveler.enabled = true;
-                if (UsePositions)
-                {
-                 positions.enabled = true;   
-                }
                 
                 switch (orbwalker.ActiveMode)
                 {
@@ -70,10 +64,6 @@ namespace UnderratedAIO.Champions
             }
             else
             {
-                if (UsePositions)
-                {
-                    positions.enabled = false;
-                }
                 autoLeveler.enabled = false;
                 
             }
@@ -126,9 +116,8 @@ namespace UnderratedAIO.Champions
             if (player.ChampionName == "Ezreal" || player.ChampionName == "Jinx" || player.ChampionName == "Draven" ||
                 player.ChampionName == "Ashe")
             {
-                UsePositions = true;
                 Menu RandomUltM = new Menu("RandomUlt", "RandomUlt");
-                positions = new LastPositions(RandomUltM);
+                RandomUltM.AddItem(new MenuItem("Now standalone", "Now standalone"));
                 menuM.AddSubMenu(RandomUltM);
             }
             config.AddSubMenu(menuM);
