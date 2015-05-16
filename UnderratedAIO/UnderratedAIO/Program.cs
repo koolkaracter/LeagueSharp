@@ -22,6 +22,7 @@ namespace UnderratedAIO
         {
             try
             {
+
                 var type = Type.GetType("UnderratedAIO.Champions." + player.ChampionName);
                 if (type != null)
                 {
