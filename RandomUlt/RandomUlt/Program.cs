@@ -24,7 +24,6 @@ namespace RandomUlt
 
         private static void Game_OnGameLoad(EventArgs args)
         {
-            Console.WriteLine(player.ChampionName);
             if (
                 !(player.ChampionName == "Ezreal" || player.ChampionName == "Jinx" || player.ChampionName == "Draven" ||
                   player.ChampionName == "Ashe" || player.ChampionName == "Gangplank"))
