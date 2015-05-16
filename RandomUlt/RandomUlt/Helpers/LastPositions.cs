@@ -22,10 +22,12 @@ namespace UnderratedAIO.Helpers
         public static Spell R;
         private float LastUltTime;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
+        public Vector3 SpawnPos;
 
         public static List<string> SupportedHeroes =
             new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven", "Gangplank", "Ziggs", "Lux" });
-
+        public static List<string> BaseUltHeroes =
+    new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven"});
         public LastPositions(Menu config)
         {
             configMenu = config;
@@ -58,7 +60,7 @@ namespace UnderratedAIO.Helpers
             {
                 R.SetSkillshot(100f, 600f, R.Speed, false, SkillshotType.SkillshotCircle);
             }
-
+            SpawnPos = ObjectManager.Get<Obj_SpawnPoint>().FirstOrDefault(x => x.IsEnemy).Position; 
             if (SupportedChamps())
             {
                 config.AddItem(new MenuItem("UseR", "Use R")).SetValue(true);
@@ -73,6 +75,7 @@ namespace UnderratedAIO.Helpers
                     DontUlt.AddItem(new MenuItem(e.ChampionName + "DontUltRandomUlt", e.ChampionName)).SetValue(false);
                 }
                 config.AddSubMenu(DontUlt);
+                config.AddItem(new MenuItem("BaseUltFirst", "BaseUlt has higher priority")).SetValue(false);
             }
             config.AddItem(new MenuItem("RandomUltDrawings", "Draw possible place")).SetValue(false);
             config.AddItem(new MenuItem("ComboBlock", "Disabled by keypress"))
@@ -183,6 +186,7 @@ namespace UnderratedAIO.Helpers
             {
                 return;
             }
+
             foreach (Positions enemy in
                 Enemies.Where(
                     x =>
@@ -192,7 +196,7 @@ namespace UnderratedAIO.Helpers
                         x.RecallData.Recall.Type == Packet.S2C.Teleport.Type.Recall)
                     .OrderBy(x => x.RecallData.GetRecallTime()))
             {
-                if (!checkdmg(enemy.Player) || (checkdmg(enemy.Player) && CheckBuffs(enemy.Player)))
+                if (!checkdmg(enemy.Player) || (checkdmg(enemy.Player) && CheckBuffs(enemy.Player)) || CheckBaseUlt(enemy.RecallData.GetRecallCountdown()))
                 {
                     continue;
                 }
@@ -234,6 +238,16 @@ namespace UnderratedAIO.Helpers
                     kill(enemy, new Vector3(pos.X, pos.Y, 0));
                 }
             }
+        }
+
+        private bool CheckBaseUlt(float recallCooldown)
+        {
+            Console.WriteLine(recallCooldown + " > " + UltTime(SpawnPos));
+            if (configMenu.Item("BaseUltFirst").GetValue<bool>() && BaseUltHeroes.Any(h=>h.Contains(player.ChampionName)) && recallCooldown > UltTime(SpawnPos))
+            {
+                return true;
+            }
+            return false;
         }
 
         private bool CheckBuffs(Obj_AI_Hero enemy)
@@ -439,7 +453,7 @@ namespace UnderratedAIO.Helpers
         public float AbortTime;
         public float RecallStartTime;
         public bool started;
-
+        public int FADEOUT_TIME = 3000;
 
         public RecallData(Positions positions)
         {
@@ -468,7 +482,20 @@ namespace UnderratedAIO.Helpers
 
             return countdown < 0 ? 0 : countdown;
         }
+        public float GetRecallCountdown()
+        {
+            float time = Environment.TickCount;
+            float countdown = 0;
 
+            if (time - AbortTime < FADEOUT_TIME)
+                countdown = Aborted.Duration - (AbortTime - Aborted.Start);
+            else if (AbortTime > 0)
+                countdown = 0;
+            else
+                countdown = Recall.Start + Recall.Duration - time;
+
+            return countdown < 0 ? 0 : countdown;
+        }
         public Positions Update(Packet.S2C.Teleport.Struct newData)
         {
             if (newData.Type == Packet.S2C.Teleport.Type.Recall && newData.Status == Packet.S2C.Teleport.Status.Abort)
