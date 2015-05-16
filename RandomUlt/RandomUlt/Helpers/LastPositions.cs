@@ -23,6 +23,9 @@ namespace UnderratedAIO.Helpers
         private float LastUltTime;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
 
+        public static List<string> SupportedHeroes =
+            new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven", "Gangplank", "Ziggs", "Lux" });
+
         public LastPositions(Menu config)
         {
             configMenu = config;
@@ -33,37 +36,47 @@ namespace UnderratedAIO.Helpers
             }
             if (player.ChampionName == "Jinx")
             {
-                R.SetSkillshot(600f, 140f, 1700f, false, SkillshotType.SkillshotLine);
+                R.SetSkillshot(600f, 140f, 1700f, true, SkillshotType.SkillshotLine);
             }
             if (player.ChampionName == "Ashe")
             {
-                R.SetSkillshot(250f, 130f, 1600f, false, SkillshotType.SkillshotLine);
+                R.SetSkillshot(250f, 130f, 1600f, true, SkillshotType.SkillshotLine);
             }
             if (player.ChampionName == "Draven")
             {
-                R.SetSkillshot(400f, 160f, 2000f, false, SkillshotType.SkillshotLine);
+                R.SetSkillshot(400f, 160f, 2000f, true, SkillshotType.SkillshotLine);
             }
-            if (player.ChampionName == "Draven")
+            if (player.ChampionName == "Lux")
             {
-                R.SetSkillshot(400f, 160f, 2000f, false, SkillshotType.SkillshotLine);
+                R.SetSkillshot(500f, 190f, float.MaxValue, false, SkillshotType.SkillshotLine);
+            }
+            if (player.ChampionName == "Ziggs")
+            {
+                R.SetSkillshot(1000f, 525f, 1750f, false, SkillshotType.SkillshotCircle);
             }
             if (player.ChampionName == "Gangplank")
             {
-                R.SetSkillshot(100f, 600f, R.Speed, false, SkillshotType.SkillshotCone);
+                R.SetSkillshot(100f, 600f, R.Speed, false, SkillshotType.SkillshotCircle);
             }
-            config.AddItem(new MenuItem("UseR", "Use R")).SetValue(true);
-            config.AddItem(new MenuItem("ComboBlock", "Disabled by keypress")).SetValue(new KeyBind(32, KeyBindType.Press));
-            if (player.ChampionName == "Gangplank")
+
+            if (SupportedChamps())
             {
-                config.AddItem(new MenuItem("gpWaves", "GP ult waves to damage")).SetValue(new Slider(2, 1, 7));
+                config.AddItem(new MenuItem("UseR", "Use R")).SetValue(true);
+                if (player.ChampionName == "Gangplank")
+                {
+                    config.AddItem(new MenuItem("gpWaves", "GP ult waves to damage")).SetValue(new Slider(2, 1, 7));
+                }
+
+                Menu DontUlt = new Menu("Don't Ult", "DontUltRandomUlt");
+                foreach (var e in HeroManager.Enemies)
+                {
+                    DontUlt.AddItem(new MenuItem(e.ChampionName + "DontUltRandomUlt", e.ChampionName)).SetValue(false);
+                }
+                config.AddSubMenu(DontUlt);
             }
             config.AddItem(new MenuItem("RandomUltDrawings", "Draw possible place")).SetValue(false);
-            Menu DontUlt = new Menu("Don't Ult", "DontUltRandomUlt");
-            foreach (var e in HeroManager.Enemies)
-            {
-                DontUlt.AddItem(new MenuItem(e.ChampionName + "DontUltRandomUlt", e.ChampionName)).SetValue(false);
-            }
-            config.AddSubMenu(DontUlt);
+            config.AddItem(new MenuItem("ComboBlock", "Disabled by keypress"))
+                .SetValue(new KeyBind(32, KeyBindType.Press));
             Enemies = HeroManager.Enemies.Select(x => new Positions(x)).ToList();
             Game.OnUpdate += Game_OnUpdate;
             Drawing.OnDraw += Drawing_OnDraw;
@@ -83,9 +96,15 @@ namespace UnderratedAIO.Helpers
             Enemies.Find(x => x.Player.NetworkId == recall.UnitNetworkId).RecallData.Update(recall);
         }
 
+        private bool SupportedChamps()
+        {
+            return SupportedHeroes.Any(h => h.Contains(player.ChampionName));
+        }
+
         private void Drawing_OnDraw(EventArgs args)
         {
-            if (!configMenu.Item("RandomUltDrawings").GetValue<bool>() || !enabled || configMenu.Item("ComboBlock").GetValue<KeyBind>().Active)
+            if (!configMenu.Item("RandomUltDrawings").GetValue<bool>() || !enabled ||
+                configMenu.Item("ComboBlock").GetValue<KeyBind>().Active)
             {
                 return;
             }
@@ -121,7 +140,8 @@ namespace UnderratedAIO.Helpers
                 {
                     pos =
                         PointsAroundTheTarget(enemy.Player.Position, trueDist)
-                            .Where(p => !p.IsWall() && line.Distance(p) < dist / 1.2 && GetPath(enemy.Player, p) < trueDist)
+                            .Where(
+                                p => !p.IsWall() && line.Distance(p) < dist / 1.2 && GetPath(enemy.Player, p) < trueDist)
                             .OrderByDescending(p => NavMesh.IsWallOfGrass(p, 10))
                             .ThenBy(p => line.Distance(p))
                             .FirstOrDefault();
@@ -158,7 +178,8 @@ namespace UnderratedAIO.Helpers
                     enemyInfo.predictedpos = prediction.UnitPosition;
                 }
             }
-            if (!configMenu.Item("UseR").GetValue<bool>() || !R.IsReady() || !enabled || configMenu.Item("ComboBlock").GetValue<KeyBind>().Active)
+            if (!SupportedChamps() || !configMenu.Item("UseR").GetValue<bool>() || !R.IsReady() || !enabled ||
+                configMenu.Item("ComboBlock").GetValue<KeyBind>().Active)
             {
                 return;
             }
@@ -194,13 +215,22 @@ namespace UnderratedAIO.Helpers
                     }
                     pos =
                         PointsAroundTheTarget(enemy.Player.Position, trueDist)
-                            .Where(p => !p.IsWall() && line.Distance(p) < dist / 1.2 && GetPath(enemy.Player, p) < trueDist)
+                            .Where(
+                                p => !p.IsWall() && line.Distance(p) < dist / 1.2 && GetPath(enemy.Player, p) < trueDist)
                             .OrderByDescending(p => NavMesh.IsWallOfGrass(p, 10))
                             .ThenBy(p => line.Distance(p))
                             .FirstOrDefault();
                 }
                 if (pos != null)
                 {
+                    if (player.ChampionName == "Ziggs" && player.Distance(pos) > 5000f)
+                    {
+                        continue;
+                    }
+                    if (player.ChampionName == "Lux" && player.Distance(pos) > 3000f)
+                    {
+                        continue;
+                    }
                     kill(enemy, new Vector3(pos.X, pos.Y, 0));
                 }
             }
@@ -208,7 +238,7 @@ namespace UnderratedAIO.Helpers
 
         private bool CheckBuffs(Obj_AI_Hero enemy)
         {
-            if (enemy.ChampionName=="Anivia")
+            if (enemy.ChampionName == "Anivia")
             {
                 if (enemy.HasBuff("rebirthcooldown"))
                 {
@@ -265,16 +295,7 @@ namespace UnderratedAIO.Helpers
         {
             if (player.ChampionName == "Draven" && player.ChampionName == "Ashe" && player.ChampionName == "Jinx")
             {
-                var width = 160f;
-                if (player.ChampionName == "Ashe")
-                {
-                    width = 130f;
-                }
-                if (player.ChampionName == "Jinx")
-                {
-                    width = 140f;
-                }
-                var input = new PredictionInput { Radius = width, Unit = player, };
+                var input = new PredictionInput { Radius = R.Width, Unit = player, };
 
                 input.CollisionObjects[0] = CollisionableObjects.Heroes;
 
@@ -314,6 +335,14 @@ namespace UnderratedAIO.Helpers
             if (player.ChampionName == "Draven")
             {
                 return (dist / 2000) * 1000 + 400;
+            }
+            if (player.ChampionName == "Ziggs")
+            {
+                return (dist / 1750f) * 1000 + 1000;
+            }
+            if (player.ChampionName == "Lux")
+            {
+                return 500f;
             }
             return 0;
         }
@@ -357,14 +386,14 @@ namespace UnderratedAIO.Helpers
             var dmg = R.GetDamage(target);
             if (player.ChampionName == "Ezreal" || player.ChampionName == "Draven")
             {
-                if (dmg * 0.7-50 > target.Health)
+                if (dmg * 0.7 - 50 > target.Health)
                 {
                     return true;
                 }
             }
             if (player.ChampionName == "Jinx")
             {
-                if (R.GetDamage(target, 1)-50 > target.Health)
+                if (R.GetDamage(target, 1) - 50 > target.Health)
                 {
                     return true;
                 }
@@ -376,9 +405,9 @@ namespace UnderratedAIO.Helpers
                     return true;
                 }
             }
-            if (player.ChampionName == "Ashe")
+            if (player.ChampionName == "Ashe" || player.ChampionName == "Lux" || player.ChampionName == "Ziggs")
             {
-                if (dmg-50 > target.Health)
+                if (dmg - 50 > target.Health)
                 {
                     return true;
                 }

@@ -24,12 +24,6 @@ namespace RandomUlt
 
         private static void Game_OnGameLoad(EventArgs args)
         {
-            if (
-                !(player.ChampionName == "Ezreal" || player.ChampionName == "Jinx" || player.ChampionName == "Draven" ||
-                  player.ChampionName == "Ashe" || player.ChampionName == "Gangplank"))
-            {
-                return;
-            }
             config = new Menu("RandomUlt Beta", "RandomUlt Beta", true);
             Menu RandomUltM = new Menu("Options", "Options");
             positions = new LastPositions(RandomUltM);
