@@ -58,6 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Champions\ChoGath.cs" />
+    <Compile Include="Champions\Ezreal.cs" />
     <Compile Include="Champions\Kennen.cs" />
     <Compile Include="Champions\Evelynn.cs" />
     <Compile Include="Champions\Fiora.cs" />

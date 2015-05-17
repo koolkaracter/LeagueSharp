@@ -319,7 +319,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
             menuC.AddItem(new MenuItem("keepManaForR", "   Keep mana for R")).SetValue(true);
-            menuC.AddItem(new MenuItem("useeslow", "Use E only for slowed enemy")).SetValue(true);
+            menuC.AddItem(new MenuItem("useeslow", "   Only for slowed enemy")).SetValue(false);
             menuC.AddItem(new MenuItem("user", "Use R in 1v1")).SetValue(true);
             menuC.AddItem(new MenuItem("usertf", "R min enemy in teamfight")).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
@@ -327,7 +327,6 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuC);
             // Harass Settings
             Menu menuH = new Menu("Harass ", "Hsettings");
-            menuH.AddItem(new MenuItem("useqH", "Use Q")).SetValue(true);
             menuH.AddItem(new MenuItem("useeH", "Use E")).SetValue(true);
             menuH.AddItem(new MenuItem("minmanaH", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuH);
