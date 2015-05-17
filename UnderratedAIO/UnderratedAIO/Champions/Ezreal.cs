@@ -100,11 +100,12 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("useqH").GetValue<bool>() && Q.IsReady())
             {
-                    var targQ = Q.GetPrediction(target);
-                    if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && targQ.Hitchance >= HitChance.VeryHigh)
-                    {
-                        Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
-                    }
+                var targQ = Q.GetPrediction(target);
+                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) &&
+                    targQ.Hitchance >= HitChance.VeryHigh)
+                {
+                    Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
+                }
             }
             if (config.Item("usewH").GetValue<bool>() && W.IsReady())
             {
@@ -150,19 +151,20 @@ namespace UnderratedAIO.Champions
                 ItemHandler.UseItems(target, config);
             }
             var cmbDmg = ComboDamage(target);
-            if (config.Item("useq").GetValue<bool>() && Q.IsReady() && target.IsValidTarget() &&  !justJumped)
+            if (config.Item("useq").GetValue<bool>() && Q.IsReady() && target.IsValidTarget() && !justJumped)
             {
                 var targQ = Q.GetPrediction(target);
-                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && targQ.Hitchance>=HitChance.VeryHigh)
-                    {
-                        Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
-                    }
+                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) &&
+                    targQ.Hitchance >= HitChance.VeryHigh)
+                {
+                    Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
+                }
             }
             if (config.Item("usew").GetValue<bool>() && W.IsReady() && !justJumped)
             {
                 var time = player.Distance(target) / W.Speed;
                 var tarPered = Prediction.GetPrediction(target, time);
-                if (W.Range-80 > tarPered.CastPosition.Distance(player.Position))
+                if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position))
                 {
                     W.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
                 }
@@ -178,8 +180,11 @@ namespace UnderratedAIO.Champions
                     var tarPered = Prediction.GetPrediction(target, time);
                     R.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
                 }
-                R.CastIfWillHit(
-                    target, config.Item("usertf").GetValue<Slider>().Value, config.Item("packets").GetValue<bool>());
+                if (target.CountAlliesInRange(700) > 0)
+                {
+                    R.CastIfWillHit(
+                        target, config.Item("usertf").GetValue<Slider>().Value, config.Item("packets").GetValue<bool>());
+                }
             }
             if (config.Item("usee").GetValue<bool>() && E.IsReady())
             {
@@ -202,14 +207,15 @@ namespace UnderratedAIO.Champions
                                         m.SkinName != target.SkinName)
                                 .OrderBy(m => m.Distance(pos))
                                 .FirstOrDefault()
-                        where (mob != null && mob.Distance(pos) > pos.Distance(target.Position) +80) || (mob == null)
+                        where (mob != null && mob.Distance(pos) > pos.Distance(target.Position) + 80) || (mob == null)
                         select pos).ToList();
                 bool canKill = cmbDmg > target.Health;
                 if (config.Item("useekill").GetValue<bool>() && canKill)
                 {
                     CastE(bestPositons, target);
                 }
-                else if ((!config.Item("useekill").GetValue<bool>() && target.CountEnemiesInRange(1200) < target.CountAlliesInRange(1200)) || canKill)
+                else if ((!config.Item("useekill").GetValue<bool>() &&
+                          target.CountEnemiesInRange(1200) < target.CountAlliesInRange(1200)) || canKill)
                 {
                     CastE(bestPositons, target);
                 }
