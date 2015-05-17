@@ -171,7 +171,7 @@ namespace UnderratedAIO.Helpers
         private void Game_OnUpdate(EventArgs args)
         {
             float time = System.Environment.TickCount;
-            foreach (Positions enemyInfo in Enemies.Where(x => x.Player.IsVisible && !x.Player.IsDead && !player.IsDead)
+            foreach (Positions enemyInfo in Enemies.Where(x => x.Player.IsVisible && !x.Player.IsDead)
                 )
             {
                 enemyInfo.LastSeen = time;
@@ -196,7 +196,7 @@ namespace UnderratedAIO.Helpers
                         x.RecallData.Recall.Type == Packet.S2C.Teleport.Type.Recall)
                     .OrderBy(x => x.RecallData.GetRecallTime()))
             {
-                if (!checkdmg(enemy.Player) || (checkdmg(enemy.Player) && CheckBuffs(enemy.Player)) || CheckBaseUlt(enemy.RecallData.GetRecallCountdown()))
+                if (!checkdmg(enemy.Player) || (checkdmg(enemy.Player) && CheckBuffs(enemy.Player)) || CheckBaseUlt(enemy.RecallData.GetRecallCountdown()) || !(Environment.TickCount - enemy.RecallData.RecallStartTime > 600))
                 {
                     continue;
                 }
@@ -242,7 +242,6 @@ namespace UnderratedAIO.Helpers
 
         private bool CheckBaseUlt(float recallCooldown)
         {
-            Console.WriteLine(recallCooldown + " > " + UltTime(SpawnPos));
             if (configMenu.Item("BaseUltFirst").GetValue<bool>() && BaseUltHeroes.Any(h=>h.Contains(player.ChampionName)) && recallCooldown > UltTime(SpawnPos))
             {
                 return true;
