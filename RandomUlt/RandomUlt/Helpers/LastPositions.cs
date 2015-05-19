@@ -175,7 +175,7 @@ namespace UnderratedAIO.Helpers
         private void Game_OnUpdate(EventArgs args)
         {
             float time = System.Environment.TickCount;
-            foreach (Positions enemyInfo in Enemies.Where(x => x.Player.IsVisible && !x.Player.IsDead)
+            foreach (Positions enemyInfo in Enemies.Where(x => x.Player.IsVisible && !x.Player.IsDead && x.Player.IsValidTarget())
                 )
             {
                 enemyInfo.LastSeen = time;
