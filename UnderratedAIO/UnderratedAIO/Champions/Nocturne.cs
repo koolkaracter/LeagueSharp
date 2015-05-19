@@ -96,7 +96,7 @@ namespace UnderratedAIO.Champions
                 R.CanCast(target) &&
                 ((qTrailOnMe && eBuff(target) &&
                   target.MoveSpeed > player.MoveSpeed && dist > 360 && target.HealthPercent<60) ||
-                 (dist < 2000 && dist > 900 && target.CountAlliesInRange(2000) ==
+                 (dist < 2000 && dist > 900 && target.CountAlliesInRange(2000) >=
                   target.CountEnemiesInRange(2000) &&
                   cmbdmg + Environment.Hero.GetAdOverFive(target) > target.Health &&
                   (target.Health > Q.GetDamage(target) || !Q.IsReady())) ||

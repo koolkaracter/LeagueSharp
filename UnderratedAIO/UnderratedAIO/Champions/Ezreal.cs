@@ -52,12 +52,12 @@ namespace UnderratedAIO.Champions
         private void InitEzreal()
         {
             Q = new Spell(SpellSlot.Q, 1150);
-            Q.SetSkillshot(250f, 60f, 2000f, true, SkillshotType.SkillshotLine);
+            Q.SetSkillshot(0.25f, 60f, 2000f, true, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W, 1000);
-            W.SetSkillshot(250f, 80f, 1600f, false, SkillshotType.SkillshotLine);
+            W.SetSkillshot(0.25f, 80f, 1600f, false, SkillshotType.SkillshotLine);
             E = new Spell(SpellSlot.E, 450);
             R = new Spell(SpellSlot.R, 2000);
-            R.SetSkillshot(1000f, 160f, 2000f, false, SkillshotType.SkillshotLine);
+            R.SetSkillshot(1f, 160f, 2000f, false, SkillshotType.SkillshotLine);
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -88,7 +88,7 @@ namespace UnderratedAIO.Champions
 
         private void Harass()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
             float perc = config.Item("minmanaH").GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc)
             {
@@ -101,17 +101,16 @@ namespace UnderratedAIO.Champions
             if (config.Item("useqH").GetValue<bool>() && Q.IsReady())
             {
                 var targQ = Q.GetPrediction(target);
-                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) &&
-                    targQ.Hitchance >= HitChance.VeryHigh)
+                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && targQ.Hitchance >= HitChance.High)
                 {
                     Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
                 }
             }
             if (config.Item("usewH").GetValue<bool>() && W.IsReady())
             {
-                var time = player.Distance(target) / W.Speed;
-                var tarPered = Prediction.GetPrediction(target, time);
-                if (W.Range > tarPered.CastPosition.Distance(player.Position))
+                var tarPered = W.GetPrediction(target);
+                if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
+                    tarPered.Hitchance >= HitChance.High)
                 {
                     W.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
                 }
@@ -154,17 +153,16 @@ namespace UnderratedAIO.Champions
             if (config.Item("useq").GetValue<bool>() && Q.IsReady() && target.IsValidTarget() && !justJumped)
             {
                 var targQ = Q.GetPrediction(target);
-                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) &&
-                    targQ.Hitchance >= HitChance.VeryHigh)
+                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && targQ.Hitchance >= HitChance.High)
                 {
                     Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
                 }
             }
             if (config.Item("usew").GetValue<bool>() && W.IsReady() && !justJumped)
             {
-                var time = player.Distance(target) / W.Speed;
-                var tarPered = Prediction.GetPrediction(target, time);
-                if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position))
+                var tarPered = W.GetPrediction(target);
+                if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
+                    tarPered.Hitchance >= HitChance.High)
                 {
                     W.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
                 }
@@ -186,12 +184,16 @@ namespace UnderratedAIO.Champions
                         target, config.Item("usertf").GetValue<Slider>().Value, config.Item("packets").GetValue<bool>());
                 }
             }
-            if (config.Item("usee").GetValue<bool>() && E.IsReady())
+            if (R.IsReady() && config.Item("Calcr").GetValue<bool>())
             {
-                if (R.IsReady() && config.Item("Calcr").GetValue<bool>())
-                {
-                    cmbDmg -= (float) Damage.GetSpellDamage(player, target, SpellSlot.R);
-                }
+                cmbDmg -= (float)Damage.GetSpellDamage(player, target, SpellSlot.R);
+            }
+            bool canKill = cmbDmg > target.Health;
+            if (config.Item("usee").GetValue<bool>() && E.IsReady() &&
+                ((config.Item("useekill").GetValue<bool>() && canKill) ||
+                 ((!config.Item("useekill").GetValue<bool>() &&
+                   target.CountEnemiesInRange(1200) < target.CountAlliesInRange(1200) && player.Health>target.Health) || canKill)))
+            {
                 var bestPositons =
                     (from pos in
                         CombatHelper.PointsAroundTheTarget(target.Position, 750)
@@ -209,16 +211,9 @@ namespace UnderratedAIO.Champions
                                 .FirstOrDefault()
                         where (mob != null && mob.Distance(pos) > pos.Distance(target.Position) + 80) || (mob == null)
                         select pos).ToList();
-                bool canKill = cmbDmg > target.Health;
-                if (config.Item("useekill").GetValue<bool>() && canKill)
-                {
-                    CastE(bestPositons, target);
-                }
-                else if ((!config.Item("useekill").GetValue<bool>() &&
-                          target.CountEnemiesInRange(1200) < target.CountAlliesInRange(1200)) || canKill)
-                {
-                    CastE(bestPositons, target);
-                }
+
+                CastE(bestPositons, target);
+
             }
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;

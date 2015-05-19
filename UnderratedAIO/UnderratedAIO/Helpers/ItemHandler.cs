@@ -135,7 +135,7 @@ namespace UnderratedAIO.Helpers
                 Bft.Cast(target);
             }
             if (config.Item("you").GetValue<bool>() && Items.HasItem(youmuu.Id) && Items.CanUseItem(youmuu.Id) &&
-                target != null && player.Distance(target) < player.AttackRange + 50)
+                target != null && player.Distance(target) < player.AttackRange + 50 && target.HealthPercent<65)
             {
                 youmuu.Cast();
             }

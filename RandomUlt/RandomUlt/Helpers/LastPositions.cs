@@ -153,7 +153,11 @@ namespace UnderratedAIO.Helpers
                 {
                     Drawing.DrawCircle(pos, 50, Color.Red);
                 }
-                Drawing.DrawCircle(line, dist / 1.2f, Color.LawnGreen);
+                if (!enemy.Player.IsVisible)
+                {
+                    Drawing.DrawCircle(line, dist / 1.2f, Color.LawnGreen);
+                }
+                
             }
         }
 
