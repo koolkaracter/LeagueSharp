@@ -291,9 +291,13 @@ namespace UnderratedAIO.Helpers
 
         private bool CheckShieldTower(Vector3 pos)
         {
+            if (Game.MapId!=GameMapId.SummonersRift)
+            {
+                return false;
+            }
             return
                 ObjectManager.Get<Obj_AI_Turret>()
-                    .Any(t => t.Distance(pos) < 1100f && t.HasBuff("SRTurretSecondaryShielder"));
+                    .Any(t => t.Distance(pos) < 1100f && t.IsEnemy && !t.IsDead && t.InventoryItems.Count()>3);
         }
 
         private void kill(Positions positions, Vector3 pos)
