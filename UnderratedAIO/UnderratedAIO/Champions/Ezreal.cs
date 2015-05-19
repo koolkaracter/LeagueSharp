@@ -20,6 +20,8 @@ namespace UnderratedAIO.Champions
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static bool justJumped;
+        public static Obj_AI_Minion LastAttackedminiMinion;
+        public static float LastAttackedminiMinionTime;
 
         public Ezreal()
         {
@@ -35,6 +37,16 @@ namespace UnderratedAIO.Champions
             Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
             Helpers.Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
+            Orbwalking.AfterAttack += Orbwalking_OnAttack;
+        }
+
+        private void Orbwalking_OnAttack(AttackableUnit unit, AttackableUnit target)
+        {
+            if (unit.IsMe && target is Obj_AI_Minion)
+            {
+                LastAttackedminiMinion = (Obj_AI_Minion) target;
+                LastAttackedminiMinionTime = Utils.GameTimeTickCount;
+            }
         }
 
         private void Game_ProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
@@ -186,13 +198,14 @@ namespace UnderratedAIO.Champions
             }
             if (R.IsReady() && config.Item("Calcr").GetValue<bool>())
             {
-                cmbDmg -= (float)Damage.GetSpellDamage(player, target, SpellSlot.R);
+                cmbDmg -= (float) Damage.GetSpellDamage(player, target, SpellSlot.R);
             }
             bool canKill = cmbDmg > target.Health;
             if (config.Item("usee").GetValue<bool>() && E.IsReady() &&
                 ((config.Item("useekill").GetValue<bool>() && canKill) ||
-                 ((!config.Item("useekill").GetValue<bool>() &&
-                   target.CountEnemiesInRange(1200) < target.CountAlliesInRange(1200) && player.Health>target.Health) || canKill)))
+                 (!config.Item("useekill").GetValue<bool>() &&
+                   (target.CountEnemiesInRange(1200) <= target.CountAlliesInRange(1200) && player.Health > target.Health &&
+                   TargetSelector.GetPriority(target) >= 2f) || canKill)))
             {
                 var bestPositons =
                     (from pos in
@@ -213,7 +226,6 @@ namespace UnderratedAIO.Champions
                         select pos).ToList();
 
                 CastE(bestPositons, target);
-
             }
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
@@ -241,12 +253,31 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("useqLC").GetValue<bool>() || config.Item("useqLH").GetValue<bool>())
             {
-                var minion =
+                var minions =
                     MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
-                        .FirstOrDefault(m => m.Health < Q.GetDamage(m) && Q.CanCast(m));
-                if (minion != null)
+                        .Where(
+                            m =>
+                                m.Health <
+                                (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LastHit
+                                    ? Q.GetDamage(m)
+                                    : Q.GetDamage(m) * config.Item("qLHDamage").GetValue<Slider>().Value / 100) &&
+                                Q.CanCast(m));
+                foreach (
+                    var minion in
+                        minions.Where(
+                            m =>
+                                m.NetworkId != LastAttackedminiMinion.NetworkId ||
+                                (m.NetworkId == LastAttackedminiMinion.NetworkId && Utils.GameTimeTickCount - LastAttackedminiMinionTime > 400)))
                 {
-                    Q.Cast(minion, config.Item("packets").GetValue<bool>());
+                    if (minion.Distance(player) <= player.AttackRange && !Orbwalking.CanAttack() &&
+                        Orbwalking.CanMove(100))
+                    {
+                        Q.Cast(minion, config.Item("packets").GetValue<bool>());
+                    }
+                    else if (minion.Distance(player) > player.AttackRange)
+                    {
+                        Q.Cast(minion, config.Item("packets").GetValue<bool>());
+                    }
                 }
             }
         }
@@ -366,6 +397,7 @@ namespace UnderratedAIO.Champions
             // Lasthit Settings
             Menu menuLH = new Menu("Lasthit ", "Lasthcsettings");
             menuLH.AddItem(new MenuItem("useqLH", "Use Q")).SetValue(true);
+            menuLH.AddItem(new MenuItem("qLHDamage", "   Q lasthit damage percent")).SetValue(new Slider(1, 1, 100));
             menuLH.AddItem(new MenuItem("minmanaLH", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLH);
             Menu menuM = new Menu("Misc ", "Msettings");
