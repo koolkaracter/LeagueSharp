@@ -26,8 +26,9 @@ namespace UnderratedAIO.Helpers
 
         public static List<string> SupportedHeroes =
             new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven", "Gangplank", "Ziggs", "Lux" });
-        public static List<string> BaseUltHeroes =
-    new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven"});
+
+        public static List<string> BaseUltHeroes = new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven" });
+
         public LastPositions(Menu config)
         {
             configMenu = config;
@@ -60,7 +61,7 @@ namespace UnderratedAIO.Helpers
             {
                 R.SetSkillshot(100f, 600f, R.Speed, false, SkillshotType.SkillshotCircle);
             }
-            SpawnPos = ObjectManager.Get<Obj_SpawnPoint>().FirstOrDefault(x => x.IsEnemy).Position; 
+            SpawnPos = ObjectManager.Get<Obj_SpawnPoint>().FirstOrDefault(x => x.IsEnemy).Position;
             if (SupportedChamps())
             {
                 config.AddItem(new MenuItem("UseR", "Use R")).SetValue(true);
@@ -75,7 +76,14 @@ namespace UnderratedAIO.Helpers
                     DontUlt.AddItem(new MenuItem(e.ChampionName + "DontUltRandomUlt", e.ChampionName)).SetValue(false);
                 }
                 config.AddSubMenu(DontUlt);
+                config.AddItem(new MenuItem("Alliesrange", "Allies min range from the target"))
+                    .SetValue(new Slider(1700, 500, 2000));
+                config.AddItem(new MenuItem("InfoI ", "--in case of steal or interrupt"));
+                config.AddItem(new MenuItem("waitBeforeUlt", "Wait time before ults(ms)"))
+                    .SetValue(new Slider(600, 0, 3000));
+                config.AddItem(new MenuItem("InfoII ", "--in case of he cancel the recall"));
                 config.AddItem(new MenuItem("BaseUltFirst", "BaseUlt has higher priority")).SetValue(false);
+                config.AddItem(new MenuItem("InfoIII ", "--Let the kills for BaseUlt"));
             }
             config.AddItem(new MenuItem("RandomUltDrawings", "Draw possible place")).SetValue(false);
             config.AddItem(new MenuItem("ComboBlock", "Disabled by keypress"))
@@ -157,7 +165,6 @@ namespace UnderratedAIO.Helpers
                 {
                     Drawing.DrawCircle(line, dist / 1.2f, Color.LawnGreen);
                 }
-                
             }
         }
 
@@ -175,8 +182,9 @@ namespace UnderratedAIO.Helpers
         private void Game_OnUpdate(EventArgs args)
         {
             float time = System.Environment.TickCount;
-            foreach (Positions enemyInfo in Enemies.Where(x => x.Player.IsVisible && !x.Player.IsDead && x.Player.IsValidTarget())
-                )
+            foreach (
+                Positions enemyInfo in
+                    Enemies.Where(x => x.Player.IsVisible && !x.Player.IsDead && x.Player.IsValidTarget()))
             {
                 enemyInfo.LastSeen = time;
                 var prediction = Prediction.GetPrediction(enemyInfo.Player, 4);
@@ -200,7 +208,10 @@ namespace UnderratedAIO.Helpers
                         x.RecallData.Recall.Type == Packet.S2C.Teleport.Type.Recall)
                     .OrderBy(x => x.RecallData.GetRecallTime()))
             {
-                if (!checkdmg(enemy.Player) || (checkdmg(enemy.Player) && CheckBuffs(enemy.Player)) || CheckBaseUlt(enemy.RecallData.GetRecallCountdown()) || !(Environment.TickCount - enemy.RecallData.RecallStartTime > 600))
+                if (!checkdmg(enemy.Player) || (checkdmg(enemy.Player) && CheckBuffs(enemy.Player)) ||
+                    CheckBaseUlt(enemy.RecallData.GetRecallCountdown()) ||
+                    !(Environment.TickCount - enemy.RecallData.RecallStartTime >
+                      configMenu.Item("waitBeforeUlt").GetValue<Slider>().Value))
                 {
                     continue;
                 }
@@ -246,7 +257,8 @@ namespace UnderratedAIO.Helpers
 
         private bool CheckBaseUlt(float recallCooldown)
         {
-            if (configMenu.Item("BaseUltFirst").GetValue<bool>() && BaseUltHeroes.Any(h=>h.Contains(player.ChampionName)) && recallCooldown > UltTime(SpawnPos))
+            if (configMenu.Item("BaseUltFirst").GetValue<bool>() &&
+                BaseUltHeroes.Any(h => h.Contains(player.ChampionName)) && recallCooldown > UltTime(SpawnPos))
             {
                 return true;
             }
@@ -291,21 +303,22 @@ namespace UnderratedAIO.Helpers
 
         private bool CheckShieldTower(Vector3 pos)
         {
-            if (Game.MapId!=GameMapId.SummonersRift)
+            if (Game.MapId != GameMapId.SummonersRift)
             {
                 return false;
             }
             return
                 ObjectManager.Get<Obj_AI_Turret>()
-                    .Any(t => t.Distance(pos) < 1100f && t.IsEnemy && !t.IsDead && t.InventoryItems.Count()>3);
+                    .Any(t => t.Distance(pos) < 1100f && t.IsEnemy && !t.IsDead && t.InventoryItems.Count() > 3);
         }
 
         private void kill(Positions positions, Vector3 pos)
         {
-            if (R.IsReady() && pos.Distance(positions.Player.Position) < 1200 && pos.CountAlliesInRange(1800) < 1)
+            if (R.IsReady() && pos.Distance(positions.Player.Position) < 1200 &&
+                pos.CountAlliesInRange(configMenu.Item("Alliesrange").GetValue<Slider>().Value) < 1)
             {
                 if (checkdmg(positions.Player) && UltTime(pos) < positions.RecallData.GetRecallTime() &&
-                    !isColliding(pos) && !CheckShieldTower(pos))
+                    !isColliding(pos))
                 {
                     R.Cast(pos);
                 }
@@ -405,30 +418,35 @@ namespace UnderratedAIO.Helpers
         private bool checkdmg(Obj_AI_Hero target)
         {
             var dmg = R.GetDamage(target);
+            var bonuShieldNearTowers = 0f;
+            if (CheckShieldTower(target.Position))
+            {
+                bonuShieldNearTowers = -300f;
+            }
             if (player.ChampionName == "Ezreal" || player.ChampionName == "Draven")
             {
-                if (dmg * 0.7 - 50 > target.Health)
+                if (dmg * 0.7 - 50 - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
             }
             if (player.ChampionName == "Jinx")
             {
-                if (R.GetDamage(target, 1) - 50 > target.Health)
+                if (R.GetDamage(target, 1) - 50 - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
             }
             if (player.ChampionName == "Gangplank")
             {
-                if (configMenu.Item("gpWaves").GetValue<Slider>().Value * dmg > target.Health)
+                if (configMenu.Item("gpWaves").GetValue<Slider>().Value * dmg - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
             }
             if (player.ChampionName == "Ashe" || player.ChampionName == "Lux" || player.ChampionName == "Ziggs")
             {
-                if (dmg - 50 > target.Health)
+                if (dmg - 50 - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
@@ -489,20 +507,28 @@ namespace UnderratedAIO.Helpers
 
             return countdown < 0 ? 0 : countdown;
         }
+
         public float GetRecallCountdown()
         {
             float time = Environment.TickCount;
             float countdown = 0;
 
             if (time - AbortTime < FADEOUT_TIME)
+            {
                 countdown = Aborted.Duration - (AbortTime - Aborted.Start);
+            }
             else if (AbortTime > 0)
+            {
                 countdown = 0;
+            }
             else
+            {
                 countdown = Recall.Start + Recall.Duration - time;
+            }
 
             return countdown < 0 ? 0 : countdown;
         }
+
         public Positions Update(Packet.S2C.Teleport.Struct newData)
         {
             if (newData.Type == Packet.S2C.Teleport.Type.Recall && newData.Status == Packet.S2C.Teleport.Status.Abort)
