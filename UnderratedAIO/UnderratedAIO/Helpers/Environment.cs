@@ -152,7 +152,7 @@ namespace UnderratedAIO.Helpers
                 var distance = player.Distance(enemy);
                 for (int i = 1; i < 6; i++)
                 {
-                    if (player.Extend(enemy, distance + 60 * i).IsWall())
+                    if (player.Extend(enemy, distance + 55 * i).IsWall())
                     {
                         return true;
                     }

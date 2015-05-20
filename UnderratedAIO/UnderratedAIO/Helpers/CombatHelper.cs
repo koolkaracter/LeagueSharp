@@ -95,6 +95,28 @@ namespace UnderratedAIO.Helpers
             return new Vector3();
         }
 
+        public static Vector3 bestVectorToPoppyFlash2(Obj_AI_Base target)
+        {
+            if (target == null)
+            {
+                return new Vector3();
+            }
+            return 
+            PointsAroundTheTarget(target.Position, 500)
+                .Where(p => p.IsValid() && target.Distance(p) > 80 && target.Distance(p) < 485 && player.Distance(p) < 400 && !p.IsWall() && Environment.Map.CheckWalls(p, target.Position))
+                .FirstOrDefault();
+        }
+        public static Vector3 PositionToPoppyE(Obj_AI_Base target)
+        {
+            if (target == null)
+            {
+                return new Vector3();
+            }
+            return
+            PointsAroundTheTarget(target.Position, 500)
+                .Where(p => p.Distance(player.Position) < 500 && p.IsValid() && target.Distance(p) < Orbwalking.GetRealAutoAttackRange(player) && !p.IsWall() && Environment.Map.CheckWalls(p, target.Position))
+                .OrderBy(p=>p.Distance(player.Position)).FirstOrDefault();
+        }
         #endregion
 
         #region Riven
