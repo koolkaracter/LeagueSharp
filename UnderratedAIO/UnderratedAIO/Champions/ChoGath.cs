@@ -313,7 +313,7 @@ namespace UnderratedAIO.Champions
         private static void InitChoGath()
         {
             Q = new Spell(SpellSlot.Q, 950);
-            Q.SetSkillshot(500f, 175f, 750f, false, SkillshotType.SkillshotCircle);
+            Q.SetSkillshot(0.5f, 175f, 625f, false, SkillshotType.SkillshotCircle);
             W = new Spell(SpellSlot.W, 700);
             W.SetSkillshot(W.Instance.SData.SpellCastTime, W.Instance.SData.LineWidth, W.Speed, false, SkillshotType.SkillshotCone);
             E = new Spell(SpellSlot.E, 500);
