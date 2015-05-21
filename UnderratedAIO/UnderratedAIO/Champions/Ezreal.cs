@@ -37,7 +37,7 @@ namespace UnderratedAIO.Champions
             Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
             Helpers.Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
-            Orbwalking.AfterAttack += Orbwalking_OnAttack;
+            Orbwalking.OnAttack += Orbwalking_OnAttack;
         }
 
         private void Orbwalking_OnAttack(AttackableUnit unit, AttackableUnit target)
@@ -152,7 +152,7 @@ namespace UnderratedAIO.Champions
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
-
+            Obj_AI_Hero Rtarget = TargetSelector.GetTarget(2000, TargetSelector.DamageType.Magical);
             if (target == null)
             {
                 return;
@@ -161,7 +161,7 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config);
             }
-            var cmbDmg = ComboDamage(target);
+            var cmbDmg = GetComboDamage(target);
             if (config.Item("useq").GetValue<bool>() && Q.IsReady() && target.IsValidTarget() && !justJumped)
             {
                 var targQ = Q.GetPrediction(target);
@@ -181,13 +181,13 @@ namespace UnderratedAIO.Champions
             }
             if (R.IsReady() && !justJumped)
             {
-                var dist = player.Distance(target);
-                if (config.Item("user").GetValue<bool>() && !Q.CanCast(target) && !W.CanCast(target) &&
-                    !CombatHelper.CheckCriticalBuffs(target) && config.Item("usermin").GetValue<Slider>().Value < dist &&
-                    2000 > dist && target.Health < R.GetDamage(target) * 0.7)
+                var dist = player.Distance(Rtarget);
+                if (config.Item("user").GetValue<bool>() && !Q.CanCast(Rtarget) && !W.CanCast(Rtarget) &&
+                    !CombatHelper.CheckCriticalBuffs(Rtarget) && config.Item("usermin").GetValue<Slider>().Value < dist &&
+                    3000 > dist && Rtarget.Health < R.GetDamage(Rtarget) * 0.7)
                 {
-                    var time = player.Distance(target) / R.Speed + 1000;
-                    var tarPered = Prediction.GetPrediction(target, time);
+                    var time = player.Distance(Rtarget) / R.Speed + 1000;
+                    var tarPered = Prediction.GetPrediction(Rtarget, time);
                     R.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
                 }
                 if (target.CountAlliesInRange(700) > 0)
@@ -195,10 +195,6 @@ namespace UnderratedAIO.Champions
                     R.CastIfWillHit(
                         target, config.Item("usertf").GetValue<Slider>().Value, config.Item("packets").GetValue<bool>());
                 }
-            }
-            if (R.IsReady() && config.Item("Calcr").GetValue<bool>())
-            {
-                cmbDmg -= (float) Damage.GetSpellDamage(player, target, SpellSlot.R);
             }
             bool canKill = cmbDmg > target.Health;
             if (config.Item("usee").GetValue<bool>() && E.IsReady() &&
@@ -230,7 +226,7 @@ namespace UnderratedAIO.Champions
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
-                !E.CanCast(target))
+                !E.CanCast(target) && !player.IsChannelingImportantSpell())
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
@@ -261,13 +257,15 @@ namespace UnderratedAIO.Champions
                                 (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LastHit
                                     ? Q.GetDamage(m)
                                     : Q.GetDamage(m) * config.Item("qLHDamage").GetValue<Slider>().Value / 100) &&
-                                Q.CanCast(m));
+                                    Q.CanCast(m));
+                if (minions != null && LastAttackedminiMinion!=null)
+                {
                 foreach (
                     var minion in
                         minions.Where(
                             m =>
                                 m.NetworkId != LastAttackedminiMinion.NetworkId ||
-                                (m.NetworkId == LastAttackedminiMinion.NetworkId && Utils.GameTimeTickCount - LastAttackedminiMinionTime > 400)))
+                                (m.NetworkId == LastAttackedminiMinion.NetworkId && Utils.GameTimeTickCount - LastAttackedminiMinionTime > 700)))
                 {
                     if (minion.Distance(player) <= player.AttackRange && !Orbwalking.CanAttack() &&
                         Orbwalking.CanMove(100))
@@ -278,6 +276,7 @@ namespace UnderratedAIO.Champions
                     {
                         Q.Cast(minion, config.Item("packets").GetValue<bool>());
                     }
+                }
                 }
             }
         }
@@ -343,7 +342,30 @@ namespace UnderratedAIO.Champions
             }
             return (float) damage;
         }
-
+        private static float GetComboDamage(Obj_AI_Hero hero)
+        {
+            double damage = 0;
+            if (Q.IsReady())
+            {
+                damage += Damage.GetSpellDamage(player, hero, SpellSlot.Q);
+            }
+            if (W.IsReady())
+            {
+                damage += Damage.GetSpellDamage(player, hero, SpellSlot.W);
+            }
+            if (E.IsReady())
+            {
+                damage += Damage.GetSpellDamage(player, hero, SpellSlot.E);
+            }
+            damage += ItemHandler.GetItemsDamage(hero);
+            var ignitedmg = player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
+            if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready &&
+                hero.Health < damage + ignitedmg)
+            {
+                damage += ignitedmg;
+            }
+            return (float)damage;
+        }
         private void InitMenu()
         {
             config = new Menu("Ezreal ", "Ezreal", true);
@@ -378,7 +400,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
             menuC.AddItem(new MenuItem("useekill", "   Only for kill")).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R in 1v1")).SetValue(true);
-            menuC.AddItem(new MenuItem("usermin", "   Min range")).SetValue(new Slider(500, 0, 1500));
+            menuC.AddItem(new MenuItem("usermin", "   Min range")).SetValue(new Slider(800, 0, 1500));
             menuC.AddItem(new MenuItem("usertf", "R min enemy in teamfight")).SetValue(new Slider(3, 1, 5));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);

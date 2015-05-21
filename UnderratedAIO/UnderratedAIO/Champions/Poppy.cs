@@ -182,6 +182,7 @@ namespace UnderratedAIO.Champions
                     {
                         E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                     }
+
                 }
             }
             if (config.Item("user").GetValue<bool>())
@@ -218,7 +219,6 @@ namespace UnderratedAIO.Champions
                 R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
         }
-
 
         private static void Clear()
         {
