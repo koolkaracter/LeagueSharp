@@ -203,7 +203,7 @@ namespace UnderratedAIO.Champions
             if (R.IsReady() && !justJumped)
             {
                 var dist = player.Distance(Rtarget);
-                if (config.Item("user").GetValue<bool>() && !Q.CanCast(Rtarget) && !W.CanCast(Rtarget) &&
+                if (config.Item("user").GetValue<bool>() && !justQ && !Q.CanCast(target) && !justW && !W.CanCast(target) &&
                     !CombatHelper.CheckCriticalBuffs(Rtarget) && config.Item("usermin").GetValue<Slider>().Value < dist &&
                     3000 > dist && Rtarget.Health < R.GetDamage(Rtarget) * 0.7)
                 {
