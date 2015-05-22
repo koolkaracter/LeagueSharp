@@ -20,6 +20,8 @@ namespace UnderratedAIO.Champions
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static bool justJumped;
+        public static bool justQ;
+        public static bool justW;
         public static Obj_AI_Minion LastAttackedminiMinion;
         public static float LastAttackedminiMinionTime;
 
@@ -51,12 +53,31 @@ namespace UnderratedAIO.Champions
 
         private void Game_ProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (sender.IsMe && args.SData.Name == "EzrealArcaneShift")
+            if (sender.IsMe)
             {
-                if (!justJumped)
+                if (args.SData.Name == "EzrealArcaneShift")
                 {
-                    justJumped = true;
-                    Utility.DelayAction.Add(200, () => justJumped = false);
+                    if (!justJumped)
+                    {
+                        justJumped = true;
+                        Utility.DelayAction.Add(200, () => justJumped = false);
+                    }
+                }
+                if (args.SData.Name == "EzrealMysticShot")
+                {
+                    if (!justQ)
+                    {
+                        justQ = true;
+                        Utility.DelayAction.Add(500, () => justQ = false);
+                    }
+                }
+                if (args.SData.Name == "EzrealEssenceFlux")
+                {
+                    if (!justW)
+                    {
+                        justW = true;
+                        Utility.DelayAction.Add(500, () => justW = false);
+                    }
                 }
             }
         }
@@ -200,7 +221,7 @@ namespace UnderratedAIO.Champions
             if (config.Item("usee").GetValue<bool>() && E.IsReady() &&
                 ((config.Item("useekill").GetValue<bool>() && canKill) ||
                  (!config.Item("useekill").GetValue<bool>() &&
-                   (target.CountEnemiesInRange(1200) <= target.CountAlliesInRange(1200) && player.Health > target.Health &&
+                  (target.CountEnemiesInRange(1200) <= target.CountAlliesInRange(1200) && player.Health > target.Health &&
                    TargetSelector.GetPriority(target) >= 2f) || canKill)))
             {
                 var bestPositons =
@@ -226,7 +247,7 @@ namespace UnderratedAIO.Champions
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
-                !E.CanCast(target) && !player.IsChannelingImportantSpell())
+                !player.IsChannelingImportantSpell() && !justQ && !Q.CanCast(target) && !justW && !W.CanCast(target))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
@@ -257,26 +278,26 @@ namespace UnderratedAIO.Champions
                                 (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LastHit
                                     ? Q.GetDamage(m)
                                     : Q.GetDamage(m) * config.Item("qLHDamage").GetValue<Slider>().Value / 100) &&
-                                    Q.CanCast(m));
-                if (minions != null && LastAttackedminiMinion!=null)
+                                Q.CanCast(m));
+                if (minions != null && LastAttackedminiMinion != null)
                 {
-                foreach (
-                    var minion in
+                    foreach (var minion in
                         minions.Where(
                             m =>
                                 m.NetworkId != LastAttackedminiMinion.NetworkId ||
-                                (m.NetworkId == LastAttackedminiMinion.NetworkId && Utils.GameTimeTickCount - LastAttackedminiMinionTime > 700)))
-                {
-                    if (minion.Distance(player) <= player.AttackRange && !Orbwalking.CanAttack() &&
-                        Orbwalking.CanMove(100))
+                                (m.NetworkId == LastAttackedminiMinion.NetworkId &&
+                                 Utils.GameTimeTickCount - LastAttackedminiMinionTime > 700)))
                     {
-                        Q.Cast(minion, config.Item("packets").GetValue<bool>());
+                        if (minion.Distance(player) <= player.AttackRange && !Orbwalking.CanAttack() &&
+                            Orbwalking.CanMove(100))
+                        {
+                            Q.Cast(minion, config.Item("packets").GetValue<bool>());
+                        }
+                        else if (minion.Distance(player) > player.AttackRange)
+                        {
+                            Q.Cast(minion, config.Item("packets").GetValue<bool>());
+                        }
                     }
-                    else if (minion.Distance(player) > player.AttackRange)
-                    {
-                        Q.Cast(minion, config.Item("packets").GetValue<bool>());
-                    }
-                }
                 }
             }
         }
@@ -342,6 +363,7 @@ namespace UnderratedAIO.Champions
             }
             return (float) damage;
         }
+
         private static float GetComboDamage(Obj_AI_Hero hero)
         {
             double damage = 0;
@@ -364,8 +386,9 @@ namespace UnderratedAIO.Champions
             {
                 damage += ignitedmg;
             }
-            return (float)damage;
+            return (float) damage;
         }
+
         private void InitMenu()
         {
             config = new Menu("Ezreal ", "Ezreal", true);
