@@ -55,7 +55,14 @@ namespace UnderratedAIO.Helpers
                     "IreliaEquilibriumStrike", "InfiniteDuress", "SkarnerImpale", "SowTheWind", "PuncturingTaunt",
                     "UrgotSwap2", "NasusW", "VolibearW", "Feast", "NocturneUnspeakableHorror"
                 });
-
+        public static List<string> invulnerable =
+    new List<string>(
+        new string[]
+                {
+                    "sionpassivezombie", "willrevive", "BraumShieldRaise", "UndyingRage", "PoppyDiplomaticImmunity",
+                    "LissandraRSelf", "JudicatorIntervention", "ZacRebirthReady", "AatroxPassiveReady", "Rebirth",
+                    "alistartrample", "NocturneShroudofDarknessShield", "SpellShield"
+                });
 
         private static List<int> defItems =
             new List<int>(new int[] { ItemHandler.Qss.Id, ItemHandler.Qss.Id, ItemHandler.Dervish.Id });
