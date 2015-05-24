@@ -69,7 +69,8 @@ namespace UnderratedAIO.Helpers
                 {
                     config.AddItem(new MenuItem("gpWaves", "GP ult waves to damage")).SetValue(new Slider(2, 1, 7));
                 }
-
+                config.AddItem(new MenuItem("Hitchance", "Hitchance")).SetValue(new Slider(3, 1, 5));
+                config.AddItem(new MenuItem("Info ", "--5 is the highest chance to hit"));
                 Menu DontUlt = new Menu("Don't Ult", "DontUltRandomUlt");
                 foreach (var e in HeroManager.Enemies)
                 {
@@ -182,9 +183,8 @@ namespace UnderratedAIO.Helpers
         private void Game_OnUpdate(EventArgs args)
         {
             float time = System.Environment.TickCount;
-            foreach (
-                Positions enemyInfo in
-                    Enemies.Where(x => x.Player.IsVisible && !x.Player.IsDead && x.Player.IsValidTarget()))
+            foreach (Positions enemyInfo in
+                Enemies.Where(x => x.Player.IsVisible && !x.Player.IsDead && x.Player.IsValidTarget()))
             {
                 enemyInfo.LastSeen = time;
                 var prediction = Prediction.GetPrediction(enemyInfo.Player, 4);
@@ -198,7 +198,7 @@ namespace UnderratedAIO.Helpers
             {
                 return;
             }
-
+            var HitChance = configMenu.Item("Hitchance").GetValue<Slider>().Value;
             foreach (Positions enemy in
                 Enemies.Where(
                     x =>
@@ -217,7 +217,39 @@ namespace UnderratedAIO.Helpers
                 }
                 var dist = (Math.Abs(enemy.LastSeen - enemy.RecallData.RecallStartTime) / 1000 * enemy.Player.MoveSpeed) -
                            enemy.Player.MoveSpeed / 3;
+                var trueDist = Math.Abs(enemy.LastSeen - enemy.RecallData.RecallStartTime) / 1000 *
+                               enemy.Player.MoveSpeed;
                 var line = getpos(enemy, dist);
+                Console.WriteLine(enemy.Player.SkinName+ trueDist);
+                switch (HitChance)
+                {
+                    case 1:
+                        break;
+                    case 2:
+                        if (trueDist > 1000 && !enemy.Player.IsVisible)
+                        {
+                            continue;
+                        }
+                        break;
+                    case 3:
+                        if (trueDist > 800 && !enemy.Player.IsVisible)
+                        {
+                            continue;
+                        }
+                        break;
+                    case 4:
+                        if (trueDist > 650 && !enemy.Player.IsVisible)
+                        {
+                            continue;
+                        }
+                        break;
+                    case 5:
+                        if (trueDist > 400 && !enemy.Player.IsVisible)
+                        {
+                            continue;
+                        }
+                        break;
+                }
                 Vector3 pos = line;
                 if (enemy.Player.IsVisible)
                 {
@@ -225,9 +257,6 @@ namespace UnderratedAIO.Helpers
                 }
                 else
                 {
-                    var trueDist = Math.Abs(enemy.LastSeen - enemy.RecallData.RecallStartTime) / 1000 *
-                                   enemy.Player.MoveSpeed;
-
                     if (dist > 1500)
                     {
                         return;
