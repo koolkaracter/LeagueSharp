@@ -60,7 +60,7 @@ namespace UnderratedAIO.Champions
                     if (!justJumped)
                     {
                         justJumped = true;
-                        Utility.DelayAction.Add(200, () => justJumped = false);
+                        Utility.DelayAction.Add(400, () => justJumped = false);
                     }
                 }
                 if (args.SData.Name == "EzrealMysticShot")
@@ -205,7 +205,7 @@ namespace UnderratedAIO.Champions
                 var dist = player.Distance(Rtarget);
                 if (config.Item("user").GetValue<bool>() && !justQ && !Q.CanCast(target) && !justW && !W.CanCast(target) &&
                     !CombatHelper.CheckCriticalBuffs(Rtarget) && config.Item("usermin").GetValue<Slider>().Value < dist &&
-                    3000 > dist && Rtarget.Health < R.GetDamage(Rtarget) * 0.7)
+                    3000 > dist && Rtarget.Health < R.GetDamage(Rtarget) * 0.7 && target.CountAlliesInRange(600)<1)
                 {
                     var time = player.Distance(Rtarget) / R.Speed + 1000;
                     var tarPered = Prediction.GetPrediction(Rtarget, time);
@@ -247,7 +247,7 @@ namespace UnderratedAIO.Champions
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
-                !player.IsChannelingImportantSpell() && !justQ && !Q.CanCast(target) && !justW && !W.CanCast(target))
+                !player.IsChannelingImportantSpell() && !justQ && !Q.CanCast(target) && !justW && !W.CanCast(target) && !justJumped)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
