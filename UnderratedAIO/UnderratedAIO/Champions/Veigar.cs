@@ -20,8 +20,8 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static bool justQ, justW, justR;
-        public static Vector3 wPos;
+        public static bool justQ, justW, justR, justE;
+        public static Vector3 wPos, ePos;
         public static Obj_AI_Minion LastAttackedminiMinion;
         public static float LastAttackedminiMinionTime;
 
@@ -42,7 +42,8 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
         }
 
-        void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender, Interrupter2.InterruptableTargetEventArgs args)
+        private void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender,
+            Interrupter2.InterruptableTargetEventArgs args)
         {
             if (E.IsReady() && config.Item("Interrupt").GetValue<bool>())
             {
@@ -60,7 +61,7 @@ namespace UnderratedAIO.Champions
                     if (!justQ)
                     {
                         justQ = true;
-                        Utility.DelayAction.Add(400, () => justQ = false);
+                        Utility.DelayAction.Add(300, () => justQ = false);
                     }
                 }
                 if (args.SData.Name == "VeigarDarkMatter")
@@ -75,6 +76,19 @@ namespace UnderratedAIO.Champions
                                 justW = false;
                                 wPos = Vector3.Zero;
                             });
+                    }
+                }
+                if (args.SData.Name == "VeigarEventHorizon")
+                {
+                    if (!justE)
+                    {
+                        ePos = args.End;
+                        justE = true;
+                        Utility.DelayAction.Add(3500, () =>
+                        {
+                            justE = false;
+                            ePos = Vector3.Zero;
+                        });
                     }
                 }
                 if (args.SData.Name == "VeigarPrimordialBurst")
@@ -97,7 +111,6 @@ namespace UnderratedAIO.Champions
             E = new Spell(SpellSlot.E, 1050);
             E.SetSkillshot(.8f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R, 650);
-           
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -124,11 +137,11 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseCleanse(config);
             }
-            if (config.Item("autoQ").GetValue<bool>() && Q.IsReady())
+            if (config.Item("autoQ").GetValue<bool>() && Q.IsReady() && !player.IsRecalling() && orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo)
             {
                 LastHitQ(true);
             }
-            if (config.Item("autoW").GetValue<bool>())
+            if (config.Item("autoW").GetValue<bool>() && !player.IsRecalling())
             {
                 var targ =
                     HeroManager.Enemies.Where(
@@ -188,7 +201,7 @@ namespace UnderratedAIO.Champions
             if (config.Item("usewLC").GetValue<bool>() && W.IsReady())
             {
                 MinionManager.FarmLocation bestPositionW =
-                    E.GetCircularFarmLocation(MinionManager.GetMinions(W.Range, MinionTypes.All, MinionTeam.NotAlly));
+                    W.GetCircularFarmLocation(MinionManager.GetMinions(W.Range, MinionTypes.All, MinionTeam.NotAlly));
                 if (bestPositionW.MinionsHit >= config.Item("wMinHit").GetValue<Slider>().Value)
                 {
                     W.Cast(bestPositionW.Position, config.Item("packets").GetValue<bool>());
@@ -230,10 +243,21 @@ namespace UnderratedAIO.Champions
             if (config.Item("usew").GetValue<bool>() && W.IsReady())
             {
                 var tarPered = W.GetPrediction(target);
-                if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
-                    tarPered.Hitchance >= HitChance.VeryHigh)
+                if (justE && ePos.IsValid() && target.Distance(ePos)<375)
                 {
-                    W.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
+                    if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
+                        tarPered.Hitchance >= HitChance.Medium)
+                    {
+                        W.Cast(target.Position, config.Item("packets").GetValue<bool>());
+                    }
+                }
+                else
+                {
+                    if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
+                        tarPered.Hitchance >= HitChance.VeryHigh)
+                    {
+                        W.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
+                    }
                 }
             }
             if (R.IsReady() && R.CanCast(target))
@@ -247,7 +271,7 @@ namespace UnderratedAIO.Champions
             bool canKill = cmbDmg > target.Health;
             if (config.Item("usee").GetValue<bool>() && E.IsReady() &&
                 ((canKill && config.Item("useekill").GetValue<bool>()) ||
-                 (!config.Item("useekill").GetValue<bool>())))
+                 (!config.Item("useekill").GetValue<bool>() && CheckMana())))
             {
                 CastE(target);
             }
@@ -255,16 +279,38 @@ namespace UnderratedAIO.Champions
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
                 !player.IsChannelingImportantSpell() && !justQ && !Q.CanCast(target) && !justR && !R.CanCast(target) &&
-                 CheckW(target))
+                CheckW(target))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
         }
 
+        private bool CheckMana()
+        {
+            float mana = 0;
+            if (Q.IsReady())
+            {
+                mana += Q.Instance.ManaCost;
+            }
+            if (W.IsReady())
+            {
+                mana += W.Instance.ManaCost;
+            }
+            if (E.IsReady())
+            {
+                mana += E.Instance.ManaCost;
+            }
+            if (R.IsReady())
+            {
+                mana += R.Instance.ManaCost;
+            }
+            return mana < player.Mana;
+        }
+
         private void CastE(Obj_AI_Hero target)
         {
             var targE = Prediction.GetPrediction(target, 0.5f);
-            if (targE.CastPosition.Distance(player.Position)<700f)
+            if (targE.CastPosition.Distance(player.Position) < 700f)
             {
                 E.Cast(targE.CastPosition.Extend(player.Position, 375), config.Item("packets").GetValue<bool>());
             }
