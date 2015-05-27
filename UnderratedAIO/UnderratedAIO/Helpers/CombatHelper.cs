@@ -241,6 +241,24 @@ namespace UnderratedAIO.Helpers
 
             return list;
         }
+
+        public static List<Vector3> PointsAroundTheTargetOuterRing(Vector3 pos, float dist, float width = 15)
+        {
+            if (!pos.IsValid())
+            {
+                return new List<Vector3>();
+            }
+            List<Vector3> list = new List<Vector3>();
+            var max = 2 * dist/2 * Math.PI / width/2;
+            var angle = 360f / max * Math.PI / 180.0f;
+            for (int i = 0; i < max; i++)
+            {
+                list.Add(new Vector3(pos.X + (float)(Math.Cos(angle * i) * dist), pos.Y + (float)(Math.Sin(angle * i) * dist), pos.Z));
+            }
+
+            return list;
+        }
+
         public static bool IsFacing(Obj_AI_Base source, Vector3 target)
         {
             if (source==null || !target.IsValid())
