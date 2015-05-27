@@ -108,7 +108,7 @@ namespace UnderratedAIO.Champions
             Q = new Spell(SpellSlot.Q, 950);
             Q.SetSkillshot(0.25f, 70f, 2000f, false, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W, 900);
-            W.SetSkillshot(1.25f, 225f, float.MaxValue, false, SkillshotType.SkillshotCircle);
+            W.SetSkillshot(1.35f, 225f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             E = new Spell(SpellSlot.E, 1050);
             E.SetSkillshot(.8f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R, 650);
@@ -184,7 +184,7 @@ namespace UnderratedAIO.Champions
             {
                 var targQ = Q.GetPrediction(target, true);
                 var collision = Q.GetCollision(
-                player.Position.To2D(), new List<Vector2>() { player.Position.Extend(target.Position, Q.Range).To2D() }, 70f);
+                player.Position.To2D(), new List<Vector2>() { target.Position.To2D() }, 70f);
                 if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count <= 2 &&
                     targQ.Hitchance >= HitChance.High)
                 {
@@ -248,7 +248,7 @@ namespace UnderratedAIO.Champions
             {
                 var targQ = Q.GetPrediction(target, true);
                 var collision = Q.GetCollision(
-                player.Position.To2D(), new List<Vector2>() { player.Position.Extend(target.Position, Q.Range).To2D() }, 70f);
+                player.Position.To2D(), new List<Vector2>() { target.Position.To2D() }, 70f);
                 if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count <= 2 &&
                     targQ.Hitchance >= HitChance.High)
                 {
