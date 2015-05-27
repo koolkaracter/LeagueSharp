@@ -22,8 +22,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static bool justQ, justW, justR, justE;
         public static Vector3 wPos, ePos;
-        public static Obj_AI_Minion LastAttackedminiMinion;
-        public static float LastAttackedminiMinionTime;
+        public Obj_AI_Base qMiniForWait; 
 
         public Veigar()
         {
@@ -96,7 +95,7 @@ namespace UnderratedAIO.Champions
                     if (!justR)
                     {
                         justR = true;
-                        Utility.DelayAction.Add(500, () => justR = false);
+                        Utility.DelayAction.Add(400, () => justR = false);
                     }
                 }
             }
@@ -149,12 +148,20 @@ namespace UnderratedAIO.Champions
                             W.CanCast(hero) &&
                             (hero.HasBuffOfType(BuffType.Snare) || hero.HasBuffOfType(BuffType.Stun) ||
                              hero.HasBuffOfType(BuffType.Taunt) || hero.HasBuffOfType(BuffType.Suppression)))
-                        .OrderBy(h => h.Health)
+                        .OrderBy(hero => hero.Health)
                         .FirstOrDefault();
                 if (targ != null)
                 {
                     W.Cast(targ, config.Item("packets").GetValue<bool>());
                 }
+            }
+            if (qMiniForWait.IsValidTarget() && orbwalker.GetTarget().NetworkId==qMiniForWait.NetworkId && (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LastHit || orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear || orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed))
+            {
+                orbwalker.SetAttack(false);
+            }
+            else
+            {
+                orbwalker.SetAttack(true);
             }
         }
 
@@ -226,6 +233,7 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+
             if (config.Item("useItems").GetValue<bool>())
             {
                 ItemHandler.UseItems(target, config);
@@ -309,11 +317,21 @@ namespace UnderratedAIO.Champions
 
         private void CastE(Obj_AI_Hero target)
         {
-            var targE = Prediction.GetPrediction(target, 0.5f);
-            if (targE.CastPosition.Distance(player.Position) < 700f)
+            if (player.CountEnemiesInRange(1000)<2)
             {
-                E.Cast(targE.CastPosition.Extend(player.Position, 375), config.Item("packets").GetValue<bool>());
+                var targE = Prediction.GetPrediction(target, 0.5f);
+                var bestE = getBestEVector3(target);
+                if (targE.CastPosition.Distance(player.Position) < 700f)
+                {
+                    E.Cast(targE.CastPosition.Extend(player.Position, 375), config.Item("packets").GetValue<bool>());
+                }
+            }else
+            {
+                var targE = getBestEVector3(target);
+                E.Cast(targE, config.Item("packets").GetValue<bool>());
             }
+
+
         }
 
         private bool CheckW(Obj_AI_Hero target)
@@ -343,15 +361,36 @@ namespace UnderratedAIO.Champions
                             m =>
                                 m.Distance(player) < Q.Range &&
                                 m.Health < Q.GetDamage(m) * config.Item("qLHDamage").GetValue<Slider>().Value / 100);
-                if (minions != null)
+
+                CollisionableObjects[] collisionables = new []{CollisionableObjects.Minions, CollisionableObjects.Heroes, CollisionableObjects.YasuoWall};
+                var objAiBases = minions as Obj_AI_Base[] ?? minions.ToArray();
+                if (objAiBases.Any())
                 {
                     Obj_AI_Base target = null;
-                    foreach (var minion in minions)
+                    foreach (var minion in objAiBases)
                     {
-                        var qPred = Q.GetPrediction(minion);
-                        if (qPred.CollisionObjects.Count <= 2)
+                        var qPred = Q.GetPrediction(minion, true, -1f, collisionables);
+                        var collision = Q.GetCollision(
+                            player.Position.To2D(), new List<Vector2>() { minion.Position.To2D() });
+                        if (collision.Count <= 2)
                         {
-                            Q.Cast(minion, config.Item("packets").GetValue<bool>());
+                            if (collision.Count==1)
+                            {
+                              Q.Cast(minion, config.Item("packets").GetValue<bool>());
+                            }else
+                            {
+                                var other = collision.FirstOrDefault(c => c.NetworkId != minion.NetworkId);
+                                if (other!=null && HealthPrediction.GetHealthPrediction(other, 1000) < Q.GetDamage(other) && HealthPrediction.GetHealthPrediction(minion, 1000) > 0 && Q.GetDamage(other) < other.Health)
+                                {
+                                        qMiniForWait = other;
+                                        continue;
+                                    }
+                                else
+                                {
+                                    Q.Cast(minion, config.Item("packets").GetValue<bool>());
+                                }
+                            }
+                            
                         }
                     }
                 }
@@ -372,6 +411,11 @@ namespace UnderratedAIO.Champions
             }
         }
 
+        private IEnumerable<Vector3> GetEpoints(Obj_AI_Hero target)
+        {
+           var targetPos = E.GetPrediction(target);
+           return CombatHelper.PointsAroundTheTargetOuterRing(targetPos.CastPosition, 345, 16).Where(p=>player.Distance(p)<700);
+        } 
         private static float ComboDamage(Obj_AI_Hero hero)
         {
             double damage = 0;
@@ -397,6 +441,35 @@ namespace UnderratedAIO.Champions
             return (float) damage;
         }
 
+        private Vector3 getBestEVector3(Obj_AI_Hero target)
+        {
+            var points = GetEpoints(target);
+            var otherHeroes =
+                HeroManager.Enemies.Where(e => e.NetworkId != target.NetworkId && player.Distance(e) < 1000).Select(e => E.GetPrediction(e));
+
+            var best = Vector3.Zero;
+            if (otherHeroes.Any())
+            {
+                var count = 0;
+                foreach (var point in points)
+                {
+                    foreach (var otherHero in otherHeroes)
+                    {
+                        var num = 0;
+                        if (otherHero.CastPosition.Distance(point) > 345 && otherHero.CastPosition.Distance(point) < 375)
+                        {
+                            num++;
+                        }
+                        if (num > count)
+                        {
+                            count = num;
+                            best = point;
+                        }
+                    }
+                }
+            }
+            return best;
+        }
         private void InitMenu()
         {
             config = new Menu("Veigar ", "Veigar", true);
