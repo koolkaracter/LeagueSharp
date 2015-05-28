@@ -40,7 +40,11 @@ namespace TeamStats
             var eHP = EnemyTeam[0].Health;
             foreach (var enemy in EnemyTeam)
             {
-                if (eHP < 0)
+                if (myTeam.Count - 1 < e)
+                {
+                    break;
+                }
+                if (eHP < 0 && myTeam.Count-1>=e+1)
                 {
                     e++;
                     eHP = myTeam[e].Health + eHP;
@@ -54,10 +58,15 @@ namespace TeamStats
             var tHP = EnemyTeam[0].Health;
             foreach (var teammate in myTeam)
             {
-                if (tHP < 0)
+                if (EnemyTeam.Count-1<t)
                 {
-                    t++;
+                    break;
+                }
+                if (tHP < 0 && EnemyTeam.Count-1>=t+1)
+                {                    
+                    t++; 
                     tHP = EnemyTeam[t].Health + tHP;
+
                 }
                 myTeamDmg += (int)ComboDamage(teammate, EnemyTeam[t]);
                 tHP -= (int)ComboDamage(teammate, EnemyTeam[t]);
@@ -75,7 +84,7 @@ namespace TeamStats
                 if (src.Crit>0)
                 {
                     
-                    basicDmg += (float)src.GetAutoAttackDamage(dsc) * (1 + src.Crit/attacks);
+                    basicDmg += (float)src.GetAutoAttackDamage(dsc) * attacks;
                 }
                 else
                 {
@@ -242,7 +251,7 @@ namespace TeamStats
                                     else damage += (float)Damage.GetSpellDamage(src, dsc, spell.Slot);
                                     break;
                                 default:
-                                damage += (float)Damage.GetSpellDamage(src, dsc, spell.Slot); 
+                                damage += (float)Damage.GetSpellDamage(src, dsc, spell.Slot);
                                 break;
                     }
                                      

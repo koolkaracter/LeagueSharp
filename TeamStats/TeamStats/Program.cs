@@ -57,14 +57,14 @@ namespace TeamStats
             Config.AddItem(new MenuItem("draw", "Draw range")).SetValue(new Circle(false, Color.LightBlue));
             Config.AddToMainMenu();
             //frame = loadFrame();
-            gPower = loadText("", new ColorBGRA(Color.ForestGreen.ToArgb()));
-            ePower = loadText("", new ColorBGRA(Color.Red.ToArgb()));
+            gPower = loadText("", new ColorBGRA(Color.FromArgb(255, 34, 139, 34).ToArgb()));
+            ePower = loadText("", new ColorBGRA(Color.FromArgb(255, 178, 34, 34).ToArgb()));
             aDmg = loadText("", new ColorBGRA(Color.White.ToArgb()));
             eDmg = loadText("", new ColorBGRA(Color.White.ToArgb()));
             aHealt = loadText("", new ColorBGRA(Color.White.ToArgb()));
             eHealt = loadText("", new ColorBGRA(Color.White.ToArgb()));
-            aNum = loadText("", new ColorBGRA(Color.ForestGreen.ToArgb()));
-            eNum = loadText("", new ColorBGRA(Color.Red.ToArgb()));
+            aNum = loadText("", new ColorBGRA(Color.FromArgb(255, 34, 139, 34).ToArgb()));
+            eNum = loadText("", new ColorBGRA(Color.FromArgb(255, 178, 34, 34).ToArgb()));
             versus = loadText("", new ColorBGRA(Color.White.ToArgb()));
             timer.Elapsed += OnTimerTick;
             timer.Enabled = true;
@@ -84,7 +84,6 @@ namespace TeamStats
 
         private static void Game_OnGameUpdate(EventArgs args)
         {
-
             Config.Item("Small").ValueChanged += resetSmallText;
             if (Config.Item("Default").GetValue<bool>())
             {
@@ -124,7 +123,7 @@ namespace TeamStats
 
         private static void Drawing_OnDraw(EventArgs args)
         {
-            if (Config.Item("Enabled").GetValue<bool>() && player.CountEnemysInRange(range) > 0 &&
+            if (Config.Item("Enabled").GetValue<bool>() && player.CountEnemiesInRange(range) > 0 &&
                 countAllies(range) > 0 && teams != null)
             {
                 var OffsetX = Config.Item("X-pos").GetValue<Slider>().Value;
@@ -141,79 +140,107 @@ namespace TeamStats
                 {
                     scale = 200f/highest;
                 }
+                var green = Color.FromArgb(255, 34, 139, 34);
+                var red = Color.FromArgb(255, 178, 34, 34);
+                var white = Color.FromArgb(255, 255, 255, 255);
                 if (Config.Item("Chart").GetValue<bool>())
                 {
+  
                     if (!Config.Item("Small").GetValue<bool>())
                     {
-                        Drawing.DrawLine(myTeamHpX + OffsetX, myTeamHpY + 30 + OffsetY, enemyTeamDmgX + OffsetX,
-                            enemyTeamDmgY + OffsetY, 300, Color.DarkGray);
-                        Drawing.DrawText(myTeamHpX + OffsetX, myTeamHpY + OffsetY - 2, Color.White,
+                       //Background
+                       Drawing.DrawLine(myTeamHpX + OffsetX, myTeamHpY + 30 + OffsetY, enemyTeamDmgX + OffsetX,
+                            enemyTeamDmgY + OffsetY, 300, Color.FromArgb(200, 180, 180, 180));
+                       //Background BORDERS
+                       Drawing.DrawLine(myTeamHpX + OffsetX-1, myTeamHpY + 30 + OffsetY, enemyTeamDmgX + OffsetX-1,
+                            enemyTeamDmgY + OffsetY, 1, white);
+                       Drawing.DrawLine(myTeamHpX + OffsetX + 300, myTeamHpY + 30 + OffsetY, enemyTeamDmgX + OffsetX + 300,
+                       enemyTeamDmgY + OffsetY, 1, white);
+                       Drawing.DrawLine(myTeamHpX + OffsetX + 150, myTeamHpY + 30 + OffsetY, myTeamHpX + OffsetX + 150,
+                        myTeamHpY + 30 + OffsetY, 300, white);
+                       Drawing.DrawLine(myTeamHpX + OffsetX + 150, myTeamHpY + 30 + OffsetY-91, myTeamHpX + OffsetX + 150,
+                        myTeamHpY + 30 + OffsetY-91, 302, white);
+                       //Allies Health text
+                       Drawing.DrawText(myTeamHpX + OffsetX, myTeamHpY + OffsetY - 2, white,
                             "Allies Health(" + myteamhpBar + ")");
                         Drawing.DrawLine(myTeamHpX + OffsetX, myTeamHpY + OffsetY, myTeamHpX + OffsetX,
-                            myTeamHpY + OffsetY + 14, (int) (myteamhpBar*scale*-1), Color.ForestGreen);
-
-                        Drawing.DrawText(enemyTeamHpX + OffsetX, enemyTeamHpY + OffsetY - 2, Color.White,
-                            "Enemies Healt(" + enemyteamhpBar + ")");
+                            myTeamHpY + OffsetY + 14, (int)(myteamhpBar * scale * -1), green);
+                        //Enemies Health text
+                        Drawing.DrawText(enemyTeamHpX + OffsetX, enemyTeamHpY + OffsetY - 2, white,
+                            "Enemies Health(" + enemyteamhpBar + ")");
                         Drawing.DrawLine(enemyTeamHpX + OffsetX, enemyTeamHpY + OffsetY, enemyTeamHpX + OffsetX,
-                            enemyTeamHpY + OffsetY + 14, (int) (-enemyteamhpBar*scale), Color.ForestGreen);
-
-                        Drawing.DrawText(myTeamDmgX + OffsetX, myTeamDmgY + OffsetY - 2, Color.White,
+                            enemyTeamHpY + OffsetY + 14, (int)(-enemyteamhpBar * scale), green);
+                        //Allies Damage
+                        Drawing.DrawText(myTeamDmgX + OffsetX, myTeamDmgY + OffsetY - 2, white,
                             "Allies Damage(" + myteamdmgBar + ")");
                         Drawing.DrawLine(myTeamDmgX + OffsetX, myTeamDmgY + OffsetY, myTeamDmgX + OffsetX,
-                            myTeamDmgY + OffsetY + 14, (int) (-myteamdmgBar*scale), Color.Firebrick);
-
-                        Drawing.DrawText(enemyTeamDmgX + OffsetX, enemyTeamDmgY + OffsetY - 2, Color.White,
+                            myTeamDmgY + OffsetY + 14, (int)(-myteamdmgBar * scale), red);
+                        //Enemies Damage
+                        Drawing.DrawText(enemyTeamDmgX + OffsetX, enemyTeamDmgY + OffsetY - 2, white,
                             "Enemies Damage(" + enemyteamdmgBar + ")");
                         Drawing.DrawLine(enemyTeamDmgX + OffsetX, enemyTeamDmgY + OffsetY, enemyTeamDmgX + OffsetX,
-                            enemyTeamDmgY + OffsetY + 14, (int) (-enemyteamdmgBar*scale), Color.Firebrick);
+                            enemyTeamDmgY + OffsetY + 14, (int)(-enemyteamdmgBar * scale), red);
                     }
                     else
                     {
+                        //Background
                         Drawing.DrawLine(myTeamHpX + OffsetX, myTeamHpY + 30 + OffsetY, enemyTeamDmgX + OffsetX,
-                            enemyTeamDmgY + OffsetY, 200, Color.DarkGray);
+                            enemyTeamDmgY + OffsetY, 200, Color.FromArgb(200, 180, 180, 180));
+                        //Background BORDERS
+                        Drawing.DrawLine(myTeamHpX + OffsetX-1, myTeamHpY + 30 + OffsetY, enemyTeamDmgX + OffsetX-1,
+                            enemyTeamDmgY + OffsetY, 1, white);
+                        Drawing.DrawLine(myTeamHpX + OffsetX +200, myTeamHpY + 30 + OffsetY, enemyTeamDmgX + OffsetX +200,
+                            enemyTeamDmgY + OffsetY, 1, white);
+                        Drawing.DrawLine(myTeamHpX + OffsetX+100, myTeamHpY + 30 + OffsetY, myTeamHpX + OffsetX+100,
+                            myTeamHpY + 30 + OffsetY, 200, white);
+                        Drawing.DrawLine(myTeamHpX + OffsetX+100, myTeamHpY + 30 + OffsetY - 91, myTeamHpX + OffsetX+100,
+                            myTeamHpY + 30 + OffsetY - 91, 202, white);
+                        //Allies Health text
                         aHealt.text = "Allies Health(" + myteamhpBar + ")";
                         aHealt.X = myTeamHpX + OffsetX;
                         aHealt.Y = myTeamHpY + OffsetY - 2;
                         Drawing.DrawLine(myTeamHpX + OffsetX, myTeamHpY + OffsetY, myTeamHpX + OffsetX,
-                            myTeamHpY + OffsetY + 14, (int) (myteamhpBar*scale*-1), Color.ForestGreen);
-
-                        eHealt.text = "Enemies Healt(" + enemyteamhpBar + ")";
+                            myTeamHpY + OffsetY + 14, (int)(myteamhpBar * scale * -1), green);
+                        //Enemies Health text
+                        eHealt.text = "Enemies Health(" + enemyteamhpBar + ")";
                         eHealt.X = enemyTeamHpX + OffsetX;
                         eHealt.Y = enemyTeamHpY + OffsetY - 2;
                         Drawing.DrawLine(enemyTeamHpX + OffsetX, enemyTeamHpY + OffsetY, enemyTeamHpX + OffsetX,
-                            enemyTeamHpY + OffsetY + 14, (int) (-enemyteamhpBar*scale), Color.ForestGreen);
+                            enemyTeamHpY + OffsetY + 14, (int)(-enemyteamhpBar * scale), green);
+                        //Allies Damage
                         aDmg.text = "Allies Damage(" + myteamdmgBar + ")";
                         aDmg.X = myTeamDmgX + OffsetX;
                         aDmg.Y = myTeamDmgY + OffsetY - 2;
                         Drawing.DrawLine(myTeamDmgX + OffsetX, myTeamDmgY + OffsetY, myTeamDmgX + OffsetX,
-                            myTeamDmgY + OffsetY + 14, (int) (-myteamdmgBar*scale), Color.Firebrick);
+                            myTeamDmgY + OffsetY + 14, (int) (-myteamdmgBar*scale), red);
+                        //Enemies Damage
                         eDmg.text = "Enemies Damage(" + enemyteamdmgBar + ")";
                         eDmg.X = enemyTeamDmgX + OffsetX;
                         eDmg.Y = enemyTeamDmgY + OffsetY - 2;
                         Drawing.DrawLine(enemyTeamDmgX + OffsetX, enemyTeamDmgY + OffsetY, enemyTeamDmgX + OffsetX,
-                            enemyTeamDmgY + OffsetY + 14, (int) (-enemyteamdmgBar*scale), Color.Firebrick);
+                            enemyTeamDmgY + OffsetY + 14, (int) (-enemyteamdmgBar*scale), red);
                     }
                 }
                 if (!Config.Item("Small").GetValue<bool>())
                 {
                     if (myteamhpBar - enemyteamdmgBar < enemyteamhpBar - myteamdmgBar)
                     {
-                        Drawing.DrawText(myTeamHpX + 45 + OffsetX, myTeamHpY + OffsetY + 14, Color.Red,
+                        Drawing.DrawText(myTeamHpX + 45 + OffsetX, myTeamHpY + OffsetY + 13, red,
                             "Enemy team is stronger");
-                        Drawing.DrawText(myTeamHpX + 225 + OffsetX, myTeamHpY + OffsetY + 14, Color.ForestGreen,
+                        Drawing.DrawText(myTeamHpX + 225 + OffsetX, myTeamHpY + OffsetY + 13, green,
                             teams.myTeamNum.ToString());
-                        Drawing.DrawText(myTeamHpX + 235 + OffsetX, myTeamHpY + OffsetY + 14, Color.White, "v");
-                        Drawing.DrawText(myTeamHpX + 245 + OffsetX, myTeamHpY + OffsetY + 14, Color.Red,
+                        Drawing.DrawText(myTeamHpX + 235 + OffsetX, myTeamHpY + OffsetY + 13, white, "v");
+                        Drawing.DrawText(myTeamHpX + 245 + OffsetX, myTeamHpY + OffsetY + 13, red,
                             teams.enemyTeamNum.ToString());
                     }
                     else
                     {
-                        Drawing.DrawText(myTeamHpX + 55 + OffsetX, myTeamHpY + OffsetY + 14, Color.ForestGreen,
+                        Drawing.DrawText(myTeamHpX + 55 + OffsetX, myTeamHpY + OffsetY + 13, green,
                             "Your team is stronger");
-                        Drawing.DrawText(myTeamHpX + 220 + OffsetX, myTeamHpY + OffsetY + 14, Color.ForestGreen,
+                        Drawing.DrawText(myTeamHpX + 220 + OffsetX, myTeamHpY + OffsetY + 13, green,
                             teams.myTeamNum.ToString());
-                        Drawing.DrawText(myTeamHpX + 230 + OffsetX, myTeamHpY + OffsetY + 14, Color.White, "v");
-                        Drawing.DrawText(myTeamHpX + 240 + OffsetX, myTeamHpY + OffsetY + 14, Color.Red,
+                        Drawing.DrawText(myTeamHpX + 230 + OffsetX, myTeamHpY + OffsetY + 13, white, "v");
+                        Drawing.DrawText(myTeamHpX + 240 + OffsetX, myTeamHpY + OffsetY + 13, red,
                             teams.enemyTeamNum.ToString());
                     }
                 }
@@ -260,7 +287,6 @@ namespace TeamStats
             } 
             DrawCircle("draw", range);
         }
-
         private static int countAllies(int range)
         {
             return ObjectManager.Get<Obj_AI_Hero>().Count(i => player.Distance(i) < range && !i.IsDead && !i.IsMinion && (i.IsAlly || i.IsMe) && !i.IsEnemy && i.IsValid);
@@ -280,7 +306,7 @@ namespace TeamStats
         private static void DrawCircle(string menuItem, float range)
         {
             Circle circle = Config.Item(menuItem).GetValue<Circle>();
-            if (circle.Active) Utility.DrawCircle(player.Position, range, circle.Color);
+            if (circle.Active) Render.Circle.DrawCircle(player.Position, range, circle.Color);
         }
 
         private static Render.Text loadText(string text, ColorBGRA color)
