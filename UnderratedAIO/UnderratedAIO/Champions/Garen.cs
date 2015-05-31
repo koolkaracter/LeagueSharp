@@ -20,7 +20,6 @@ namespace UnderratedAIO.Champions
         private static Orbwalking.Orbwalker orbwalker;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, W, E, R;
-        private static float lastE;
         public static AutoLeveler autoLeveler;
 
         public Garen()

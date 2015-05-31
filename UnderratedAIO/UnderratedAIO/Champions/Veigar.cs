@@ -45,7 +45,7 @@ namespace UnderratedAIO.Champions
         private void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender,
             Interrupter2.InterruptableTargetEventArgs args)
         {
-            if (E.IsReady() && config.Item("Interrupt").GetValue<bool>())
+            if (E.IsReady() && config.Item("Interrupt").GetValue<bool>() && sender.Distance(player)<E.Range)
             {
                 CastE(sender);
             }
@@ -143,7 +143,7 @@ namespace UnderratedAIO.Champions
             {
                 LastHitQ(true);
             }
-            if (config.Item("autoW").GetValue<bool>() && !player.IsRecalling())
+            if (config.Item("autoW").GetValue<bool>() && W.IsReady() && !player.IsRecalling())
             {
                 var targ =
                     HeroManager.Enemies.Where(
@@ -157,14 +157,6 @@ namespace UnderratedAIO.Champions
                 {
                     W.Cast(targ, config.Item("packets").GetValue<bool>());
                 }
-            }
-            if (qMiniForWait.IsValidTarget() && qMiniTarget.IsValidTarget() && orbwalker.GetTarget().IsValidTarget() &&
-                orbwalker.GetTarget().NetworkId != qMiniForWait.NetworkId &&
-                (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LastHit ||
-                 orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear ||
-                 orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed))
-            {
-                orbwalker.ForceTarget(qMiniForWait);
             }
         }
 
@@ -184,7 +176,7 @@ namespace UnderratedAIO.Champions
             {
                 var targQ = Q.GetPrediction(target, true);
                 var collision = Q.GetCollision(
-                player.Position.To2D(), new List<Vector2>() { target.Position.To2D() }, 70f);
+                    player.Position.To2D(), new List<Vector2>() { target.Position.To2D() }, 70f);
                 if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count <= 2 &&
                     targQ.Hitchance >= HitChance.High)
                 {
@@ -233,8 +225,10 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(1000, TargetSelector.DamageType.Magical);
-            if (target == null || target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)))
+            Obj_AI_Hero target = TargetSelector.GetTarget(
+                1000, TargetSelector.DamageType.Magical, true,
+                HeroManager.Enemies.Where(h => h.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name))));
+            if (target == null)
             {
                 return;
             }
@@ -248,20 +242,20 @@ namespace UnderratedAIO.Champions
             {
                 var targQ = Q.GetPrediction(target, true);
                 var collision = Q.GetCollision(
-                player.Position.To2D(), new List<Vector2>() { target.Position.To2D() }, 70f);
+                    player.Position.To2D(), new List<Vector2>() { target.Position.To2D() }, 70f);
                 if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count <= 2 &&
                     targQ.Hitchance >= HitChance.High)
                 {
                     Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
                 }
             }
-            if (config.Item("usew").GetValue<bool>() && W.IsReady())
+            if (config.Item("usew").GetValue<bool>() && W.IsReady() && W.CanCast(target))
             {
                 var tarPered = W.GetPrediction(target);
                 if (justE && ePos.IsValid() && target.Distance(ePos) < 375)
                 {
                     if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
-                        tarPered.Hitchance >= HitChance.Medium)
+                        tarPered.Hitchance >= HitChance.High)
                     {
                         W.Cast(target.Position, config.Item("packets").GetValue<bool>());
                     }
@@ -277,8 +271,8 @@ namespace UnderratedAIO.Champions
             }
             if (R.IsReady() && R.CanCast(target))
             {
-                if (config.Item("user").GetValue<bool>() && R.CanCast(target) && CheckW(target) && !Q.CanCast(target) &&
-                    !CombatHelper.CheckCriticalBuffs(target) && R.GetDamage(target) > target.Health)
+                if (config.Item("user").GetValue<bool>() && !CombatHelper.CheckCriticalBuffs(target) && R.CanCast(target) && CheckW(target) && !Q.CanCast(target) &&
+                    R.GetDamage(target) > target.Health)
                 {
                     R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                 }
@@ -374,10 +368,12 @@ namespace UnderratedAIO.Champions
                     foreach (var minion in objAiBases)
                     {
                         var collision = Q.GetCollision(
-                            player.Position.To2D(), new List<Vector2>() { player.Position.Extend(minion.Position,Q.Range).To2D()},70f);
-                        if (collision.Count <= 2 || collision[0].NetworkId==minion.NetworkId || collision[1].NetworkId==minion.NetworkId)
+                            player.Position.To2D(),
+                            new List<Vector2>() { player.Position.Extend(minion.Position, Q.Range).To2D() }, 70f);
+                        if (collision.Count <= 2 || collision[0].NetworkId == minion.NetworkId ||
+                            collision[1].NetworkId == minion.NetworkId)
                         {
-                            if (collision.Count == 1 )
+                            if (collision.Count == 1)
                             {
                                 Q.Cast(minion, config.Item("packets").GetValue<bool>());
                             }
@@ -458,7 +454,8 @@ namespace UnderratedAIO.Champions
         {
             var points = GetEpoints(target);
             var otherHeroes =
-                HeroManager.Enemies.Where(e => e.IsValidTarget() && e.NetworkId != target.NetworkId && player.Distance(e) < 1000)
+                HeroManager.Enemies.Where(
+                    e => e.IsValidTarget() && e.NetworkId != target.NetworkId && player.Distance(e) < 1000)
                     .Select(e => E.GetPrediction(e));
 
             var best = Vector3.Zero;
@@ -470,7 +467,8 @@ namespace UnderratedAIO.Champions
                     foreach (var otherHero in otherHeroes)
                     {
                         var num = 0;
-                        if (otherHero!=null && otherHero.CastPosition.Distance(point) > 345 && otherHero.CastPosition.Distance(point) < 375)
+                        if (otherHero != null && otherHero.CastPosition.Distance(point) > 345 &&
+                            otherHero.CastPosition.Distance(point) < 375)
                         {
                             num++;
                         }

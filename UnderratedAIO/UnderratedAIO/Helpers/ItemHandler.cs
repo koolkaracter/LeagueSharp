@@ -55,15 +55,16 @@ namespace UnderratedAIO.Helpers
             if (config.Item("odin").GetValue<bool>() && target != null && Items.HasItem(odins.Id) &&
                 Items.CanUseItem(odins.Id))
             {
+                var odinDmg = Damage.GetItemDamage(player, target, Damage.DamageItems.OdingVeils);
                 if (config.Item("odinonlyks").GetValue<bool>())
                 {
-                    if (Damage.GetItemDamage(player, target, Damage.DamageItems.OdingVeils) > target.Health)
+                    if (odinDmg > target.Health)
                     {
                         odins.Cast(target);
                     }
                 }
                 else if (player.CountEnemiesInRange(odins.Range) >= config.Item("odinmin").GetValue<Slider>().Value ||
-                         comboDmg > target.Health && player.Distance(target) < odins.Range)
+                         (Math.Max(comboDmg, odinDmg) > target.Health && player.Distance(target) < odins.Range))
                 {
                     odins.Cast();
                 }
@@ -71,9 +72,10 @@ namespace UnderratedAIO.Helpers
             if (target != null && config.Item("bil").GetValue<bool>() && Items.HasItem(bilgewater.Id) &&
                 Items.CanUseItem(bilgewater.Id))
             {
+                var bilDmg = Damage.GetItemDamage(player, target, Damage.DamageItems.Bilgewater);
                 if (config.Item("bilonlyks").GetValue<bool>())
                 {
-                    if (Damage.GetItemDamage(player, target, Damage.DamageItems.Bilgewater) > target.Health)
+                    if (bilDmg > target.Health)
                     {
                         bilgewater.Cast(target);
                     }
@@ -81,7 +83,7 @@ namespace UnderratedAIO.Helpers
                 else if ((player.Distance(target) > config.Item("bilminr").GetValue<Slider>().Value &&
                           IsHeRunAway(target) &&
                           (target.Health / target.MaxHealth * 100f) < 40 && target.Distance(player)>player.AttackRange) ||
-                         (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
+                         (Math.Max(comboDmg, bilDmg) > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     bilgewater.Cast(target);
                 }
@@ -89,9 +91,10 @@ namespace UnderratedAIO.Helpers
             if (target != null && config.Item("botr").GetValue<bool>() && Items.HasItem(botrk.Id) &&
                 Items.CanUseItem(botrk.Id))
             {
+                var botrDmg = Damage.GetItemDamage(player, target, Damage.DamageItems.Botrk);
                 if (config.Item("botronlyks").GetValue<bool>())
                 {
-                    if (Damage.GetItemDamage(player, target, Damage.DamageItems.Botrk) > target.Health)
+                    if (botrDmg > target.Health)
                     {
                         botrk.Cast(target);
                     }
@@ -103,17 +106,17 @@ namespace UnderratedAIO.Helpers
                           config.Item("botrenemyhealth").GetValue<Slider>().Value) ||
                          (IsHeRunAway(target) &&
                           (target.Health / target.MaxHealth * 100f) < 40 && target.Distance(player) > player.AttackRange) ||
-                         (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
+                         (Math.Max(comboDmg, botrDmg) > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     botrk.Cast(target);
                 }
             }
-            if (config.Item("hex").GetValue<bool>() && Items.HasItem(hexgun.Id) && Items.CanUseItem(hexgun.Id))
+            if (target != null && config.Item("hex").GetValue<bool>() && Items.HasItem(hexgun.Id) && Items.CanUseItem(hexgun.Id))
             {
+                var hexDmg = Damage.GetItemDamage(player, target, Damage.DamageItems.Hexgun);
                 if (config.Item("hexonlyks").GetValue<bool>())
                 {
-                    if (target != null &&
-                        Damage.GetItemDamage(player, target, Damage.DamageItems.Hexgun) > target.Health)
+                    if (hexDmg > target.Health)
                     {
                         hexgun.Cast(target);
                     }
@@ -121,7 +124,7 @@ namespace UnderratedAIO.Helpers
                 else if ((player.Distance(target) > config.Item("hexminr").GetValue<Slider>().Value &&
                           IsHeRunAway(target) &&
                           (target.Health / target.MaxHealth * 100f) < 40 && target.Distance(player) > player.AttackRange) ||
-                         (comboDmg > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
+                         (Math.Max(comboDmg, hexDmg) > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     hexgun.Cast(target);
                 }
@@ -204,7 +207,7 @@ namespace UnderratedAIO.Helpers
 
         public static void castHydra(Obj_AI_Hero target)
         {
-            if (target != null && player.Distance(target) < hydra.Range && !LeagueSharp.Common.Orbwalking.CanAttack())
+            if (target != null && player.Distance(target) < hydra.Range && !LeagueSharp.Common.Orbwalking.CanAttack() && Orbwalking.CanMove(100))
             {
                 if (Items.HasItem(tiamat.Id) && Items.CanUseItem(tiamat.Id))
                 {

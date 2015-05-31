@@ -113,13 +113,6 @@ namespace UnderratedAIO.Champions
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);
-            if (player.ChampionName == "Ezreal" || player.ChampionName == "Jinx" || player.ChampionName == "Draven" ||
-                player.ChampionName == "Ashe")
-            {
-                Menu RandomUltM = new Menu("RandomUlt", "RandomUlt");
-                RandomUltM.AddItem(new MenuItem("Now standalone", "Now standalone"));
-                menuM.AddSubMenu(RandomUltM);
-            }
             config.AddSubMenu(menuM);
             config.AddItem(new MenuItem("Enabledcomm", "Enable Utilies")).SetValue(false);
             config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));

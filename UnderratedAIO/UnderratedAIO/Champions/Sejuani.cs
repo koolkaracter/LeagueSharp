@@ -2,6 +2,7 @@
 using System.Linq;
 using LeagueSharp;
 using LeagueSharp.Common;
+using SharpDX;
 using UnderratedAIO.Helpers;
 using Color = System.Drawing.Color;
 using Environment = UnderratedAIO.Helpers.Environment;
@@ -34,7 +35,6 @@ namespace UnderratedAIO.Champions
 
         private void AfterAttack(AttackableUnit unit, AttackableUnit target)
         {
-
             if (unit.IsMe && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && W.IsReady() && config.Item("usew").GetValue<bool>())
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
