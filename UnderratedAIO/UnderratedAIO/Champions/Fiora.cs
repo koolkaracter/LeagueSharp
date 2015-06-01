@@ -77,19 +77,36 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical);
+            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range*2, TargetSelector.DamageType.Physical);
             if (target == null) return;
             if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && lastQ.Equals(0))
+            if (config.Item("useq").GetValue<bool>() && Q.IsReady() && lastQ.Equals(0) && Orbwalking.CanMove(100))
             {
-                Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
-                lastQ = System.Environment.TickCount;
+                if (target.Distance(player)<Q.Range)
+                {
+                    Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                    lastQ = System.Environment.TickCount;  
+                }else if (config.Item("useqMini").GetValue<bool>())
+                {
+                    var mini =
+                        MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
+                            .Where(m =>m.Distance(Prediction.GetPrediction(target,0.2f).UnitPosition) < Q.Range)
+                            .OrderBy(m => m.Distance(target))
+                            .FirstOrDefault();
+                    if (mini!=null)
+                    {
+                        Q.CastOnUnit(mini, config.Item("packets").GetValue<bool>());
+                        lastQ = System.Environment.TickCount; 
+                    }
+  
+                }
+                
             }
-            if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && !lastQ.Equals(0))
+            if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && !lastQ.Equals(0) && Orbwalking.CanMove(100))
             {
                 var time = System.Environment.TickCount - lastQ;
-                if (time > 3500f || player.Distance(target) > 350f || Q.GetDamage(target) > target.Health)
+                if (time > 3500f || player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) || Q.GetDamage(target) > target.Health)
                 {
                     Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                     lastQ = 0;
@@ -167,7 +184,7 @@ namespace UnderratedAIO.Champions
                         R.Cast(TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Physical));
                     }
                 }
-                if (spellName == "BlindMonkRKick" || spellName == "SyndraR" || spellName == "VeigarPrimordialBurst" || spellName == "AlZaharNetherGrasp")
+                if (spellName == "BlindMonkRKick" || spellName == "SyndraR" || spellName == "VeigarPrimordialBurst" || spellName == "AlZaharNetherGrasp" || spellName == "LissandraR")
                 {
                     if (args.Target.IsMe)
                     {
@@ -264,10 +281,10 @@ namespace UnderratedAIO.Champions
         }
         private void InitFiora()
         {
-            Q = new Spell(SpellSlot.Q, 600);
+            Q = new Spell(SpellSlot.Q, 550);
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E);
-            R = new Spell(SpellSlot.R, 400);
+            R = new Spell(SpellSlot.R, 375);
         }
 
         private void InitMenu()
@@ -293,10 +310,11 @@ namespace UnderratedAIO.Champions
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q")).SetValue(true);
+            menuC.AddItem(new MenuItem("useqMini", "   Use to jump closer")).SetValue(true);
             menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
             menuC.AddItem(new MenuItem("user", "R if killable")).SetValue(true);
-            menuC.AddItem(new MenuItem("RapidAttack", "Fast AA Combo always")).SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Toggle));
+            menuC.AddItem(new MenuItem("RapidAttack", "Fast AA Combo")).SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Toggle));
             menuC.AddItem(new MenuItem("dodgeWithR", "Dodge ults with R")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
