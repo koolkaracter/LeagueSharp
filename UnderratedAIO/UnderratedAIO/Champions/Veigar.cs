@@ -20,7 +20,7 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static bool justQ, justW, justR, justE;
+        public static bool justQ, justW, justR, justE, Estun;
         public static Vector3 wPos, ePos;
         public Obj_AI_Base qMiniForWait;
         public Obj_AI_Base qMiniTarget;
@@ -45,7 +45,7 @@ namespace UnderratedAIO.Champions
         private void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender,
             Interrupter2.InterruptableTargetEventArgs args)
         {
-            if (E.IsReady() && config.Item("Interrupt").GetValue<bool>() && sender.Distance(player)<E.Range)
+            if (E.IsReady() && config.Item("Interrupt").GetValue<bool>() && sender.Distance(player) < E.Range)
             {
                 CastE(sender);
             }
@@ -84,11 +84,17 @@ namespace UnderratedAIO.Champions
                     {
                         ePos = args.End;
                         justE = true;
+                        Estun = false;
                         Utility.DelayAction.Add(
                             3500, () =>
                             {
                                 justE = false;
                                 ePos = Vector3.Zero;
+                            });
+                        Utility.DelayAction.Add(
+                            500, () =>
+                            {
+                                Estun = true;
                             });
                     }
                 }
@@ -116,10 +122,32 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
+            Orbwalking.Attack = true;
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
-                    Combo();
+                    Obj_AI_Hero target = TargetSelector.GetTarget(
+                        1000, TargetSelector.DamageType.Magical, true,
+                        HeroManager.Enemies.Where(h => h.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name))));
+                    if (target != null)
+                    {
+                        var cmbDmg = ComboDamage(target);
+                        bool canKill = cmbDmg > target.Health;
+                        if (config.Item("usee").GetValue<bool>() &&
+                            NavMesh.GetCollisionFlags(player.Position).HasFlag(CollisionFlags.Grass) && E.IsReady() &&
+                            ((canKill && config.Item("useekill").GetValue<bool>()) ||
+                             (!config.Item("useekill").GetValue<bool>() && CheckMana())))
+                        {
+                            Orbwalking.Attack = false;
+                            Combo(target, cmbDmg, canKill, true);
+                        }
+                        else
+                        {
+                          Combo(target, cmbDmg, canKill, false);  
+                        }
+                        
+                    }
+
                     break;
                 case Orbwalking.OrbwalkingMode.Mixed:
                     Harass();
@@ -174,14 +202,7 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("useqH").GetValue<bool>() && Q.IsReady())
             {
-                var targQ = Q.GetPrediction(target, true);
-                var collision = Q.GetCollision(
-                    player.Position.To2D(), new List<Vector2>() { target.Position.To2D() }, 70f);
-                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count <= 2 &&
-                    targQ.Hitchance >= HitChance.High)
-                {
-                    Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
-                }
+                CastQHero(target);
             }
             if (config.Item("usewH").GetValue<bool>() && W.IsReady())
             {
@@ -223,11 +244,8 @@ namespace UnderratedAIO.Champions
             LastHitQ();
         }
 
-        private void Combo()
+        private void Combo(Obj_AI_Hero target, float cmbDmg, bool canKill, bool bush)
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(
-                1000, TargetSelector.DamageType.Magical, true,
-                HeroManager.Enemies.Where(h => h.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name))));
             if (target == null)
             {
                 return;
@@ -237,17 +255,9 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config);
             }
-            var cmbDmg = ComboDamage(target);
-            if (config.Item("useq").GetValue<bool>() && Q.IsReady() && target.IsValidTarget())
+            if (config.Item("useq").GetValue<bool>() && Q.IsReady() && Q.CanCast(target) && target.IsValidTarget() && !bush && Estun)
             {
-                var targQ = Q.GetPrediction(target, true);
-                var collision = Q.GetCollision(
-                    player.Position.To2D(), new List<Vector2>() { target.Position.To2D() }, 70f);
-                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count <= 2 &&
-                    targQ.Hitchance >= HitChance.High)
-                {
-                    Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
-                }
+                CastQHero(target);
             }
             if (config.Item("usew").GetValue<bool>() && W.IsReady() && W.CanCast(target))
             {
@@ -271,13 +281,12 @@ namespace UnderratedAIO.Champions
             }
             if (R.IsReady() && R.CanCast(target))
             {
-                if (config.Item("user").GetValue<bool>() && !CombatHelper.CheckCriticalBuffs(target) && R.CanCast(target) && CheckW(target) && !Q.CanCast(target) &&
-                    R.GetDamage(target) > target.Health)
+                if (config.Item("user").GetValue<bool>() && !CombatHelper.CheckCriticalBuffs(target) &&
+                    R.CanCast(target) && CheckW(target) && !Q.CanCast(target) && R.GetDamage(target) > target.Health)
                 {
                     R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                 }
             }
-            bool canKill = cmbDmg > target.Health;
             if (config.Item("usee").GetValue<bool>() && E.IsReady() &&
                 ((canKill && config.Item("useekill").GetValue<bool>()) ||
                  (!config.Item("useekill").GetValue<bool>() && CheckMana())))
@@ -341,6 +350,18 @@ namespace UnderratedAIO.Champions
                 return false;
             }
             return true;
+        }
+
+        private void CastQHero(Obj_AI_Hero target)
+        {
+            var targQ = Q.GetPrediction(target, true);
+            var collision = Q.GetCollision(
+                player.Position.To2D(), new List<Vector2>() { targQ.CastPosition.To2D() }, 70f);
+            if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count < 2 &&
+                targQ.Hitchance >= HitChance.High)
+            {
+                Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
+            }
         }
 
         private void LastHitQ(bool auto = false)
