@@ -15,17 +15,21 @@ namespace UnderratedAIO.Helpers
             "TT_Spiderboss", "SRU_Blue", "SRU_Red", "SRU_Dragon",
             "SRU_Baron"
         };
-
+        public static readonly string[] bosses =
+        {
+            "TT_Spiderboss", "SRU_Dragon",
+            "SRU_Baron"
+        };
         public static SpellSlot smiteSlot = SpellSlot.Unknown;
         public static Spell smite;
 
-        public static Obj_AI_Minion GetNearest(Vector3 pos)
+        public static Obj_AI_Minion GetNearest(Vector3 pos, float range=1500f)
         {
             return
                 ObjectManager.Get<Obj_AI_Minion>()
                     .FirstOrDefault(
                         minion =>
-                            minion.IsValid && minion.Distance(player) < 1500 &&
+                            minion.IsValid && minion.Distance(player) < range &&
                             jungleMonsters.Any(name => minion.Name.StartsWith(name)) &&
                             !jungleMonsters.Any(name => minion.Name.Contains("Mini")) &&
                             !jungleMonsters.Any(name => minion.Name.Contains("Spawn")));

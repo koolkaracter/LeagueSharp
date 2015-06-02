@@ -579,7 +579,15 @@ namespace UnderratedAIO.Helpers
             }
             return false;
         }
-
+        public static bool IsPossibleToReachHim2(Obj_AI_Hero target, float moveSpeedBuff, float duration)
+        {
+            var distance = player.Distance(target);
+            if (player.MoveSpeed*(1+moveSpeedBuff)*duration > distance)
+            {
+                return true;
+            }
+            return false;
+        }
         public static bool IsAutoattack(string spellName)
         {
             if (autoAttacks.Contains(spellName))
