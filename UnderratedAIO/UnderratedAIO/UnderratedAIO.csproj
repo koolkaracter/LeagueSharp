@@ -73,6 +73,7 @@
     <Compile Include="Champions\Sejuani.cs" />
     <Compile Include="Champions\Shen.cs" />
     <Compile Include="Champions\Skarner.cs" />
+    <Compile Include="Champions\Udyr.cs" />
     <Compile Include="Champions\Veigar.cs" />
     <Compile Include="Champions\Volibear.cs" />
     <Compile Include="Champions\Yorick.cs" />
