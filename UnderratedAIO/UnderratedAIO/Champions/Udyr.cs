@@ -21,7 +21,7 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R, R2;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static bool justR2;
+        public static bool justR2, IncSpell;
         public static float DamageTaken;
         public static float DamageTakenTime;
         public static Stance stance;
@@ -75,12 +75,12 @@ namespace UnderratedAIO.Champions
         private void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender,
             Interrupter2.InterruptableTargetEventArgs args)
         {
-            if (E.IsReady() && config.Item("Interrupt", true).GetValue<bool>() && sender.Distance(player) < 750 &&
-                CanStun(sender))
+            var dist = sender.Distance(player) < 750;
+            if (E.IsReady() && config.Item("Interrupt", true).GetValue<bool>() && dist && CanStun(sender))
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (stance == Stance.Bear && CanStun(sender))
+            if (stance == Stance.Bear && dist && CanStun(sender))
             {
                 orbwalker.ForceTarget(sender);
                 player.IssueOrder(GameObjectOrder.AttackTo, sender);
@@ -113,8 +113,7 @@ namespace UnderratedAIO.Champions
             {
                 if (sender.IsValid && !sender.IsDead && sender.IsEnemy && target.IsValid && target.IsMe)
                 {
-                    if (W.IsReady(200) && player.HealthPercent < 75 &&
-                        ((config.Item("usewLC", true).GetValue<bool>() &&
+                    if (((config.Item("usewLC", true).GetValue<bool>() &&
                           orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear) ||
                          (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
                           config.Item("usew", true).GetValue<bool>())))
@@ -124,25 +123,14 @@ namespace UnderratedAIO.Champions
                         if (Orbwalking.IsAutoAttack(args.SData.Name))
                         {
                             var dmg = (float) sender.GetAutoAttackDamage(player, true);
-                            if (System.Environment.TickCount - DamageTakenTime > 2000)
-                            {
-                                DamageTakenTime = System.Environment.TickCount;
-                                DamageTaken = 0;
-                            }
-                            else
-                            {
-                                DamageTaken += dmg;
-                            }
-                            if ((DamageTaken > 30 + player.Level * 5 || dmg > 30 + player.Level * 6) && W.IsReady())
-                            {
-                                castW();
-                            }
+                            DamageTaken += dmg;
                         }
                         else
                         {
                             if (W.IsReady())
                             {
-                                castW();
+                                IncSpell = true;
+                                Utility.DelayAction.Add(300, () => IncSpell = false);
                             }
                         }
                     }
@@ -171,6 +159,11 @@ namespace UnderratedAIO.Champions
             if (config.Item("QSSEnabled").GetValue<bool>())
             {
                 ItemHandler.UseCleanse(config);
+            }
+            if (System.Environment.TickCount - DamageTakenTime > 3000)
+            {
+                DamageTakenTime = System.Environment.TickCount;
+                DamageTaken = 0f;
             }
         }
 
@@ -202,7 +195,12 @@ namespace UnderratedAIO.Champions
             var target =
                 MinionManager.GetMinions(R.Range, MinionTypes.All, MinionTeam.NotAlly)
                     .FirstOrDefault(m => m.MaxHealth > 1000 && m.Health > 300);
-            if (DontChangeStance(target))
+            if (target != null && W.IsReady() && ComboDamage(target) + player.GetAutoAttackDamage(target) * 3 < target.Health && player.HealthPercent < 25)
+            {
+                castW();
+                return;
+            }
+            if (target != null && DontChangeStance(target))
             {
                 return;
             }
@@ -219,11 +217,55 @@ namespace UnderratedAIO.Champions
                 castR();
                 return;
             }
+            bool CanUseW = config.Item("usewLC", true).GetValue<bool>() && W.IsReady();
+            if (CanUseW &&
+                (DangerLevel() >= 2.5 || (DangerLevel() <= 2.5 && player.HealthPercent < 60 && stance == Stance.Tiger)))
+            {
+                castW();
+                return;
+            }
             if (target != null && config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() && target.Health > 550f)
             {
                 castQ();
                 return;
             }
+            if (CanUseW && DangerLevel() >= 2)
+            {
+                castW();
+                return;
+            }
+        }
+
+        private double DangerLevel()
+        {
+            var cons = 30 + player.Level * 5;
+            var cons2 = 30 + player.Level * 15;
+            var health = player.HealthPercent;
+            if (DamageTaken > cons && health > 50)
+            {
+                return 2;
+            }
+            if (DamageTaken > cons && health < 50)
+            {
+                return 2.5;
+            }
+            if (DamageTaken > cons2 && health > 50)
+            {
+                return 3;
+            }
+            if (DamageTaken > cons2 && health < 50)
+            {
+                return 3.5;
+            }
+            if (DamageTaken > cons && IncSpell)
+            {
+                return 4;
+            }
+            if (DamageTaken > cons2 && IncSpell)
+            {
+                return 5;
+            }
+            return 1;
         }
 
         private void Combo()
@@ -241,6 +283,11 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+            if (W.IsReady() && ComboDamage(target)+player.GetAutoAttackDamage(target)*3<target.Health && player.HealthPercent<25)
+            {
+                castW();
+                return;
+            }
             if (config.Item("useeOthers", true).GetValue<bool>() && !CanStun(target))
             {
                 var others =
@@ -253,29 +300,44 @@ namespace UnderratedAIO.Champions
             }
             var dist = player.Distance(target);
             var inSpellrange = dist < 300;
-            if (Q.GetDamage(target) > GetRDmagage(target))
+
+            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && inSpellrange && DangerLevel() > 2.5f)
             {
-                if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && inSpellrange)
+                castW();
+            }
+
+            if (Q.GetDamage(target) > GetRDmagage(target) && inSpellrange)
+            {
+                if (config.Item("useq", true).GetValue<bool>() && Q.IsReady())
                 {
                     castQ();
                 }
-                if (config.Item("user", true).GetValue<bool>() && R.IsReady() && inSpellrange)
+                if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && DangerLevel() >= 2.5f)
+                {
+                    castW();
+                }
+                if (config.Item("user", true).GetValue<bool>() && R.IsReady())
                 {
                     castR();
                 }
             }
-            else
+            else if (inSpellrange)
             {
-                if (config.Item("user", true).GetValue<bool>() && R.IsReady() && inSpellrange)
+                if (config.Item("user", true).GetValue<bool>() && R.IsReady())
                 {
                     castR();
                 }
-                if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && inSpellrange)
+                if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && DangerLevel() >= 2.5f)
+                {
+                    castW();
+                }
+                if (config.Item("useq", true).GetValue<bool>() && Q.IsReady())
                 {
                     castQ();
                 }
             }
-            if (config.Item("usee", true).GetValue<bool>() && E.IsReady() &&
+            if (config.Item("usee", true).GetValue<bool>() && E.IsReady() && CanStun(target) &&
+                ((!inSpellrange && player.ManaPercent < 55) || player.ManaPercent > 55) &&
                 CombatHelper.IsPossibleToReachHim2(
                     target, new float[5] { 0.15f, 0.2f, 0.25f, 0.3f, 0.35f }[Q.Level - 1],
                     new float[5] { 2f, 2.25f, 2.5f, 2.75f, 3f }[Q.Level - 1]) && !justR2)
@@ -300,7 +362,7 @@ namespace UnderratedAIO.Champions
 
         private void castW()
         {
-            if (!player.HasBuff("udyrturtleactivation"))
+            if (!player.HasBuff("udyrturtleactivation") && player.HealthPercent<90)
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -322,7 +384,7 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
         }
 
-        private static float ComboDamage(Obj_AI_Hero hero)
+        private static float ComboDamage(Obj_AI_Base hero)
         {
             double damage = 0;
             if (Q.IsReady())
@@ -343,7 +405,7 @@ namespace UnderratedAIO.Champions
             return (float) damage;
         }
 
-        private static double GetRDmagage(Obj_AI_Hero hero)
+        private static double GetRDmagage(Obj_AI_Base hero)
         {
             return Damage.GetSpellDamage(player, hero, SpellSlot.R) * 5 +
                    Damage.CalcDamage(
@@ -356,8 +418,16 @@ namespace UnderratedAIO.Champions
             switch (stance)
             {
                 case Stance.Tiger:
+                    if (Q.IsReady() && player.ManaPercent < 50 && target.HealthPercent > 40)
+                    {
+                        return true;
+                    }
                     break;
                 case Stance.Turtle:
+                    if (player.HasBuff("udyrtigerpunch"))
+                    {
+                        return true;
+                    }
                     break;
                 case Stance.Bear:
                     if (!E.IsReady() && target is Obj_AI_Hero && CanStun(target))
@@ -368,6 +438,10 @@ namespace UnderratedAIO.Champions
                 case Stance.Phoenix:
                     if (R.IsReady() && (player.GetBuff("UdyrPhoenixStance").Count == 3 || !justR2) &&
                         (target == null || (target != null && target.Position.Distance(player.Position) < 300)))
+                    {
+                        return true;
+                    }
+                    if (R.IsReady() && player.ManaPercent < 50 && target.HealthPercent > 40)
                     {
                         return true;
                     }
