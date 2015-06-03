@@ -57,14 +57,25 @@ namespace UnderratedAIO.Champions
             if (args.Unit.IsMe && stance == Stance.Phoenix && player.GetBuff("UdyrPhoenixStance").Count == 3)
             {
                 justR2 = true;
-                Utility.DelayAction.Add((int) (player.AttackDelay*1000), () => justR2 = false);
+                Utility.DelayAction.Add((int) (player.AttackDelay * 1000), () => justR2 = false);
+            }
+            if (!args.Unit.IsMe || !R.IsReady())
+            {
+                return;
+            }
+            var target =
+                HeroManager.Enemies.FirstOrDefault(
+                    h => h.Distance(player) < R2.Range && CombatHelper.IsFacing(player, h.Position, 90f));
+            if (target != null && orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo)
+            {
+                Harass();
             }
         }
 
         private void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender,
             Interrupter2.InterruptableTargetEventArgs args)
         {
-            if (E.IsReady() && config.Item("Interrupt", true).GetValue<bool>() && sender.Distance(player) < 400 &&
+            if (E.IsReady() && config.Item("Interrupt", true).GetValue<bool>() && sender.Distance(player) < 750 &&
                 CanStun(sender))
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
@@ -72,6 +83,7 @@ namespace UnderratedAIO.Champions
             if (stance == Stance.Bear && CanStun(sender))
             {
                 orbwalker.ForceTarget(sender);
+                player.IssueOrder(GameObjectOrder.AttackTo, sender);
             }
         }
 
@@ -138,16 +150,6 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private void InitUdyr()
-        {
-            Q = new Spell(SpellSlot.Q);
-            W = new Spell(SpellSlot.W);
-            E = new Spell(SpellSlot.E);
-            R = new Spell(SpellSlot.R, 300);
-            R2 = new Spell(SpellSlot.R, 600);
-            R2.SetSkillshot(0.3f, 100f * 2 * (float) Math.PI / 180, 1800f, true, SkillshotType.SkillshotCone);
-        }
-
         private void Game_OnGameUpdate(EventArgs args)
         {
             switch (orbwalker.ActiveMode)
@@ -156,7 +158,6 @@ namespace UnderratedAIO.Champions
                     Combo();
                     break;
                 case Orbwalking.OrbwalkingMode.Mixed:
-                    Harass();
                     break;
                 case Orbwalking.OrbwalkingMode.LaneClear:
                     Clear();
@@ -175,11 +176,15 @@ namespace UnderratedAIO.Champions
 
         private void Harass()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
             float perc = config.Item("minmanaH", true).GetValue<Slider>().Value / 100f;
-            if (player.Mana < player.MaxMana * perc || target == null)
+            if (player.Mana < player.MaxMana * perc)
             {
                 return;
+            }
+            if (config.Item("usewH", true).GetValue<bool>())
+            {
+                Console.WriteLine("castR");
+                castR();
             }
         }
 
@@ -215,7 +220,7 @@ namespace UnderratedAIO.Champions
                 castR();
                 return;
             }
-            if (target != null && config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() && target.Health>550f)
+            if (target != null && config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() && target.Health > 550f)
             {
                 castQ();
                 return;
@@ -224,7 +229,6 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-   
             Obj_AI_Hero target = TargetSelector.GetTarget(600, TargetSelector.DamageType.Physical);
             if (target == null)
             {
@@ -272,7 +276,7 @@ namespace UnderratedAIO.Champions
                     castQ();
                 }
             }
-            if (config.Item("usee", true).GetValue<bool>() &&
+            if (config.Item("usee", true).GetValue<bool>() && E.IsReady() &&
                 CombatHelper.IsPossibleToReachHim2(
                     target, new float[5] { 0.15f, 0.2f, 0.25f, 0.3f, 0.35f }[Q.Level - 1],
                     new float[5] { 2f, 2.25f, 2.5f, 2.75f, 3f }[Q.Level - 1]) && !justR2)
@@ -373,6 +377,16 @@ namespace UnderratedAIO.Champions
             return false;
         }
 
+        private void InitUdyr()
+        {
+            Q = new Spell(SpellSlot.Q);
+            W = new Spell(SpellSlot.W);
+            E = new Spell(SpellSlot.E);
+            R = new Spell(SpellSlot.R, 300);
+            R2 = new Spell(SpellSlot.R, 600);
+            R2.SetSkillshot(0.3f, 90f * 2 * (float) Math.PI / 180, 1800f, false, SkillshotType.SkillshotCone);
+        }
+
         private void InitMenu()
         {
             config = new Menu("Udyr ", "Udyr", true);
@@ -393,7 +407,7 @@ namespace UnderratedAIO.Champions
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
-            menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(false);
+            menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useeOthers", "   Stun nearby enemies too", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
@@ -401,15 +415,15 @@ namespace UnderratedAIO.Champions
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // Harass Settings
-            /*
+
             Menu menuH = new Menu("Harass ", "Hsettings");
-            menuH.AddItem(new MenuItem("usewH", "Use R")).SetValue(true);
-            menuH.AddItem(new MenuItem("minmanaH", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
+            menuH.AddItem(new MenuItem("usewH", "Use R", true)).SetValue(true);
+            menuH.AddItem(new MenuItem("minmanaH", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuH);
-             */
+
             // LaneClear Settings
             Menu menuLC = new Menu("LaneClear ", "Lcsettings");
-            menuLC.AddItem(new MenuItem("useqLC", "Use Q",true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("useqLC", "Use Q", true)).SetValue(true);
             menuLC.AddItem(new MenuItem("usewLC", "Use W", true)).SetValue(true);
             menuLC.AddItem(new MenuItem("userLC", "Use R", true)).SetValue(true);
             menuLC.AddItem(new MenuItem("rMinHit", "   R min hit", true)).SetValue(new Slider(3, 1, 6));
@@ -420,7 +434,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("Interrupt", "Use E to interupt", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
-            Menu autolvlM = new Menu("AutoLevel", "AutoLevel", true);
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);
             config.AddSubMenu(menuM);

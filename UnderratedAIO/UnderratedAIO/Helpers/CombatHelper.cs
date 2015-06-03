@@ -259,11 +259,11 @@ namespace UnderratedAIO.Helpers
             return list;
         }
 
-        public static bool IsFacing(Obj_AI_Base source, Vector3 target)
+        public static bool IsFacing(Obj_AI_Base source, Vector3 target, float angle=90)
         {
             if (source==null || !target.IsValid())
                 return false;
-            return (double)Geometry.AngleBetween(Geometry.To2D(source.Direction), Geometry.To2D(target - source.Position)) < 90.0;
+            return (double)Geometry.AngleBetween(Geometry.To2D(source.Direction), Geometry.To2D(target - source.Position)) < angle;
         }
         public static bool CheckCriticalBuffs(Obj_AI_Hero i)
         {
