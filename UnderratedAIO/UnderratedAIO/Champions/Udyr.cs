@@ -183,7 +183,6 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("usewH", true).GetValue<bool>())
             {
-                Console.WriteLine("castR");
                 castR();
             }
         }
