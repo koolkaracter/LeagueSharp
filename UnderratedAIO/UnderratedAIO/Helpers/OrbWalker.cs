@@ -374,11 +374,12 @@ namespace UnderratedAIO.Helpers
                 {
 
                     if (player.IsMelee() && meleePrediction && target != null &&
-                        target.Position.Distance(player.Position) < 800 &&
+                        target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) &&
                         target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 450)
                     {
-                        var pos = AutoAttack.GetPrediction((Obj_AI_Base) target).UnitPosition;
-                        if (player.Distance(pos) > 120f && !CombatHelper.IsFacing((Obj_AI_Base)target, player.Position,120f))
+                        var pos = player.CountEnemiesInRange(1500)==1?AutoAttack.GetPrediction((Obj_AI_Base)target).UnitPosition:AutoAttack.GetPrediction((Obj_AI_Base)target).CastPosition;
+                        Obj_AI_Hero tar = (Obj_AI_Hero) target;
+                        if (player.Distance(target) > target.BoundingRadius && !CombatHelper.IsFacing((Obj_AI_Base)target, player.Position, 120f) && tar.IsMoving)
                         {
                             AutoAttack.Delay = player.BasicAttack.SpellCastTime;
                             AutoAttack.Speed = player.BasicAttack.MissileSpeed;
