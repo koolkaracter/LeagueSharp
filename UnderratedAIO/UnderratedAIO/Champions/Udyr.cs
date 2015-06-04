@@ -195,22 +195,23 @@ namespace UnderratedAIO.Champions
             var target =
                 MinionManager.GetMinions(R.Range, MinionTypes.All, MinionTeam.NotAlly)
                     .FirstOrDefault(m => m.MaxHealth > 1000 && m.Health > 300);
-            if (target != null && W.IsReady() && ComboDamage(target) + player.GetAutoAttackDamage(target) * 3 < target.Health && player.HealthPercent < 25)
+            if (target != null && W.IsReady() && player.HealthPercent < 25 &&
+                ComboDamage(target) + player.GetAutoAttackDamage(target) * 3 < target.Health)
             {
                 castW();
                 return;
             }
-            if (target != null && DontChangeStance(target))
+            if (R.IsReady() && (stance == Stance.Phoenix && player.GetBuff("UdyrPhoenixStance").Count == 3 || justR2) &&
+                (target == null || (target != null && target.Position.Distance(player.Position) < 300)))
             {
                 return;
             }
-
             if (target != null && (stance == Stance.Tiger || stance == Stance.Bear))
             {
                 orbwalker.ForceTarget(target);
             }
             if (R.IsReady() && config.Item("userLC", true).GetValue<bool>() &&
-                (target != null ||
+                ((target != null && (player.ManaPercent > 20 || (player.ManaPercent < 20 && stance == Stance.Turtle))) ||
                  config.Item("rMinHit", true).GetValue<Slider>().Value <=
                  Environment.Minion.countMinionsInrange(player.Position, R.Range)))
             {
@@ -224,7 +225,8 @@ namespace UnderratedAIO.Champions
                 castW();
                 return;
             }
-            if (target != null && config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() && target.Health > 550f)
+            if (target != null && config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() && target.Health > 550f &&
+                (player.ManaPercent > 50 || player.ManaPercent < 50 && stance == Stance.Turtle))
             {
                 castQ();
                 return;
@@ -283,10 +285,9 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (W.IsReady() && ComboDamage(target)+player.GetAutoAttackDamage(target)*3<target.Health && player.HealthPercent<25)
+            if (W.IsReady() && CheckDmg(target) < target.Health && player.HealthPercent < 25)
             {
                 castW();
-                return;
             }
             if (config.Item("useeOthers", true).GetValue<bool>() && !CanStun(target))
             {
@@ -352,6 +353,11 @@ namespace UnderratedAIO.Champions
             }
         }
 
+        private static float CheckDmg(Obj_AI_Base target)
+        {
+            return (float) (ComboDamage(target) + player.GetAutoAttackDamage(target) * 3);
+        }
+
         private void castQ()
         {
             if (!player.HasBuff("udyrtigerpunch"))
@@ -362,7 +368,7 @@ namespace UnderratedAIO.Champions
 
         private void castW()
         {
-            if (!player.HasBuff("udyrturtleactivation") && player.HealthPercent<90)
+            if (!player.HasBuff("udyrturtleactivation") && player.HealthPercent < 90)
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -415,10 +421,12 @@ namespace UnderratedAIO.Champions
 
         private static bool DontChangeStance(Obj_AI_Base target)
         {
+            var killable = CheckDmg(target) > target.Health;
             switch (stance)
             {
                 case Stance.Tiger:
-                    if (Q.IsReady() && player.ManaPercent < 50 && target.HealthPercent > 40)
+                    if (Q.IsReady() && target is Obj_AI_Hero && player.ManaPercent < 50 && target.HealthPercent > 40 &&
+                        !killable)
                     {
                         return true;
                     }
@@ -436,12 +444,12 @@ namespace UnderratedAIO.Champions
                     }
                     break;
                 case Stance.Phoenix:
-                    if (R.IsReady() && (player.GetBuff("UdyrPhoenixStance").Count == 3 || !justR2) &&
+                    if (R.IsReady() && (player.GetBuff("UdyrPhoenixStance").Count == 3 || justR2) &&
                         (target == null || (target != null && target.Position.Distance(player.Position) < 300)))
                     {
                         return true;
                     }
-                    if (R.IsReady() && player.ManaPercent < 50 && target.HealthPercent > 40)
+                    if (R.IsReady() && player.ManaPercent < 50 && target.HealthPercent > 40 && !killable)
                     {
                         return true;
                     }
