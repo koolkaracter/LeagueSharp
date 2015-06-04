@@ -339,7 +339,9 @@ namespace UnderratedAIO.Helpers
             float holdAreaRadius = 0,
             bool useFixedDistance = true,
             bool randomizeMinDistance = true,
-            bool autoWindup=false)
+            bool autoWindup=false,
+            bool meleePrediction=true,
+            bool movement=true)
         {
             try
             {
@@ -364,16 +366,25 @@ namespace UnderratedAIO.Helpers
                         return;
                     }
                 }
+                if (!movement)
+                {
+                    return;
+                }
                 if (CanMove(extraWindup))
                 {
-                    if (player.IsMelee() && target != null &&
-                        target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) &&
-                        target is Obj_AI_Hero && target.Position.Distance(Player.Position) > Player.AttackRange &&
-                        Game.CursorPos.Distance(target.Position) < 450)
+
+                    if (player.IsMelee() && meleePrediction && target != null &&
+                        target.Position.Distance(player.Position) < 800 &&
+                        target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 450)
                     {
-                        AutoAttack.Delay = player.BasicAttack.SpellCastTime;
-                        AutoAttack.Speed = player.BasicAttack.MissileSpeed;
-                        MoveTo(AutoAttack.GetPrediction((Obj_AI_Base) target).UnitPosition);
+                        var pos = AutoAttack.GetPrediction((Obj_AI_Base) target).UnitPosition;
+                        if (player.Distance(pos) > 120f && !CombatHelper.IsFacing((Obj_AI_Base)target, player.Position,120f))
+                        {
+                            AutoAttack.Delay = player.BasicAttack.SpellCastTime;
+                            AutoAttack.Speed = player.BasicAttack.MissileSpeed;
+                            MoveTo(pos); 
+                        }
+
                     }
                     else
                     {
@@ -515,6 +526,12 @@ namespace UnderratedAIO.Helpers
                 misc.AddItem(new MenuItem("PriorizeFarm", "Priorize farm over harass").SetShared().SetValue(true));
                 misc.AddItem(
                     new MenuItem("LastHitDmg", "Percentage of damage for lasthit").SetShared().SetValue(new Slider(100, 0, 100)));
+                var comboOpt = new Menu("Combo Options", "comboOpt");
+                comboOpt.AddItem(
+                    new MenuItem("ComboMovement", "   Movement").SetShared().SetValue(true));
+                comboOpt.AddItem(
+                    new MenuItem("ComboMelee", "   Melee prediction").SetShared().SetValue(true));
+                misc.AddSubMenu(comboOpt);
                 _config.AddSubMenu(misc);
                 /* Delay sliders */
                 _config.AddItem(
@@ -769,7 +786,9 @@ namespace UnderratedAIO.Helpers
                         target, (_orbwalkingPoint.To2D().IsValid()) ? _orbwalkingPoint : Game.CursorPos,
                         _config.Item("ExtraWindup").GetValue<Slider>().Value,
                         _config.Item("HoldPosRadius").GetValue<Slider>().Value,true,true,
-                        _config.Item("AutoWindup").GetValue<bool>());
+                        _config.Item("AutoWindup").GetValue<bool>(),
+                        _config.Item("ComboMelee").GetValue<bool>(),
+                        _config.Item("ComboMovement").GetValue<bool>());
                 }
                 catch (Exception e)
                 {
