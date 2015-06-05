@@ -403,7 +403,7 @@ namespace UnderratedAIO.Champions
                                 var other = collision.FirstOrDefault(c => c.NetworkId != minion.NetworkId);
                                 if (other != null &&
                                     (player.GetAutoAttackDamage(other) * 2 > other.Health - Q.GetDamage(other)) &&
-                                    HealthPrediction.GetHealthPrediction(minion, 1500) > 0 &&
+                                    HealthPrediction.GetHealthPrediction(minion, (int) (minion.Distance(player)/Q.Speed*1000)) > 0 &&
                                     Q.GetDamage(other) < other.Health)
                                 {
                                     qMiniForWait = other;
