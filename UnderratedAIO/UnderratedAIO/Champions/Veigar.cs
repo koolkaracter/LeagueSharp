@@ -40,8 +40,17 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.setSmiteSlot();
             Interrupter2.OnInterruptableTarget += Interrupter2_OnInterruptableTarget;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapcloser;
+            CustomEvents.Unit.OnDash += Unit_OnDash;
             
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
+        }
+
+        void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args)
+        {
+            if (sender.IsEnemy && sender is Obj_AI_Hero && config.Item("OnDash", true).GetValue<bool>() && E.IsReady() && args.EndPos.Distance(player.Position) < E.Range)
+            {
+                CastE((Obj_AI_Hero) sender);
+            }
         }
 
         private void OnEnemyGapcloser(ActiveGapcloser gapcloser)
@@ -143,12 +152,16 @@ namespace UnderratedAIO.Champions
                     {
                         var cmbDmg = ComboDamage(target);
                         bool canKill = cmbDmg > target.Health;
-                        if (config.Item("usee", true).GetValue<bool>() &&
+                        if (config.Item("usee", true).GetValue<bool>() && 
                             NavMesh.GetCollisionFlags(player.Position).HasFlag(CollisionFlags.Grass) && E.IsReady() &&
                             ((canKill && config.Item("useekill", true).GetValue<bool>()) ||
                              (!config.Item("useekill", true).GetValue<bool>() && CheckMana())))
                         {
                             Orbwalking.Attack = false;
+                            Combo(target, cmbDmg, canKill, true);
+                        }
+                        else if (config.Item("startWithE", true).GetValue<bool>() && E.IsReady() && (!config.Item("checkmana", true).GetValue<bool>() || (config.Item("checkmana", true).GetValue<bool>() && CheckMana())))
+                        {
                             Combo(target, cmbDmg, canKill, true);
                         }
                         else
@@ -337,11 +350,10 @@ namespace UnderratedAIO.Champions
 
         private void CastE(Obj_AI_Hero target)
         {
-            if (player.CountEnemiesInRange(1000) == 1)
+            if (player.CountEnemiesInRange(E.Range) <= 1)
             {
                 var targE = Prediction.GetPrediction(target, 0.5f);
-                var bestE = getBestEVector3(target);
-                if (targE.CastPosition.Distance(player.Position) < 700f)
+                if (targE.CastPosition.Distance(player.Position) < E.Range)
                 {
                     E.Cast(targE.CastPosition.Extend(player.Position, 375), config.Item("packets").GetValue<bool>());
                 }
@@ -349,7 +361,11 @@ namespace UnderratedAIO.Champions
             else
             {
                 var targE = getBestEVector3(target);
-                E.Cast(targE, config.Item("packets").GetValue<bool>());
+                if (targE!=Vector3.Zero)
+                {
+                    E.Cast(targE, config.Item("packets").GetValue<bool>()); 
+                }
+               
             }
         }
 
@@ -545,6 +561,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useekill", "   Only for kill", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("startWithE", "Start combo with E", true)).SetValue(false);
+            menuC.AddItem(new MenuItem("checkmana", "   Check mana", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
@@ -574,6 +592,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("autoW", "Auto W on stun", true)).SetValue(true);
             menuM.AddItem(new MenuItem("Interrupt", "Cast E to interrupt spells", true)).SetValue(true);
             menuM.AddItem(new MenuItem("GapCloser", "Cast E on gapclosers", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("OnDash", "Cast E on dash", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
