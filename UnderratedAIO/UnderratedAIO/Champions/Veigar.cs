@@ -41,13 +41,14 @@ namespace UnderratedAIO.Champions
             Interrupter2.OnInterruptableTarget += Interrupter2_OnInterruptableTarget;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapcloser;
             CustomEvents.Unit.OnDash += Unit_OnDash;
-            
+
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
         }
 
-        void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args)
+        private void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args)
         {
-            if (sender.IsEnemy && sender is Obj_AI_Hero && config.Item("OnDash", true).GetValue<bool>() && E.IsReady() && args.EndPos.Distance(player.Position) < E.Range)
+            if (sender.IsEnemy && sender is Obj_AI_Hero && config.Item("OnDash", true).GetValue<bool>() && E.IsReady() &&
+                args.EndPos.Distance(player.Position) < E.Range)
             {
                 CastE((Obj_AI_Hero) sender);
             }
@@ -55,7 +56,8 @@ namespace UnderratedAIO.Champions
 
         private void OnEnemyGapcloser(ActiveGapcloser gapcloser)
         {
-            if (config.Item("GapCloser", true).GetValue<bool>() && E.IsReady() && gapcloser.End.Distance(player.Position) < E.Range)
+            if (config.Item("GapCloser", true).GetValue<bool>() && E.IsReady() &&
+                gapcloser.End.Distance(player.Position) < E.Range)
             {
                 CastE(gapcloser.Sender);
             }
@@ -110,11 +112,7 @@ namespace UnderratedAIO.Champions
                                 justE = false;
                                 ePos = Vector3.Zero;
                             });
-                        Utility.DelayAction.Add(
-                            500, () =>
-                            {
-                                Estun = true;
-                            });
+                        Utility.DelayAction.Add(500, () => { Estun = true; });
                     }
                 }
                 if (args.SData.Name == "VeigarPrimordialBurst")
@@ -152,7 +150,7 @@ namespace UnderratedAIO.Champions
                     {
                         var cmbDmg = ComboDamage(target);
                         bool canKill = cmbDmg > target.Health;
-                        if (config.Item("usee", true).GetValue<bool>() && 
+                        if (config.Item("usee", true).GetValue<bool>() &&
                             NavMesh.GetCollisionFlags(player.Position).HasFlag(CollisionFlags.Grass) && E.IsReady() &&
                             ((canKill && config.Item("useekill", true).GetValue<bool>()) ||
                              (!config.Item("useekill", true).GetValue<bool>() && CheckMana())))
@@ -160,15 +158,16 @@ namespace UnderratedAIO.Champions
                             Orbwalking.Attack = false;
                             Combo(target, cmbDmg, canKill, true);
                         }
-                        else if (config.Item("startWithE", true).GetValue<bool>() && E.IsReady() && (!config.Item("checkmana", true).GetValue<bool>() || (config.Item("checkmana", true).GetValue<bool>() && CheckMana())))
+                        else if (config.Item("startWithE", true).GetValue<bool>() && E.IsReady() &&
+                                 (!config.Item("checkmana", true).GetValue<bool>() ||
+                                  (config.Item("checkmana", true).GetValue<bool>() && CheckMana())))
                         {
                             Combo(target, cmbDmg, canKill, true);
                         }
                         else
                         {
-                          Combo(target, cmbDmg, canKill, false);  
+                            Combo(target, cmbDmg, canKill, false);
                         }
-                        
                     }
 
                     break;
@@ -278,7 +277,8 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config);
             }
-            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Q.CanCast(target) && target.IsValidTarget() && !bush && Estun)
+            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Q.CanCast(target) && target.IsValidTarget() &&
+                !bush && Estun)
             {
                 CastQHero(target);
             }
@@ -361,11 +361,10 @@ namespace UnderratedAIO.Champions
             else
             {
                 var targE = getBestEVector3(target);
-                if (targE!=Vector3.Zero)
+                if (targE != Vector3.Zero)
                 {
-                    E.Cast(targE, config.Item("packets").GetValue<bool>()); 
+                    E.Cast(targE, config.Item("packets").GetValue<bool>());
                 }
-               
             }
         }
 
@@ -407,7 +406,8 @@ namespace UnderratedAIO.Champions
                         .Where(
                             m =>
                                 m.Distance(player) < Q.Range &&
-                                m.Health < Q.GetDamage(m) * config.Item("qLHDamage", true).GetValue<Slider>().Value / 100);
+                                m.Health <
+                                Q.GetDamage(m) * config.Item("qLHDamage", true).GetValue<Slider>().Value / 100);
                 var objAiBases = minions as Obj_AI_Base[] ?? minions.ToArray();
                 if (objAiBases.Any())
                 {
@@ -429,7 +429,8 @@ namespace UnderratedAIO.Champions
                                 var other = collision.FirstOrDefault(c => c.NetworkId != minion.NetworkId);
                                 if (other != null &&
                                     (player.GetAutoAttackDamage(other) * 2 > other.Health - Q.GetDamage(other)) &&
-                                    HealthPrediction.GetHealthPrediction(minion, (int) (minion.Distance(player)/Q.Speed*1000)) > 0 &&
+                                    HealthPrediction.GetHealthPrediction(
+                                        minion, (int) (minion.Distance(player) / Q.Speed * 1000)) > 0 &&
                                     Q.GetDamage(other) < other.Health)
                                 {
                                     qMiniForWait = other;
@@ -582,7 +583,8 @@ namespace UnderratedAIO.Champions
             // Lasthit Settings
             Menu menuLH = new Menu("Lasthit ", "Lasthcsettings");
             menuLH.AddItem(new MenuItem("useqLH", "Use Q", true)).SetValue(true);
-            menuLH.AddItem(new MenuItem("qLHDamage", "   Q lasthit damage percent", true)).SetValue(new Slider(100, 1, 100));
+            menuLH.AddItem(new MenuItem("qLHDamage", "   Q lasthit damage percent", true))
+                .SetValue(new Slider(100, 1, 100));
             menuLH.AddItem(new MenuItem("useqLHinHarass", "LastHit in harass", true)).SetValue(true);
             menuLH.AddItem(new MenuItem("minmanaLH", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLH);
