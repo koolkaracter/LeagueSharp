@@ -1,18 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Color = System.Drawing.Color;
+using System.Security.AccessControl;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
-using UnderratedAIO.Helpers;
+using Color = System.Drawing.Color;
 using Collision = LeagueSharp.Common.Collision;
 
 // using Beaving.s.Baseult;
 
-namespace UnderratedAIO.Helpers
+namespace RandomUlt.Helpers
 {
     internal class LastPositions
     {
@@ -25,10 +23,13 @@ namespace UnderratedAIO.Helpers
         public Vector3 SpawnPos;
 
         public static List<string> SupportedHeroes =
-            new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven", "Gangplank", "Ziggs", "Lux" });
+            new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven", "Gangplank", "Ziggs", "Lux", "Xerath" });
 
         public static List<string> BaseUltHeroes = new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven" });
 
+        public static int[] xerathUltRange = new[] { 3200, 4400, 5600, };
+        public bool xerathUltActivated;
+        public Obj_AI_Hero xerathUltTarget;
         public LastPositions(Menu config)
         {
             configMenu = config;
@@ -60,6 +61,10 @@ namespace UnderratedAIO.Helpers
             if (player.ChampionName == "Gangplank")
             {
                 R.SetSkillshot(100f, 600f, R.Speed, false, SkillshotType.SkillshotCircle);
+            }            
+            if (player.ChampionName == "Xerath")
+            {
+                R.SetSkillshot(0.7f, 120f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             }
             SpawnPos = ObjectManager.Get<Obj_SpawnPoint>().FirstOrDefault(x => x.IsEnemy).Position;
             if (SupportedChamps())
@@ -68,6 +73,10 @@ namespace UnderratedAIO.Helpers
                 if (player.ChampionName == "Gangplank")
                 {
                     config.AddItem(new MenuItem("gpWaves", "GP ult waves to damage")).SetValue(new Slider(2, 1, 7));
+                }
+                if (player.ChampionName == "Xerath")
+                {
+                    config.AddItem(new MenuItem("XerathUlts", "Xerath ults to damage")).SetValue(new Slider(2, 1, 3));
                 }
                 config.AddItem(new MenuItem("Hitchance", "Hitchance")).SetValue(new Slider(3, 1, 5));
                 config.AddItem(new MenuItem("Info ", "--5 is the highest chance to hit"));
@@ -134,46 +143,56 @@ namespace UnderratedAIO.Helpers
                            enemy.Player.MoveSpeed / 3;
                 if (dist > 1500)
                 {
-                    return;
+                    continue;
                 }
 
                 if (dist < 50)
                 {
                     dist = 50;
                 }
-                var line = getpos(enemy, dist);
-                dist = enemy.Player.Distance(line);
+                var line = getpos(enemy, trueDist);
                 Vector3 pos = line;
                 if (enemy.Player.IsVisible)
                 {
                     pos = enemy.Player.Position;
+                }
+                else if (line.Distance(enemy.Player.Position) < dist &&
+                         (enemy.predictedpos.UnderTurret(true) ||
+                          NavMesh.GetCollisionFlags(enemy.predictedpos).HasFlag(CollisionFlags.Grass)))
+                {
+                    pos = enemy.predictedpos;
                 }
                 else
                 {
                     pos =
                         PointsAroundTheTarget(enemy.Player.Position, trueDist)
                             .Where(
-                                p => !p.IsWall() && line.Distance(p) < dist / 1.2 && GetPath(enemy.Player, p) < trueDist)
-                            .OrderByDescending(p => NavMesh.IsWallOfGrass(p, 10))
+                                p => !p.IsWall() && line.Distance(p) < dist/1.5f && GetPath(enemy.Player, p) < trueDist)
+                            .OrderByDescending(p => NavMesh.GetCollisionFlags(p).HasFlag(CollisionFlags.Grass))
                             .ThenBy(p => line.Distance(p))
                             .FirstOrDefault();
                 }
                 if (pos != null)
                 {
-                    Drawing.DrawCircle(pos, 50, Color.Red);
+                    Render.Circle.DrawCircle(pos, 50, Color.Red, 8);
                 }
                 if (!enemy.Player.IsVisible)
                 {
-                    Drawing.DrawCircle(line, dist / 1.2f, Color.LawnGreen);
+                    if (pos != null)
+                    {
+                        Drawing.DrawCircle(line, dist/1.5f, Color.LawnGreen);
+                    }
                 }
             }
         }
 
         private Vector3 getpos(Positions enemy, float dist)
         {
+            var time = (enemy.LastSeen - enemy.RecallData.RecallStartTime) / 1000;
             var line = enemy.Player.Position.Extend(enemy.predictedpos, dist);
             if (enemy.Player.Position.Distance(enemy.predictedpos) < dist &&
-                ((enemy.LastSeen - enemy.RecallData.RecallStartTime) / 1000) < 1)
+                ((time < 2 ||
+                  enemy.Player.Position.Distance(enemy.predictedpos) > enemy.Player.Position.Distance(line) * 0.70f)))
             {
                 line = enemy.predictedpos;
             }
@@ -187,11 +206,26 @@ namespace UnderratedAIO.Helpers
                 Enemies.Where(x => x.Player.IsVisible && !x.Player.IsDead && x.Player.IsValidTarget()))
             {
                 enemyInfo.LastSeen = time;
-                var prediction = Prediction.GetPrediction(enemyInfo.Player, 4);
+                var prediction = Prediction.GetPrediction(enemyInfo.Player, 10);
                 if (prediction != null)
                 {
                     enemyInfo.predictedpos = prediction.UnitPosition;
                 }
+            }
+            if (xerathUltActivated && R.IsReady() && !configMenu.Item("ComboBlock").GetValue<KeyBind>().Active && player.HasBuff("xerathrshots"))
+            {
+                    var enemy=Enemies.Where(x => x.Player.NetworkId==xerathUltTarget.NetworkId && !x.Player.IsDead).FirstOrDefault();
+                    if (enemy!=null)
+                    {
+                        R.Cast(enemy.Player.Position);
+                    }
+                    else{
+                        var target = HeroManager.Enemies.Where(h => player.Distance(h) < xerathUltRange[R.Level - 1] && h.IsVisible).OrderBy(h=>h.Health).FirstOrDefault();
+                        if (target!=null)
+                        {
+                            R.Cast(target);
+                        }
+                    }
             }
             if (!SupportedChamps() || !configMenu.Item("UseR").GetValue<bool>() || !R.IsReady() || !enabled ||
                 configMenu.Item("ComboBlock").GetValue<KeyBind>().Active)
@@ -220,7 +254,6 @@ namespace UnderratedAIO.Helpers
                 var trueDist = Math.Abs(enemy.LastSeen - enemy.RecallData.RecallStartTime) / 1000 *
                                enemy.Player.MoveSpeed;
                 var line = getpos(enemy, dist);
-                Console.WriteLine(enemy.Player.SkinName+ trueDist);
                 switch (HitChance)
                 {
                     case 1:
@@ -255,17 +288,23 @@ namespace UnderratedAIO.Helpers
                 {
                     pos = enemy.Player.Position;
                 }
-                else
+                else if (line.Distance(enemy.Player.Position) < dist &&
+                         (enemy.predictedpos.UnderTurret(true) ||
+                          NavMesh.GetCollisionFlags(enemy.predictedpos).HasFlag(CollisionFlags.Grass)))
+                {
+                    pos = enemy.predictedpos;
+                }
                 {
                     if (dist > 1500)
                     {
-                        return;
+                        continue;
                     }
                     pos =
                         PointsAroundTheTarget(enemy.Player.Position, trueDist)
                             .Where(
-                                p => !p.IsWall() && line.Distance(p) < dist / 1.2 && GetPath(enemy.Player, p) < trueDist)
-                            .OrderByDescending(p => NavMesh.IsWallOfGrass(p, 10))
+                                p =>
+                                    !p.IsWall() && line.Distance(p) < dist / 1.2f && GetPath(enemy.Player, p) < trueDist)
+                            .OrderByDescending(p => NavMesh.GetCollisionFlags(p).HasFlag(CollisionFlags.Grass))
                             .ThenBy(p => line.Distance(p))
                             .FirstOrDefault();
                 }
@@ -276,6 +315,10 @@ namespace UnderratedAIO.Helpers
                         continue;
                     }
                     if (player.ChampionName == "Lux" && player.Distance(pos) > 3000f)
+                    {
+                        continue;
+                    }
+                    if (player.ChampionName == "Xerath" && player.Distance(pos) > xerathUltRange[R.Level-1]-500)
                     {
                         continue;
                     }
@@ -330,6 +373,24 @@ namespace UnderratedAIO.Helpers
             return distance;
         }
 
+        public static Vector3 GetPointAfterTimeFromPath(Obj_AI_Hero hero, Vector3 b, float timeInSec)
+        {
+            var path = hero.GetPath(b);
+            var lastPoint = path[0];
+            var distance = 0f;
+            var maxDist = hero.MoveSpeed * timeInSec;
+            foreach (var point in path.Where(point => !point.Equals(lastPoint)))
+            {
+                if (distance > maxDist)
+                {
+                    break;
+                }
+                distance += lastPoint.Distance(point);
+                lastPoint = point;
+            }
+            return lastPoint;
+        }
+
         private bool CheckShieldTower(Vector3 pos)
         {
             if (Game.MapId != GameMapId.SummonersRift)
@@ -349,7 +410,38 @@ namespace UnderratedAIO.Helpers
                 if (checkdmg(positions.Player) && UltTime(pos) < positions.RecallData.GetRecallTime() &&
                     !isColliding(pos))
                 {
+                    if (player.ChampionName == "Xerath")
+                    {
+                        xerathUlt(positions, pos);
+                    }
                     R.Cast(pos);
+                }
+            }
+        }
+
+        private void xerathUlt(Positions positions, Vector3 pos=default(Vector3))
+        {
+            if (pos != Vector3.Zero)
+            {
+                xerathUltActivated = true;
+                xerathUltTarget = positions.Player;
+                Utility.DelayAction.Add(5000, () => xerathUltActivated = false);
+                R.Cast(pos);
+            }else
+            {
+                if (positions.Player.IsVisible)
+                {
+                    xerathUltActivated = true;
+                    xerathUltTarget = positions.Player;
+                    Utility.DelayAction.Add(5000, () => xerathUltActivated = false);
+                    R.Cast(positions.Player);
+                }
+                else
+                {
+                    xerathUltActivated = true;
+                    xerathUltTarget = positions.Player;
+                    Utility.DelayAction.Add(5000, () => xerathUltActivated = false);
+                    R.Cast(positions.Player.Position.Extend(positions.predictedpos, (float)(positions.Player.MoveSpeed * 0.3)));
                 }
             }
         }
@@ -407,37 +499,40 @@ namespace UnderratedAIO.Helpers
             {
                 return 500f;
             }
+            if (player.ChampionName == "Xerath")
+            {
+                return 500f;
+            }
             return 0;
         }
 
-        public static List<Vector3> PointsAroundTheTarget(Vector3 pos, float dist, float prec = 15, float prec2 = 6)
+        public static List<Vector3> PointsAroundTheTarget(Vector3 pos, float dist, float prec = 15, float prec2 = 5)
         {
             if (!pos.IsValid())
             {
                 return new List<Vector3>();
             }
             List<Vector3> list = new List<Vector3>();
-            if (dist > 205)
+            if (dist > 500)
             {
-                prec = 30;
-                prec2 = 8;
+                prec = 20;
+                prec2 = 6;
             }
             if (dist > 805)
             {
-                dist = (float) (dist * 1.5);
-                prec = 45;
-                prec2 = 10;
+                prec = 35;
+                prec2 = 8;
             }
             var angle = 360 / prec * Math.PI / 180.0f;
-            var step = dist * 2 / prec2;
+            var step = dist / prec2;
             for (int i = 0; i < prec; i++)
             {
-                for (int j = 0; j < 6; j++)
+                for (int j = 0; j < prec2; j++)
                 {
                     list.Add(
                         new Vector3(
                             pos.X + (float) (Math.Cos(angle * i) * (j * step)),
-                            pos.Y + (float) (Math.Sin(angle * i) * (j * step)) - 90, pos.Z));
+                            pos.Y + (float) (Math.Sin(angle * i) * (j * step)), pos.Z));
                 }
             }
 
@@ -469,6 +564,13 @@ namespace UnderratedAIO.Helpers
             if (player.ChampionName == "Gangplank")
             {
                 if (configMenu.Item("gpWaves").GetValue<Slider>().Value * dmg - bonuShieldNearTowers > target.Health)
+                {
+                    return true;
+                }
+            }
+            if (player.ChampionName == "Xerath")
+            {
+                if (configMenu.Item("XerathUlts").GetValue<Slider>().Value * dmg - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
