@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Color = System.Drawing.Color;
 using LeagueSharp;
 using LeagueSharp.Common;
-using UnderratedAIO.Helpers;
+using RandomUlt.Helpers;
 
 namespace RandomUlt
 {
@@ -19,7 +19,7 @@ namespace RandomUlt
 
         private static void Main(string[] args)
         {
-            CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
+                CustomEvents.Game.OnGameLoad += Game_OnGameLoad;         
         }
 
         private static void Game_OnGameLoad(EventArgs args)
