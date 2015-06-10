@@ -163,8 +163,7 @@ namespace UnderratedAIO.Champions
                                   (config.Item("checkmana", true).GetValue<bool>() && CheckMana())))
                         {
                             Combo(target, cmbDmg, canKill, true);
-                        }
-                        else
+                        }else
                         {
                             Combo(target, cmbDmg, canKill, false);
                         }
