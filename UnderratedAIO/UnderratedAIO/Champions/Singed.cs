@@ -168,7 +168,6 @@ namespace UnderratedAIO.Champions
             if (forcedPos.IsValid() && !ToCursor)
             {
                 player.IssueOrder(GameObjectOrder.MoveTo, cgTarg.Position.Extend(forcedPos, 50));
-                Render.Circle.DrawCircle(forcedPos, 15, Color.MediumSlateBlue, 8);
             }
             if (forcedPos.IsValid() && ToCursor)
             {
@@ -182,7 +181,6 @@ namespace UnderratedAIO.Champions
                 }
                 ToCursor = false;
                 forcedPos = Vector3.Zero;
-                Render.Circle.DrawCircle(forcedPos, 12, Color.Fuchsia, 6);
             }
             switch (orbwalker.ActiveMode)
             {
@@ -240,8 +238,6 @@ namespace UnderratedAIO.Champions
                     GetEpoints(target)
                         .OrderBy(p => p.Distance(target.Position.Extend(Game.CursorPos, 125)))
                         .FirstOrDefault();
-                Render.Circle.DrawCircle(pos, 15, Color.Aquamarine, 8);
-
                 Orbwalking.Move = false;
                 if (!ToCursor)
                 {
@@ -359,7 +355,6 @@ namespace UnderratedAIO.Champions
                 {
                     pos = Vector3.Zero;
                 }
-                Render.Circle.DrawCircle(pos, 15, Color.Firebrick, 8);
                 if (Orbwalking.CanMove(100))
                 {
                     if (player.Distance(pos) > 40 && pos.IsValid())
