@@ -72,6 +72,7 @@
     <Compile Include="Champions\Renekton.cs" />
     <Compile Include="Champions\Sejuani.cs" />
     <Compile Include="Champions\Shen.cs" />
+    <Compile Include="Champions\Singed.cs" />
     <Compile Include="Champions\Skarner.cs" />
     <Compile Include="Champions\Udyr.cs" />
     <Compile Include="Champions\Veigar.cs" />
