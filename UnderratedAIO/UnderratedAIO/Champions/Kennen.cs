@@ -86,8 +86,8 @@ namespace UnderratedAIO.Champions
         private void Clear()
         {
             var targetQ = ObjectManager.Get<Obj_AI_Base>().Where(m => m.IsEnemy && Q.CanCast(m) && !(m is Obj_AI_Turret)).OrderByDescending(m => m.Health).FirstOrDefault();
-            var targetW = ObjectManager.Get<Obj_AI_Base>().Where(m => m.IsEnemy && player.Distance(m) < W.Range && m.HasBuff("KennenMarkOfStorm"));
-            var targetE = ObjectManager.Get<Obj_AI_Base>().Where(m => m.IsEnemy && player.Distance(m) < W.Range && Environment.Hero.countChampsAtrange(m.Position, 1000f) < 1 && !m.IsDead && !(m is Obj_AI_Turret) && !m.HasBuff("KennenMarkOfStorm") && !m.UnderTurret(true)).OrderBy(m => player.Distance(m));
+            var targetW = ObjectManager.Get<Obj_AI_Base>().Where(m => m.IsEnemy && player.Distance(m) < W.Range && m.HasBuff("kennenmarkofstorm"));
+            var targetE = ObjectManager.Get<Obj_AI_Base>().Where(m => m.IsEnemy && player.Distance(m) < W.Range && Environment.Hero.countChampsAtrange(m.Position, 1000f) < 1 && !m.IsDead && !(m is Obj_AI_Turret) && !m.HasBuff("kennenmarkofstorm") && !m.UnderTurret(true)).OrderBy(m => player.Distance(m));
             if (config.Item("useeClear").GetValue<bool>() && E.IsReady() && ((targetE.FirstOrDefault() != null && Environment.Hero.countChampsAtrange(player.Position, 1200f)<1 && !player.HasBuff("KennenLightningRush") && targetE.Count() > 1) || (player.HasBuff("KennenLightningRush") && targetE.FirstOrDefault() == null)))
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
@@ -110,7 +110,7 @@ namespace UnderratedAIO.Champions
         private void LastHit()
         {
             var targetQ = MinionManager.GetMinions(Q.Range).FirstOrDefault(m => m.IsEnemy && m.Health < Q.GetDamage(m) && Q.CanCast(m));
-            var targetW = MinionManager.GetMinions(W.Range).FirstOrDefault(m => m.IsEnemy && m.HasBuff("KennenMarkOfStorm") && m.Health < W.GetDamage(m, 1) && player.Distance(m) < W.Range);
+            var targetW = MinionManager.GetMinions(W.Range).FirstOrDefault(m => m.IsEnemy && m.HasBuff("kennenmarkofstorm") && m.Health < W.GetDamage(m, 1) && player.Distance(m) < W.Range);
             if (config.Item("useqLH").GetValue<bool>() && Q.CanCast(targetQ))
             {
                 Q.Cast(targetQ, config.Item("packets").GetValue<bool>());
@@ -130,7 +130,7 @@ namespace UnderratedAIO.Champions
             {
                 Q.Cast(target, config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("usewLC").GetValue<bool>() && W.IsReady() && W.Range < player.Distance(target) && target.HasBuff("KennenMarkOfStorm"))
+            if (config.Item("usewLC").GetValue<bool>() && W.IsReady() && W.Range < player.Distance(target) && target.HasBuff("kennenmarkofstorm"))
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -220,7 +220,7 @@ namespace UnderratedAIO.Champions
         }
         private int MarkOfStorm(Obj_AI_Base target)
         {
-            return target.Buffs.First(a => a.DisplayName == "KennenMarkOfStorm").Count;
+            return target.Buffs.First(a => a.Name == "kennenmarkofstorm").Count;
         }
         private void InitKennen()
         {
