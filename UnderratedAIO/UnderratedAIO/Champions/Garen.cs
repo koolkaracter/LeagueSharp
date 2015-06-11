@@ -59,7 +59,7 @@ namespace UnderratedAIO.Champions
 
         private void Clear()
         {
-            if (config.Item("useeLC").GetValue<bool>() && E.IsReady() && Environment.Minion.countMinionsInrange(player.Position,E.Range)>2)
+            if (config.Item("useeLC").GetValue<bool>() && E.IsReady() && !GarenE && Environment.Minion.countMinionsInrange(player.Position, E.Range) > 2)
             {
                         E.Cast(config.Item("packets").GetValue<bool>());
             }
