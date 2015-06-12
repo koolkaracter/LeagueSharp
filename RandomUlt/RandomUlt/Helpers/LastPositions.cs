@@ -25,11 +25,20 @@ namespace RandomUlt.Helpers
         public static List<string> SupportedHeroes =
             new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven", "Gangplank", "Ziggs", "Lux", "Xerath" });
 
+        public List<Vector3> ShielderTurrets =
+            new List<Vector3>(
+                new Vector3[]
+                {
+                    new Vector3(7943.15f, 13411.8f, 38), new Vector3(13327.4f, 8226.28f, 38),
+                    new Vector3(6919.155f, 1483.599f, 43.32f), new Vector3(1512.892f, 6699.57f, 42.06392f)
+                });
+
         public static List<string> BaseUltHeroes = new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven" });
 
         public static int[] xerathUltRange = new[] { 3200, 4400, 5600, };
         public bool xerathUltActivated;
         public Obj_AI_Hero xerathUltTarget;
+
         public LastPositions(Menu config)
         {
             configMenu = config;
@@ -61,7 +70,7 @@ namespace RandomUlt.Helpers
             if (player.ChampionName == "Gangplank")
             {
                 R.SetSkillshot(100f, 600f, R.Speed, false, SkillshotType.SkillshotCircle);
-            }            
+            }
             if (player.ChampionName == "Xerath")
             {
                 R.SetSkillshot(0.7f, 120f, float.MaxValue, false, SkillshotType.SkillshotCircle);
@@ -167,7 +176,9 @@ namespace RandomUlt.Helpers
                     pos =
                         PointsAroundTheTarget(enemy.Player.Position, trueDist)
                             .Where(
-                                p => !p.IsWall() && line.Distance(p) < dist/1.5f && GetPath(enemy.Player, p) < trueDist)
+                                p =>
+                                    !p.IsWall() && line.Distance(p) < dist / 1.5f &&
+                                    GetPath(enemy.Player, p) < trueDist)
                             .OrderByDescending(p => NavMesh.GetCollisionFlags(p).HasFlag(CollisionFlags.Grass))
                             .ThenBy(p => line.Distance(p))
                             .FirstOrDefault();
@@ -180,7 +191,7 @@ namespace RandomUlt.Helpers
                 {
                     if (pos != null)
                     {
-                        Drawing.DrawCircle(line, dist/1.5f, Color.LawnGreen);
+                        Drawing.DrawCircle(line, dist / 1.5f, Color.LawnGreen);
                     }
                 }
             }
@@ -212,20 +223,27 @@ namespace RandomUlt.Helpers
                     enemyInfo.predictedpos = prediction.UnitPosition;
                 }
             }
-            if (xerathUltActivated && R.IsReady() && !configMenu.Item("ComboBlock").GetValue<KeyBind>().Active && player.HasBuff("xerathrshots"))
+            if (xerathUltActivated && R.IsReady() && !configMenu.Item("ComboBlock").GetValue<KeyBind>().Active &&
+                player.HasBuff("xerathrshots"))
             {
-                    var enemy=Enemies.Where(x => x.Player.NetworkId==xerathUltTarget.NetworkId && !x.Player.IsDead).FirstOrDefault();
-                    if (enemy!=null)
+                var enemy =
+                    Enemies.Where(x => x.Player.NetworkId == xerathUltTarget.NetworkId && !x.Player.IsDead)
+                        .FirstOrDefault();
+                if (enemy != null)
+                {
+                    R.Cast(enemy.Player.Position);
+                }
+                else
+                {
+                    var target =
+                        HeroManager.Enemies.Where(h => player.Distance(h) < xerathUltRange[R.Level - 1] && h.IsVisible)
+                            .OrderBy(h => h.Health)
+                            .FirstOrDefault();
+                    if (target != null)
                     {
-                        R.Cast(enemy.Player.Position);
+                        R.Cast(target);
                     }
-                    else{
-                        var target = HeroManager.Enemies.Where(h => player.Distance(h) < xerathUltRange[R.Level - 1] && h.IsVisible).OrderBy(h=>h.Health).FirstOrDefault();
-                        if (target!=null)
-                        {
-                            R.Cast(target);
-                        }
-                    }
+                }
             }
             if (!SupportedChamps() || !configMenu.Item("UseR").GetValue<bool>() || !R.IsReady() || !enabled ||
                 configMenu.Item("ComboBlock").GetValue<KeyBind>().Active)
@@ -242,8 +260,7 @@ namespace RandomUlt.Helpers
                         x.RecallData.Recall.Type == Packet.S2C.Teleport.Type.Recall)
                     .OrderBy(x => x.RecallData.GetRecallTime()))
             {
-                if (!checkdmg(enemy.Player) || (checkdmg(enemy.Player) && CheckBuffs(enemy.Player)) ||
-                    CheckBaseUlt(enemy.RecallData.GetRecallCountdown()) ||
+                if (CheckBuffs(enemy.Player) || CheckBaseUlt(enemy.RecallData.GetRecallCountdown()) ||
                     !(Environment.TickCount - enemy.RecallData.RecallStartTime >
                       configMenu.Item("waitBeforeUlt").GetValue<Slider>().Value))
                 {
@@ -318,7 +335,7 @@ namespace RandomUlt.Helpers
                     {
                         continue;
                     }
-                    if (player.ChampionName == "Xerath" && player.Distance(pos) > xerathUltRange[R.Level-1]-500)
+                    if (player.ChampionName == "Xerath" && player.Distance(pos) > xerathUltRange[R.Level - 1] - 500)
                     {
                         continue;
                     }
@@ -399,7 +416,7 @@ namespace RandomUlt.Helpers
             }
             return
                 ObjectManager.Get<Obj_AI_Turret>()
-                    .Any(t => t.Distance(pos) < 1100f && t.IsEnemy && !t.IsDead && t.InventoryItems.Count() > 3);
+                    .Any(t => ShielderTurrets.Any(s => s.Distance(pos) < 1100f) && t.IsEnemy && !t.IsDead);
         }
 
         private void kill(Positions positions, Vector3 pos)
@@ -407,7 +424,7 @@ namespace RandomUlt.Helpers
             if (R.IsReady() && pos.Distance(positions.Player.Position) < 1200 &&
                 pos.CountAlliesInRange(configMenu.Item("Alliesrange").GetValue<Slider>().Value) < 1)
             {
-                if (checkdmg(positions.Player) && UltTime(pos) < positions.RecallData.GetRecallTime() &&
+                if (checkdmg(positions.Player, pos) && UltTime(pos) < positions.RecallData.GetRecallTime() &&
                     !isColliding(pos))
                 {
                     if (player.ChampionName == "Xerath")
@@ -419,7 +436,7 @@ namespace RandomUlt.Helpers
             }
         }
 
-        private void xerathUlt(Positions positions, Vector3 pos=default(Vector3))
+        private void xerathUlt(Positions positions, Vector3 pos = default(Vector3))
         {
             if (pos != Vector3.Zero)
             {
@@ -427,7 +444,8 @@ namespace RandomUlt.Helpers
                 xerathUltTarget = positions.Player;
                 Utility.DelayAction.Add(5000, () => xerathUltActivated = false);
                 R.Cast(pos);
-            }else
+            }
+            else
             {
                 if (positions.Player.IsVisible)
                 {
@@ -441,7 +459,9 @@ namespace RandomUlt.Helpers
                     xerathUltActivated = true;
                     xerathUltTarget = positions.Player;
                     Utility.DelayAction.Add(5000, () => xerathUltActivated = false);
-                    R.Cast(positions.Player.Position.Extend(positions.predictedpos, (float)(positions.Player.MoveSpeed * 0.3)));
+                    R.Cast(
+                        positions.Player.Position.Extend(
+                            positions.predictedpos, (float) (positions.Player.MoveSpeed * 0.3)));
                 }
             }
         }
@@ -539,11 +559,11 @@ namespace RandomUlt.Helpers
             return list;
         }
 
-        private bool checkdmg(Obj_AI_Hero target)
+        private bool checkdmg(Obj_AI_Hero target, Vector3 pos)
         {
             var dmg = R.GetDamage(target);
             var bonuShieldNearTowers = 0f;
-            if (CheckShieldTower(target.Position))
+            if (CheckShieldTower(pos))
             {
                 bonuShieldNearTowers = -300f;
             }
