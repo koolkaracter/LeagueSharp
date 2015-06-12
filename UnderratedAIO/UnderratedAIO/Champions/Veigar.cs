@@ -341,7 +341,7 @@ namespace UnderratedAIO.Champions
             }
             if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() &&
                 config.Item("useIgnite", true).GetValue<bool>() && R.GetDamage(target) + ignitedmg > target.Health && 
-                target.Health > R.GetDamage(target))
+                target.Health > R.GetDamage(target) && !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)))
             {
                 R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                 IgniteTarget = target;
