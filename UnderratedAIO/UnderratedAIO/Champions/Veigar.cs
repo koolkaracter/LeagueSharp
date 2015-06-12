@@ -24,7 +24,7 @@ namespace UnderratedAIO.Champions
         public static Vector3 wPos, ePos;
         public Obj_AI_Base qMiniForWait;
         public Obj_AI_Base qMiniTarget;
-
+        public Obj_AI_Hero IgniteTarget;
         public Veigar()
         {
             if (player.BaseSkinName != "Veigar")
@@ -144,7 +144,7 @@ namespace UnderratedAIO.Champions
                 case Orbwalking.OrbwalkingMode.Combo:
                     Obj_AI_Hero target = TargetSelector.GetTarget(
                         1000, TargetSelector.DamageType.Magical, true,
-                        HeroManager.Enemies.Where(h => h.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) && !h.IsInvulnerable));
+                        HeroManager.Enemies.Where(h => h.IsInvulnerable));
                     if (target != null)
                     {
                         var cmbDmg = ComboDamage(target);
@@ -210,7 +210,7 @@ namespace UnderratedAIO.Champions
             {
                 Obj_AI_Hero target = TargetSelector.GetTarget(
                     1000, TargetSelector.DamageType.Magical, true,
-                    HeroManager.Enemies.Where(h => h.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) && !h.IsInvulnerable));
+                    HeroManager.Enemies.Where(h => h.IsInvulnerable));
                 if (target!=null)
                 {
                     CastE(target); 
@@ -220,7 +220,7 @@ namespace UnderratedAIO.Champions
 
         private void Harass()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
+            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
             float perc = config.Item("minmanaH", true).GetValue<Slider>().Value / 100f;
             if (config.Item("useqLHinHarass", true).GetValue<bool>())
             {
@@ -313,7 +313,8 @@ namespace UnderratedAIO.Champions
             if (R.IsReady() && R.CanCast(target))
             {
                 if (config.Item("user", true).GetValue<bool>() && !CombatHelper.CheckCriticalBuffs(target) &&
-                    R.CanCast(target) && CheckW(target) && !Q.CanCast(target) && R.GetDamage(target) > target.Health)
+                    R.CanCast(target) && CheckW(target) && !Q.CanCast(target) && R.GetDamage(target) > target.Health && 
+                    !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)))
                 {
                     R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                 }
@@ -327,11 +328,25 @@ namespace UnderratedAIO.Champions
             }
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
+            if (config.Item("useIgnite", true).GetValue<bool>() && ((ignitedmg > target.Health && hasIgnite &&
                 !player.IsChannelingImportantSpell() && !justQ && !Q.CanCast(target) && !justR && !R.CanCast(target) &&
-                CheckW(target))
+                CheckW(target))|| IgniteTarget!=null))
             {
+                if (IgniteTarget != null)
+                {
+                    player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), IgniteTarget); 
+                    return;
+                }
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
+            }
+            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() &&
+                config.Item("useIgnite", true).GetValue<bool>() && R.GetDamage(target) + ignitedmg > target.Health && 
+                target.Health > R.GetDamage(target))
+            {
+                R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                IgniteTarget = target;
+                Utility.DelayAction.Add(500, () => IgniteTarget=null);
+
             }
         }
 
@@ -465,6 +480,7 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), Q.Range);
             DrawHelper.DrawCircle(config.Item("drawww", true).GetValue<Circle>(), W.Range);
             DrawHelper.DrawCircle(config.Item("drawee", true).GetValue<Circle>(), 700f);
+            DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), R.Range);
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
