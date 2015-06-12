@@ -130,9 +130,9 @@ namespace UnderratedAIO.Champions
             Q = new Spell(SpellSlot.Q, 950);
             Q.SetSkillshot(0.25f, 70f, 2000f, false, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W, 900);
-            W.SetSkillshot(1.35f, 225f, float.MaxValue, false, SkillshotType.SkillshotCircle);
+            W.SetSkillshot(1.25f, 225f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             E = new Spell(SpellSlot.E, 1050);
-            E.SetSkillshot(.8f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
+            E.SetSkillshot(0.8f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R, 650);
         }
 
@@ -213,7 +213,8 @@ namespace UnderratedAIO.Champions
                     HeroManager.Enemies.Where(h => h.IsInvulnerable));
                 if (target!=null)
                 {
-                    CastE(target); 
+                    player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+;                   CastE(target); 
                 }
             }
         }
@@ -377,7 +378,7 @@ namespace UnderratedAIO.Champions
             if (player.CountEnemiesInRange(E.Range) <= 1)
             {
                 var targE = Prediction.GetPrediction(target, 0.5f);
-                if (targE.CastPosition.Distance(player.Position) < E.Range)
+                if (targE.CastPosition.Distance(player.Position) < E.Range && targE.Hitchance>=HitChance.High)
                 {
                     E.Cast(targE.CastPosition.Extend(player.Position, 375), config.Item("packets").GetValue<bool>());
                 }
