@@ -44,7 +44,6 @@ namespace UnderratedAIO.Champions
 
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
         }
-
         private void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args)
         {
             if (sender.IsEnemy && sender is Obj_AI_Hero && config.Item("OnDash", true).GetValue<bool>() && E.IsReady() &&
@@ -145,7 +144,7 @@ namespace UnderratedAIO.Champions
                 case Orbwalking.OrbwalkingMode.Combo:
                     Obj_AI_Hero target = TargetSelector.GetTarget(
                         1000, TargetSelector.DamageType.Magical, true,
-                        HeroManager.Enemies.Where(h => h.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name))));
+                        HeroManager.Enemies.Where(h => h.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) && !h.IsInvulnerable));
                     if (target != null)
                     {
                         var cmbDmg = ComboDamage(target);
@@ -205,6 +204,16 @@ namespace UnderratedAIO.Champions
                 if (targ != null)
                 {
                     W.Cast(targ, config.Item("packets").GetValue<bool>());
+                }
+            }
+            if (config.Item("useEkey", true).GetValue<KeyBind>().Active && E.IsReady())
+            {
+                Obj_AI_Hero target = TargetSelector.GetTarget(
+                    1000, TargetSelector.DamageType.Magical, true,
+                    HeroManager.Enemies.Where(h => h.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) && !h.IsInvulnerable));
+                if (target!=null)
+                {
+                    CastE(target); 
                 }
             }
         }
@@ -310,8 +319,9 @@ namespace UnderratedAIO.Champions
                 }
             }
             if (config.Item("usee", true).GetValue<bool>() && E.IsReady() &&
-                ((canKill && config.Item("useekill", true).GetValue<bool>()) ||
-                 (!config.Item("useekill", true).GetValue<bool>() && CheckMana())))
+                (((canKill && config.Item("useekill", true).GetValue<bool>()) ||
+                 (!config.Item("useekill", true).GetValue<bool>() && CheckMana())) 
+                 || config.Item("startWithE", true).GetValue<bool>()))
             {
                 CastE(target);
             }
@@ -560,6 +570,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(false);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useekill", "   Only for kill", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useEkey", "   Manual cast", true))
+                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("startWithE", "Start combo with E", true)).SetValue(false);
             menuC.AddItem(new MenuItem("checkmana", "   Check mana", true)).SetValue(true);
