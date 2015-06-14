@@ -3,10 +3,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Timers;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
 using Color = System.Drawing.Color;
+using Timer = System.Threading.Timer;
 
 #endregion
 
@@ -87,6 +89,7 @@ namespace UnderratedAIO.Helpers
         private static float _minDistance = 400;
         private static readonly Random _random = new Random(DateTime.Now.Millisecond);
         private static bool _missileLaunched;
+
 
         static Orbwalking()
         {
@@ -249,7 +252,7 @@ namespace UnderratedAIO.Helpers
                 return false;
             }
 
-            if (_missileLaunched)
+            if (_missileLaunched && Orbwalker.MissileCheck)
             {
                 return true;
             }
@@ -377,7 +380,8 @@ namespace UnderratedAIO.Helpers
                         target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) &&
                         target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 450)
                     {
-                        var pos = player.CountEnemiesInRange(1500)==1?AutoAttack.GetPrediction((Obj_AI_Base)target).UnitPosition:AutoAttack.GetPrediction((Obj_AI_Base)target).CastPosition;
+                        var prediction = AutoAttack.GetPrediction((Obj_AI_Base) target);
+                        var pos = player.CountEnemiesInRange(1500) == 1 ? target.Position.Extend(prediction.UnitPosition, GetRealAutoAttackRange(player)) : prediction.CastPosition;
                         Obj_AI_Hero tar = (Obj_AI_Hero) target;
                         if (player.Distance(target) > target.BoundingRadius && !CombatHelper.IsFacing((Obj_AI_Base)target, player.Position, 120f) && tar.IsMoving)
                         {
@@ -505,6 +509,7 @@ namespace UnderratedAIO.Helpers
             private Obj_AI_Minion _prevMinion;
             private readonly Obj_AI_Hero Player;
             public bool Enabled = true;
+
             public Orbwalker(Menu attachToMenu)
             {
                 _config = attachToMenu;
@@ -527,6 +532,7 @@ namespace UnderratedAIO.Helpers
                 misc.AddItem(new MenuItem("PriorizeFarm", "Priorize farm over harass").SetShared().SetValue(true));
                 misc.AddItem(
                     new MenuItem("LastHitDmg", "Percentage of damage for lasthit").SetShared().SetValue(new Slider(100, 0, 100)));
+                misc.AddItem(new MenuItem("MissileCheck", "Use Missile Check").SetShared().SetValue(true));
                 var comboOpt = new Menu("Combo Options", "comboOpt");
                 comboOpt.AddItem(
                     new MenuItem("ComboMovement", "   Movement").SetShared().SetValue(true));
@@ -558,6 +564,11 @@ namespace UnderratedAIO.Helpers
             private int FarmDelay
             {
                 get { return _config.Item("FarmDelay").GetValue<Slider>().Value; }
+            }
+
+            public static bool MissileCheck
+            {
+                get { return _config.Item("MissileCheck").GetValue<bool>(); }
             }
 
             public OrbwalkingMode ActiveMode
@@ -640,7 +651,7 @@ namespace UnderratedAIO.Helpers
                 if ((ActiveMode == OrbwalkingMode.Mixed || ActiveMode == OrbwalkingMode.LaneClear) &&
                     !_config.Item("PriorizeFarm").GetValue<bool>())
                 {
-                    var target = TargetSelector.GetTarget(-1, TargetSelector.DamageType.Physical);
+                    var target = TargetSelector.GetTarget(GetRealAutoAttackRange(player), TargetSelector.DamageType.Physical);
                     if (target != null)
                     {
                         return target;
@@ -783,13 +794,14 @@ namespace UnderratedAIO.Helpers
                         return;
                     }
                     var target = GetTarget();
-                    Orbwalk(
-                        target, (_orbwalkingPoint.To2D().IsValid()) ? _orbwalkingPoint : Game.CursorPos,
-                        _config.Item("ExtraWindup").GetValue<Slider>().Value,
-                        _config.Item("HoldPosRadius").GetValue<Slider>().Value,true,true,
-                        _config.Item("AutoWindup").GetValue<bool>(),
-                        _config.Item("ComboMelee").GetValue<bool>(),
-                        _config.Item("ComboMovement").GetValue<bool>());
+
+                        Orbwalk(
+                          target, (_orbwalkingPoint.To2D().IsValid()) ? _orbwalkingPoint : Game.CursorPos,
+                          _config.Item("ExtraWindup").GetValue<Slider>().Value,
+                          _config.Item("HoldPosRadius").GetValue<Slider>().Value, true, true,
+                          _config.Item("AutoWindup").GetValue<bool>(),
+                          _config.Item("ComboMelee").GetValue<bool>(),
+                          _config.Item("ComboMovement").GetValue<bool>());  
                 }
                 catch (Exception e)
                 {
