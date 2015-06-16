@@ -97,12 +97,11 @@ namespace RandomUlt.Helpers
                 config.AddSubMenu(DontUlt);
                 config.AddItem(new MenuItem("Alliesrange", "Allies min range from the target"))
                     .SetValue(new Slider(1700, 500, 2000));
-                config.AddItem(new MenuItem("InfoI ", "--in case of steal or interrupt"));
                 config.AddItem(new MenuItem("waitBeforeUlt", "Wait time before ults(ms)"))
                     .SetValue(new Slider(600, 0, 3000));
-                config.AddItem(new MenuItem("InfoII ", "--in case of he cancel the recall"));
                 config.AddItem(new MenuItem("BaseUltFirst", "BaseUlt has higher priority")).SetValue(false);
                 config.AddItem(new MenuItem("InfoIII ", "--Let the kills for BaseUlt"));
+                config.AddItem(new MenuItem("drawNotification", "Draw notification")).SetValue(true);
             }
             config.AddItem(new MenuItem("RandomUltDrawings", "Draw possible place")).SetValue(false);
             config.AddItem(new MenuItem("ComboBlock", "Disabled by keypress"))
@@ -193,6 +192,20 @@ namespace RandomUlt.Helpers
                     {
                         Drawing.DrawCircle(line, dist / 1.5f, Color.LawnGreen);
                     }
+                }
+            }
+            if (SupportedChamps() && configMenu.Item("drawNotification").GetValue<bool>() && R.IsReady() && !player.IsDead)
+            {
+                var possibleTargets =
+                    Enemies.Where(
+                        x => !x.Player.IsDead &&
+                            checkdmg(x.Player, x.Player.Position) &&
+                            (Environment.TickCount - x.LastSeen<4000) &&
+                            x.Player.CountAlliesInRange(1000) < 1 &&
+                            UltTime(x.Player.Position) < 9500 - configMenu.Item("waitBeforeUlt").GetValue<Slider>().Value);
+                if (possibleTargets.Any() && player.IsHPBarRendered)
+                {
+                    Drawing.DrawText(player.HPBarPosition.X + 8, player.HPBarPosition.Y - 30, Color.Red, "Possible Randomult");
                 }
             }
         }
