@@ -67,8 +67,7 @@ namespace UnderratedAIO.Champions
         private void InitZac()
         {
             Q = new Spell(SpellSlot.Q, 550);
-            Q.SetSkillshot(
-                Q.Instance.SData.SpellCastTime, Q.Instance.SData.LineWidth, Q.Speed, false, SkillshotType.SkillshotLine);
+            Q.SetSkillshot(0.55f, 120, float.MaxValue, false, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W, 320);
             E = new Spell(SpellSlot.E);
             E.SetSkillshot(0, 250, 1500, false, SkillshotType.SkillshotCircle);
@@ -172,34 +171,6 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
-            if (config.Item("useeLC", true).GetValue<bool>() && E.IsReady())
-            {
-                if (target != null && target.IsValidTarget())
-                {
-                    CastE(target);
-                }
-                else
-                {
-                    MinionManager.FarmLocation bestPositionE =
-                        E.GetLineFarmLocation(
-                            MinionManager.GetMinions(eRanges[E.Level - 1], MinionTypes.All, MinionTeam.NotAlly));
-                    var castPos = Vector3.Zero;
-                    if (bestPositionE.MinionsHit < config.Item("eMinHit", true).GetValue<Slider>().Value && farmPos.IsValid())
-                    {
-                        castPos = farmPos;
-                    }
-                    if (bestPositionE.MinionsHit >= config.Item("eMinHit", true).GetValue<Slider>().Value)
-                    {
-                        castPos = bestPositionE.Position.To3D();
-                    }
-                    if (castPos.IsValid())
-                    {
-                        farmPos = bestPositionE.Position.To3D();
-                        Utility.DelayAction.Add(5000, () => { farmPos = Vector3.Zero; });
-                        CastE(castPos);
-                    }
-                }
-            }
             if (config.Item("collectBlobs", true).GetValue<bool>() && !E.IsCharging)
             {
                 var blob =
@@ -214,6 +185,35 @@ namespace UnderratedAIO.Champions
                 {
                     orbwalker.SetMovement(false);
                     player.IssueOrder(GameObjectOrder.MoveTo, blob.Position);
+                }
+            }
+            if (config.Item("useeLC", true).GetValue<bool>() && E.IsReady())
+            {
+                if (target != null && target.IsValidTarget())
+                {
+                    CastE(target);
+                }
+                else
+                {
+                    MinionManager.FarmLocation bestPositionE =
+                        E.GetLineFarmLocation(
+                            MinionManager.GetMinions(eRanges[E.Level - 1], MinionTypes.All, MinionTeam.NotAlly));
+                    var castPos = Vector3.Zero;
+                    if (bestPositionE.MinionsHit < config.Item("eMinHit", true).GetValue<Slider>().Value &&
+                        farmPos.IsValid())
+                    {
+                        castPos = farmPos;
+                    }
+                    if (bestPositionE.MinionsHit >= config.Item("eMinHit", true).GetValue<Slider>().Value)
+                    {
+                        castPos = bestPositionE.Position.To3D();
+                    }
+                    if (castPos.IsValid())
+                    {
+                        farmPos = bestPositionE.Position.To3D();
+                        Utility.DelayAction.Add(5000, () => { farmPos = Vector3.Zero; });
+                        CastE(castPos);
+                    }
                 }
             }
         }
@@ -277,12 +277,22 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var eFlyPred = E.GetPrediction(target);
-            pos = eFlyPred.CastPosition;
+
             if (E.IsCharging)
             {
+                pos = eFlyPred.CastPosition;
+                if (!eFlyPred.CastPosition.IsValid() || eFlyPred.CastPosition.IsWall())
+                {
+                    return;
+                }
                 if (eFlyPred.CastPosition.Distance(player.Position) < E.Range && eFlyPred.Hitchance >= HitChance.High)
                 {
                     E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
+                }
+                else if (eFlyPred.UnitPosition.Distance(player.Position) < E.Range &&
+                         eFlyPred.UnitPosition.Distance(player.Position) < 500f)
+                {
+                    E.Cast(eFlyPred.UnitPosition, config.Item("packets").GetValue<bool>());
                 }
                 else if ((eFlyPred.CastPosition.Distance(player.Position) < E.Range &&
                           eRanges[E.Level - 1] - eFlyPred.CastPosition.Distance(player.Position) < 200) ||
@@ -291,12 +301,13 @@ namespace UnderratedAIO.Champions
                     E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
                 }
                 else if (eFlyPred.CastPosition.Distance(player.Position) < E.Range && zacETime != 0 &&
-                         System.Environment.TickCount - zacETime > 1500)
+                         System.Environment.TickCount - zacETime > 1700)
                 {
                     E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
                 }
             }
-            else if (eFlyPred.UnitPosition.Distance(player.Position) < eRanges[E.Level - 1])
+            else if (eFlyPred.UnitPosition.Distance(player.Position) < eRanges[E.Level - 1] &&
+                     config.Item("Emin", true).GetValue<Slider>().Value < target.Distance(player.Position))
             {
                 E.SetCharged("ZacE", "ZacE", 300, eRanges[E.Level - 1], eChannelTimes[E.Level - 1]);
                 E.StartCharging(eFlyPred.UnitPosition);
