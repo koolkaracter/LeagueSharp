@@ -274,13 +274,11 @@ namespace UnderratedAIO.Champions
                     (eFlyPred.Hitchance >= HitChance.High ||
                      (zacETime != 0 && System.Environment.TickCount - zacETime > 1500)))
                 {
-                    Console.WriteLine(System.Environment.TickCount - zacETime);
                     E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
                 }
                 else if (eFlyPred.CastPosition.Distance(player.Position) < E.Range &&
                     eRanges[E.Level - 1] - eFlyPred.CastPosition.Distance(player.Position) < 200)
                 {
-                    Console.WriteLine("2");
                     E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>()); 
                 }
 
