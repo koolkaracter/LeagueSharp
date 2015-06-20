@@ -29,7 +29,7 @@ namespace UnderratedAIO.Helpers
                 ObjectManager.Get<Obj_AI_Minion>()
                     .FirstOrDefault(
                         minion =>
-                            minion.IsValid && minion.Distance(player) < range &&
+                            minion.IsValid && minion.Distance(pos) < range &&
                             jungleMonsters.Any(name => minion.Name.StartsWith(name)) &&
                             !jungleMonsters.Any(name => minion.Name.Contains("Mini")) &&
                             !jungleMonsters.Any(name => minion.Name.Contains("Spawn")));
