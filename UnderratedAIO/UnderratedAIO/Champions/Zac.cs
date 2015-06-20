@@ -23,7 +23,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static int[] eRanges = new int[] { 1150, 1250, 1350, 1450, 1550 };
         public static float[] eChannelTimes = new float[] { 0.9f, 1.0f, 1.1f, 1.2f, 1.3f };
-        public static Vector3 pos;
+        public static Vector3 farmPos, pos;
         public static float zacETime;
 
         public Zac()
@@ -71,9 +71,7 @@ namespace UnderratedAIO.Champions
                 Q.Instance.SData.SpellCastTime, Q.Instance.SData.LineWidth, Q.Speed, false, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W, 320);
             E = new Spell(SpellSlot.E);
-            E.SetSkillshot(
-                E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false,
-                SkillshotType.SkillshotCircle);
+            E.SetSkillshot(0, 250, 1500, false, SkillshotType.SkillshotCircle);
             E.SetCharged("ZacE", "ZacE", 295, eRanges[0], eChannelTimes[0]);
             R = new Spell(SpellSlot.R, 300);
         }
@@ -185,27 +183,38 @@ namespace UnderratedAIO.Champions
                     MinionManager.FarmLocation bestPositionE =
                         E.GetLineFarmLocation(
                             MinionManager.GetMinions(eRanges[E.Level - 1], MinionTypes.All, MinionTeam.NotAlly));
+                    var castPos = Vector3.Zero;
+                    if (bestPositionE.MinionsHit < config.Item("eMinHit", true).GetValue<Slider>().Value && farmPos.IsValid())
+                    {
+                        castPos = farmPos;
+                    }
                     if (bestPositionE.MinionsHit >= config.Item("eMinHit", true).GetValue<Slider>().Value)
                     {
-                        CastE(bestPositionE.Position.To3D());
+                        castPos = bestPositionE.Position.To3D();
+                    }
+                    if (castPos.IsValid())
+                    {
+                        farmPos = bestPositionE.Position.To3D();
+                        Utility.DelayAction.Add(5000, () => { farmPos = Vector3.Zero; });
+                        CastE(castPos);
                     }
                 }
             }
-            if (config.Item("collectBlobs", true).GetValue<bool>())
+            if (config.Item("collectBlobs", true).GetValue<bool>() && !E.IsCharging)
             {
-                    var blob =
-                        ObjectManager.Get<Obj_AI_Base>()
-                            .Where(
-                                o => !o.IsDead && o.IsValid &&
-                                    o.Name == "BlobDrop" && o.Team == player.Team &&
-                                    o.Distance(player) < Orbwalking.GetRealAutoAttackRange(player))
-                            .OrderBy(o => o.Distance(player))
-                            .FirstOrDefault();
-                    if (blob != null && Orbwalking.CanMove(100))
-                    {
-                        orbwalker.SetMovement(false);
-                        player.IssueOrder(GameObjectOrder.MoveTo, blob.Position);
-                    }
+                var blob =
+                    ObjectManager.Get<Obj_AI_Base>()
+                        .Where(
+                            o =>
+                                !o.IsDead && o.IsValid && o.Name == "BlobDrop" && o.Team == player.Team &&
+                                o.Distance(player) < Orbwalking.GetRealAutoAttackRange(player))
+                        .OrderBy(o => o.Distance(player))
+                        .FirstOrDefault();
+                if (blob != null && Orbwalking.CanMove(100))
+                {
+                    orbwalker.SetMovement(false);
+                    player.IssueOrder(GameObjectOrder.MoveTo, blob.Position);
+                }
             }
         }
 
@@ -268,20 +277,24 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var eFlyPred = E.GetPrediction(target);
+            pos = eFlyPred.CastPosition;
             if (E.IsCharging)
             {
-                if (eFlyPred.CastPosition.Distance(player.Position) < E.Range &&
-                    (eFlyPred.Hitchance >= HitChance.High ||
-                     (zacETime != 0 && System.Environment.TickCount - zacETime > 1500)))
+                if (eFlyPred.CastPosition.Distance(player.Position) < E.Range && eFlyPred.Hitchance >= HitChance.High)
                 {
                     E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
                 }
-                else if (eFlyPred.CastPosition.Distance(player.Position) < E.Range &&
-                    eRanges[E.Level - 1] - eFlyPred.CastPosition.Distance(player.Position) < 200)
+                else if ((eFlyPred.CastPosition.Distance(player.Position) < E.Range &&
+                          eRanges[E.Level - 1] - eFlyPred.CastPosition.Distance(player.Position) < 200) ||
+                         (CombatHelper.GetAngle(player, eFlyPred.CastPosition) > 35))
                 {
-                    E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>()); 
+                    E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
                 }
-
+                else if (eFlyPred.CastPosition.Distance(player.Position) < E.Range && zacETime != 0 &&
+                         System.Environment.TickCount - zacETime > 1500)
+                {
+                    E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
+                }
             }
             else if (eFlyPred.UnitPosition.Distance(player.Position) < eRanges[E.Level - 1])
             {
@@ -355,7 +368,7 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
             if (pos.IsValid())
             {
-                Render.Circle.DrawCircle(pos, 100, Color.Aqua, 7);
+               // Render.Circle.DrawCircle(pos, 100, Color.Aqua, 7);
             }
         }
 
@@ -441,7 +454,7 @@ namespace UnderratedAIO.Champions
             menuLC.AddItem(new MenuItem("minmana", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
-            menuM.AddItem(new MenuItem("Interrupt", "Cast E to interrupt spells", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("Interrupt", "Cast R to interrupt spells", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");

@@ -263,13 +263,13 @@ namespace UnderratedAIO.Helpers
         {
             if (source==null || !target.IsValid())
                 return false;
-            return (double)Geometry.AngleBetween(Geometry.To2D(source.Direction), Geometry.To2D(target - source.Position)) < angle;
+            return (double)Geometry.AngleBetween(Geometry.Perpendicular(Geometry.To2D(source.Direction)), Geometry.To2D(target - source.Position)) < 90.0;
         }
         public static double GetAngle(Obj_AI_Base source, Vector3 target)
         {
             if (source == null || !target.IsValid())
                 return 0;
-            return Geometry.AngleBetween(Geometry.To2D(source.Direction), Geometry.To2D(target - source.Position));
+            return Geometry.AngleBetween(Geometry.Perpendicular(Geometry.To2D(source.Direction)), Geometry.To2D(target - source.Position));;
         }
         public static bool CheckCriticalBuffs(Obj_AI_Hero i)
         {
