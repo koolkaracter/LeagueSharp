@@ -25,13 +25,13 @@ namespace RandomUlt.Helpers
         public static List<string> SupportedHeroes =
             new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven", "Gangplank", "Ziggs", "Lux", "Xerath" });
 
-        public List<Vector3> ShielderTurrets =
+        public List<Vector3> ShielderTurretsOrder =
             new List<Vector3>(
-                new Vector3[]
-                {
-                    new Vector3(7943.15f, 13411.8f, 38), new Vector3(13327.4f, 8226.28f, 38),
-                    new Vector3(6919.155f, 1483.599f, 43.32f), new Vector3(1512.892f, 6699.57f, 42.06392f)
-                });
+                new Vector3[] { new Vector3(6919.155f, 1483.599f, 43.32f), new Vector3(1512.892f, 6699.57f, 42.06392f) });
+
+        public List<Vector3> ShielderTurretsChaos =
+            new List<Vector3>(
+                new Vector3[] { new Vector3(7943.15f, 13411.8f, 38), new Vector3(13327.4f, 8226.28f, 38), });
 
         public static List<string> BaseUltHeroes = new List<string>(new string[] { "Ezreal", "Jinx", "Ashe", "Draven" });
 
@@ -111,6 +111,8 @@ namespace RandomUlt.Helpers
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnTeleport += Obj_AI_Base_OnTeleport;
         }
+
+
 
         private void Obj_AI_Base_OnTeleport(Obj_AI_Base sender, GameObjectTeleportEventArgs args)
         {
@@ -194,18 +196,20 @@ namespace RandomUlt.Helpers
                     }
                 }
             }
-            if (SupportedChamps() && configMenu.Item("drawNotification").GetValue<bool>() && R.IsReady() && !player.IsDead)
+            if (SupportedChamps() && configMenu.Item("drawNotification").GetValue<bool>() && R.IsReady() &&
+                !player.IsDead)
             {
                 var possibleTargets =
                     Enemies.Where(
-                        x => !x.Player.IsDead &&
-                            checkdmg(x.Player, x.Player.Position) &&
-                            (Environment.TickCount - x.LastSeen<4000) &&
-                            x.Player.CountAlliesInRange(1000) < 1 &&
-                            UltTime(x.Player.Position) < 9500 - configMenu.Item("waitBeforeUlt").GetValue<Slider>().Value);
+                        x =>
+                            !x.Player.IsDead && checkdmg(x.Player, x.Player.Position) &&
+                            (Environment.TickCount - x.LastSeen < 4000) && x.Player.CountAlliesInRange(1000) < 1 &&
+                            UltTime(x.Player.Position) <
+                            9500 - configMenu.Item("waitBeforeUlt").GetValue<Slider>().Value);
                 if (possibleTargets.Any() && player.IsHPBarRendered)
                 {
-                    Drawing.DrawText(player.HPBarPosition.X + 8, player.HPBarPosition.Y - 30, Color.Red, "Possible Randomult");
+                    Drawing.DrawText(
+                        player.HPBarPosition.X + 8, player.HPBarPosition.Y - 30, Color.Red, "Possible Randomult");
                 }
             }
         }
@@ -427,9 +431,18 @@ namespace RandomUlt.Helpers
             {
                 return false;
             }
-            return
-                ObjectManager.Get<Obj_AI_Turret>()
-                    .Any(t => ShielderTurrets.Any(s => s.Distance(pos) < 1100f) && t.IsEnemy && !t.IsDead);
+            if (player.Team == GameObjectTeam.Chaos)
+            {
+                return ShielderTurretsOrder.Any(s => s.Distance(pos) < 1150f);
+            }
+            else if (player.Team == GameObjectTeam.Order)
+            {
+                return ShielderTurretsChaos.Any(s => s.Distance(pos) < 1150f);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         private void kill(Positions positions, Vector3 pos)
@@ -575,10 +588,10 @@ namespace RandomUlt.Helpers
         private bool checkdmg(Obj_AI_Hero target, Vector3 pos)
         {
             var dmg = R.GetDamage(target);
-            var bonuShieldNearTowers = 0f;
+            float bonuShieldNearTowers = 0f;
             if (CheckShieldTower(pos))
             {
-                bonuShieldNearTowers = -300f;
+                bonuShieldNearTowers = 300f;
             }
             if (player.ChampionName == "Ezreal" || player.ChampionName == "Draven")
             {
