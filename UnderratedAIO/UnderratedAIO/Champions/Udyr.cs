@@ -66,7 +66,7 @@ namespace UnderratedAIO.Champions
             }
             var target =
                 HeroManager.Enemies.FirstOrDefault(
-                    h => h.Distance(player) < R2.Range && CombatHelper.IsFacing(player, h.Position, 90f));
+                    h => h.Distance(player) < R2.Range && CombatHelper.IsFacing(player, h.Position, 45f));
             if (target != null && orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo)
             {
                 Harass();
