@@ -117,7 +117,7 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target))
             {
-                Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                Q.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("usewH", true).GetValue<bool>() && W.IsReady())
             {
@@ -251,12 +251,12 @@ namespace UnderratedAIO.Champions
             if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && target.IsValidTarget() &&
                 !E.IsCharging)
             {
-                    Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                    Q.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
             }
 
             if (R.IsReady() && config.Item("user", true).GetValue<bool>() &&
                 (config.Item("Rmin", true).GetValue<Slider>().Value <= player.CountEnemiesInRange(R.Range) ||
-                 ComboDamage(target) > target.Health) && !E.IsCharging && !Q.IsReady())
+                 ComboDamage(target) > target.Health) && !E.IsCharging && !Q.IsReady() && (!target.HasBuffOfType(BuffType.Knockback) && !target.HasBuffOfType(BuffType.Knockup) && !target.HasBuffOfType(BuffType.Stun)))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -392,7 +392,7 @@ namespace UnderratedAIO.Champions
             }
             if (R.IsReady())
             {
-                damage += Damage.GetSpellDamage(player, hero, SpellSlot.R) * 3;
+                damage += Damage.GetSpellDamage(player, hero, SpellSlot.R) * 2;
             }
             //damage += ItemHandler.GetItemsDamage(hero);
             var ignitedmg = player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
