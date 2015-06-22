@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Color = System.Drawing.Color;
 using LeagueSharp;
 using LeagueSharp.Common;
@@ -16,6 +17,7 @@ namespace UnderratedAIO.Champions
         public static Orbwalking.Orbwalker orbwalker;
         public static AutoLeveler autoLeveler;
         public static Spell P, Q, W, E, R;
+        public static int[] rRanges = new int[] {2000, 2750, 3500};
         private static float lastR;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
 
@@ -32,7 +34,7 @@ namespace UnderratedAIO.Champions
             Game.OnUpdate += Game_OnGameUpdate;
             Helpers.Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
-            Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
+            Obj_AI_Hero.OnProcessSpellCast+=Obj_AI_Hero_OnProcessSpellCast;
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -41,7 +43,7 @@ namespace UnderratedAIO.Champions
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
-                    Combo(target);
+                    Combo();
                     break;
                 case Orbwalking.OrbwalkingMode.Mixed:
                         Harass(target);
@@ -61,8 +63,9 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private void Combo(Obj_AI_Hero target)
+        private void Combo()
         {
+            Obj_AI_Hero target = TargetSelector.GetTarget(GetTargetRange(), TargetSelector.DamageType.Physical);
             if (target == null)
             {
                 return;
@@ -78,25 +81,32 @@ namespace UnderratedAIO.Champions
             {
                 lastR = 0f;
             }
-            if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) &&
-                dist < config.Item("useqMaxRange").GetValue<Slider>().Value)
+            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) &&
+                dist < config.Item("useqMaxRange", true).GetValue<Slider>().Value)
             {
-                var pos = Q.GetPrediction(target, true);
-                if ((pos.Hitchance >= HitChance.Medium && dist < 650) || pos.Hitchance >= HitChance.High)
+                if (dist < 550)
                 {
-                    Q.Cast(target, config.Item("packets").GetValue<bool>());
+                    Q.CastIfHitchanceEquals(target,HitChance.Medium , config.Item("packets").GetValue<bool>());
+                }
+                else
+                {
+                    Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>()); 
                 }
             }
-            if (config.Item("usee").GetValue<bool>() && E.CanCast(eTarget) &&
-                dist < config.Item("useeMaxRange").GetValue<Slider>().Value)
+            if (config.Item("usee", true).GetValue<bool>() && E.CanCast(eTarget) &&
+                dist < config.Item("useeMaxRange", true).GetValue<Slider>().Value)
             {
                 E.Cast(eTarget, config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("user").GetValue<bool>() && lastR.Equals(0) && !target.UnderTurret(true) &&
+            if (config.Item("user", true).GetValue<bool>() && R.IsReady())
+            {
+                R.Range = rRanges[R.Level - 1];
+            }
+            if (config.Item("user", true).GetValue<bool>() && lastR.Equals(0) && !target.UnderTurret(true) &&
                 R.CanCast(target) &&
                 ((qTrailOnMe && eBuff(target) &&
                   target.MoveSpeed > player.MoveSpeed && dist > 360 && target.HealthPercent<60) ||
-                 (dist < 2000 && dist > 900 && target.CountAlliesInRange(2000) >=
+                 (dist < rRanges[R.Level - 1] && dist > 900 && target.CountAlliesInRange(2000) >=
                   target.CountEnemiesInRange(2000) &&
                   cmbdmg + Environment.Hero.GetAdOverFive(target) > target.Health &&
                   (target.Health > Q.GetDamage(target) || !Q.IsReady())) ||
@@ -106,7 +116,7 @@ namespace UnderratedAIO.Champions
                 R.Cast(target, config.Item("packets").GetValue<bool>());
                 lastR = System.Environment.TickCount;
             }
-            if (config.Item("user").GetValue<bool>() && !lastR.Equals(0) && R.CanCast(target) &&
+            if (config.Item("user", true).GetValue<bool>() && !lastR.Equals(0) && R.CanCast(target) &&
                 ((cmbdmg * 1.6 + Environment.Hero.GetAdOverFive(target) > target.Health ||
                   R.GetDamage(target) > target.Health || (qTrailOnMe && eBuff(target) &&
                   target.MoveSpeed > player.MoveSpeed && dist > 360 && target.HealthPercent < 60))))
@@ -127,22 +137,32 @@ namespace UnderratedAIO.Champions
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
         }
-
+        private float GetTargetRange()
+        {
+            if (R.IsReady())
+            {
+                return rRanges[R.Level - 1];
+            }
+            else
+            {
+                return Q.Range;
+            }
+        }
         private void Clear()
         {
             if (Environment.Minion.KillableMinion(player.AttackRange))
             {
                 return;
             }
-            float perc = config.Item("minmana").GetValue<Slider>().Value / 100f;
+            float perc = config.Item("minmana", true).GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc)
             {
                 return;
             }
             MinionManager.FarmLocation bestPositionQ =
                 E.GetLineFarmLocation(MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly));
-            if (config.Item("useqLC").GetValue<bool>() && Q.IsReady() &&
-                bestPositionQ.MinionsHit >= config.Item("qhitLC").GetValue<Slider>().Value)
+            if (config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() &&
+                bestPositionQ.MinionsHit >= config.Item("qhitLC", true).GetValue<Slider>().Value)
             {
                 Q.Cast(bestPositionQ.Position, config.Item("packets").GetValue<bool>());
             }
@@ -154,7 +174,7 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            float perc = config.Item("minmanaH").GetValue<Slider>().Value / 100f;
+            float perc = config.Item("minmanaH", true).GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc)
             {
                 return;
@@ -163,7 +183,7 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (config.Item("useqH").GetValue<bool>() && Q.CanCast(target))
+            if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target))
             {
                 Q.Cast(target, config.Item("packets").GetValue<bool>());
             }
@@ -194,13 +214,15 @@ namespace UnderratedAIO.Champions
             return (float) damage;
         }
 
-        private void Game_ProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        private void Obj_AI_Hero_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            if (config.Item("usew").GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
+            if (config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
                 W.IsReady())
             {
-                var spellName = args.SData.Name;
-                if (args.Target.IsMe)
+                SpellData spell = args.SData;
+                string spellName = spell.Name;
+                Obj_AI_Base target = (Obj_AI_Base)args.Target;
+                if (target.IsMe)
                 {
                     if (CombatHelper.isTargetedCC(spellName))
                     {
@@ -243,11 +265,11 @@ namespace UnderratedAIO.Champions
         {
             DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), Q.Range);
             DrawHelper.DrawCircle(config.Item("drawee", true).GetValue<Circle>(), E.Range);
-            DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), R.Range);
+            DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), R.Level>=1?rRanges[R.Level - 1]:rRanges[0]);
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
-            if (!config.Item("bestpospas").GetValue<bool>())
+            if (!config.Item("bestpospas", true).GetValue<bool>())
             {
                 return;
             }
@@ -266,10 +288,10 @@ namespace UnderratedAIO.Champions
                 3000, Orbwalking.GetRealAutoAttackRange(player) + 50, 3000, false, SkillshotType.SkillshotCircle);
             Q = new Spell(SpellSlot.Q, 1150);
             Q.SetSkillshot(
-                Q.Instance.SData.SpellCastTime, Q.Instance.SData.LineWidth, Q.Speed, false, SkillshotType.SkillshotLine);
+                0.25f, Q.Instance.SData.LineWidth, 1350, false, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E, 400);
-            R = new Spell(SpellSlot.R, 2000);
+            R = new Spell(SpellSlot.R, rRanges[0]);
         }
 
         private static bool qTrail(Obj_AI_Hero target)
@@ -311,29 +333,29 @@ namespace UnderratedAIO.Champions
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawrr", "Draw R range", true))
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
-            menuD.AddItem(new MenuItem("bestpospas", "Best position for passive")).SetValue(false);
+            menuD.AddItem(new MenuItem("bestpospas", "Best position for passive", true)).SetValue(false);
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage")).SetValue(true);
             config.AddSubMenu(menuD);
             Menu menuC = new Menu("Combo ", "csettings");
-            menuC.AddItem(new MenuItem("useq", "Use Q")).SetValue(true);
-            menuC.AddItem(new MenuItem("useqMaxRange", "   Q max Range")).SetValue(new Slider(1000, 0, (int) Q.Range));
-            menuC.AddItem(new MenuItem("usew", "Use W against targeted CC")).SetValue(true);
-            menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
-            menuC.AddItem(new MenuItem("useeMaxRange", "   E max Range")).SetValue(new Slider(300, 0, (int) E.Range));
-            menuC.AddItem(new MenuItem("user", "Use R in close range")).SetValue(true);
+            menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useqMaxRange", "   Q max Range", true)).SetValue(new Slider(1000, 0, (int)Q.Range));
+            menuC.AddItem(new MenuItem("usew", "Use W against targeted CC", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useeMaxRange", "   E max Range", true)).SetValue(new Slider(300, 0, (int)E.Range));
+            menuC.AddItem(new MenuItem("user", "Use R in close range", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // Harass Settings
             Menu menuH = new Menu("Harass ", "Hsettings");
-            menuH.AddItem(new MenuItem("useqH", "Use Q")).SetValue(true);
-            menuH.AddItem(new MenuItem("minmanaH", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
+            menuH.AddItem(new MenuItem("useqH", "Use Q", true)).SetValue(true);
+            menuH.AddItem(new MenuItem("minmanaH", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuH);
             // LaneClear Settings
             Menu menuLC = new Menu("LaneClear ", "Lcsettings");
-            menuLC.AddItem(new MenuItem("useqLC", "Use Q")).SetValue(true);
-            menuLC.AddItem(new MenuItem("qhitLC", "   Min hit").SetValue(new Slider(2, 1, 10)));
-            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
+            menuLC.AddItem(new MenuItem("useqLC", "Use Q", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("qhitLC", "   Min hit", true).SetValue(new Slider(2, 1, 10)));
+            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
