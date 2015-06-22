@@ -117,11 +117,7 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target))
             {
-                var pred = Q.GetPrediction(target);
-                if (pred.Hitchance >= HitChance.High)
-                {
-                    Q.Cast(pred.CastPosition, config.Item("packets").GetValue<bool>());
-                }
+                Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("usewH", true).GetValue<bool>() && W.IsReady())
             {
@@ -255,11 +251,7 @@ namespace UnderratedAIO.Champions
             if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && target.IsValidTarget() &&
                 !E.IsCharging)
             {
-                var pred = Q.GetPrediction(target);
-                if (pred.Hitchance >= HitChance.Medium)
-                {
-                    Q.Cast(pred.UnitPosition, config.Item("packets").GetValue<bool>());
-                }
+                    Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
             }
 
             if (R.IsReady() && config.Item("user", true).GetValue<bool>() &&
@@ -285,25 +277,25 @@ namespace UnderratedAIO.Champions
                 {
                     return;
                 }
-                if (eFlyPred.CastPosition.Distance(player.Position) < E.Range && eFlyPred.Hitchance >= HitChance.High)
+                if (eFlyPred.CastPosition.Distance(player.Position) < E.Range)
                 {
-                    E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
+                    E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
                 }
                 else if (eFlyPred.UnitPosition.Distance(player.Position) < E.Range &&
-                         eFlyPred.UnitPosition.Distance(player.Position) < 500f)
+                         target.Distance(player) < 500f)
                 {
-                    E.Cast(eFlyPred.UnitPosition, config.Item("packets").GetValue<bool>());
+                    E.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
                 }
                 else if ((eFlyPred.CastPosition.Distance(player.Position) < E.Range &&
                           eRanges[E.Level - 1] - eFlyPred.CastPosition.Distance(player.Position) < 200) ||
                          (CombatHelper.GetAngle(player, eFlyPred.CastPosition) > 35))
                 {
-                    E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
+                    E.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
                 }
                 else if (eFlyPred.CastPosition.Distance(player.Position) < E.Range && zacETime != 0 &&
-                         System.Environment.TickCount - zacETime > 1700)
+                         System.Environment.TickCount - zacETime > 2500)
                 {
-                    E.Cast(eFlyPred.CastPosition, config.Item("packets").GetValue<bool>());
+                    E.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
                 }
             }
             else if (eFlyPred.UnitPosition.Distance(player.Position) < eRanges[E.Level - 1] &&
