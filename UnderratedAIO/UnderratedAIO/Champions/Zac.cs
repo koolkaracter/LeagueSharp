@@ -251,12 +251,14 @@ namespace UnderratedAIO.Champions
             if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && target.IsValidTarget() &&
                 !E.IsCharging)
             {
-                    Q.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
+                Q.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
             }
 
             if (R.IsReady() && config.Item("user", true).GetValue<bool>() &&
                 (config.Item("Rmin", true).GetValue<Slider>().Value <= player.CountEnemiesInRange(R.Range) ||
-                 ComboDamage(target) > target.Health) && !E.IsCharging && !Q.IsReady() && (!target.HasBuffOfType(BuffType.Knockback) && !target.HasBuffOfType(BuffType.Knockup) && !target.HasBuffOfType(BuffType.Stun)))
+                 (ComboDamage(target) > target.Health) && !E.IsCharging && !Q.IsReady() &&
+                 target.Distance(player) < R.Range && player.HealthPercent<50) && !target.HasBuffOfType(BuffType.Knockback) &&
+                !target.HasBuffOfType(BuffType.Knockup) && !target.HasBuffOfType(BuffType.Stun))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -281,8 +283,7 @@ namespace UnderratedAIO.Champions
                 {
                     E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
                 }
-                else if (eFlyPred.UnitPosition.Distance(player.Position) < E.Range &&
-                         target.Distance(player) < 500f)
+                else if (eFlyPred.UnitPosition.Distance(player.Position) < E.Range && target.Distance(player) < 500f)
                 {
                     E.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
                 }
@@ -371,7 +372,7 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
             if (pos.IsValid())
             {
-               // Render.Circle.DrawCircle(pos, 100, Color.Aqua, 7);
+                // Render.Circle.DrawCircle(pos, 100, Color.Aqua, 7);
             }
         }
 
