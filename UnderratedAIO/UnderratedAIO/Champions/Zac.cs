@@ -135,7 +135,7 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            var target = Jungle.GetNearest(player.Position, eRanges[E.Level - 1]);
+            var target = Jungle.GetNearest(player.Position, GetTargetRange());
             if (config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() && !E.IsCharging)
             {
                 if (target != null && Q.CanCast(target))
