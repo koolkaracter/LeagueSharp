@@ -45,31 +45,31 @@ namespace RandomUlt.Helpers
             R = new Spell(SpellSlot.R);
             if (player.ChampionName == "Ezreal")
             {
-                R.SetSkillshot(1000f, 160f, 2000f, false, SkillshotType.SkillshotLine);
+                R.SetSkillshot(1.2f, 160f, 2000f, false, SkillshotType.SkillshotLine);
             }
             if (player.ChampionName == "Jinx")
             {
-                R.SetSkillshot(600f, 140f, 1700f, true, SkillshotType.SkillshotLine);
+                R.SetSkillshot(0.6f, 140f, 1700f, true, SkillshotType.SkillshotLine);
             }
             if (player.ChampionName == "Ashe")
             {
-                R.SetSkillshot(250f, 130f, 1600f, true, SkillshotType.SkillshotLine);
+                R.SetSkillshot(0.25f, 130f, 1600f, true, SkillshotType.SkillshotLine);
             }
             if (player.ChampionName == "Draven")
             {
-                R.SetSkillshot(400f, 160f, 2000f, true, SkillshotType.SkillshotLine);
+                R.SetSkillshot(0.4f, 160f, 2000f, true, SkillshotType.SkillshotLine);
             }
             if (player.ChampionName == "Lux")
             {
-                R.SetSkillshot(500f, 190f, float.MaxValue, false, SkillshotType.SkillshotLine);
+                R.SetSkillshot(0.5f, 190f, float.MaxValue, false, SkillshotType.SkillshotLine);
             }
             if (player.ChampionName == "Ziggs")
             {
-                R.SetSkillshot(1000f, 525f, 1750f, false, SkillshotType.SkillshotCircle);
+                R.SetSkillshot(0.1f, 525f, 1750f, false, SkillshotType.SkillshotCircle);
             }
             if (player.ChampionName == "Gangplank")
             {
-                R.SetSkillshot(100f, 600f, R.Speed, false, SkillshotType.SkillshotCircle);
+                R.SetSkillshot(0.1f, 600f, R.Speed, false, SkillshotType.SkillshotCircle);
             }
             if (player.ChampionName == "Xerath")
             {
@@ -111,6 +111,8 @@ namespace RandomUlt.Helpers
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnTeleport += Obj_AI_Base_OnTeleport;
         }
+
+
 
 
 
