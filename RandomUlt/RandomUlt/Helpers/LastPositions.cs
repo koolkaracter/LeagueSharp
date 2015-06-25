@@ -96,7 +96,9 @@ namespace RandomUlt.Helpers
                 }
                 config.AddSubMenu(DontUlt);
                 config.AddItem(new MenuItem("Alliesrange", "Allies min range from the target"))
-                    .SetValue(new Slider(1700, 500, 2000));
+                    .SetValue(new Slider(1500, 500, 2000));
+                config.AddItem(new MenuItem("EnemiesAroundYou", "Block if enemies around you"))
+                    .SetValue(new Slider(600, 0, 2000));
                 config.AddItem(new MenuItem("waitBeforeUlt", "Wait time before ults(ms)"))
                     .SetValue(new Slider(600, 0, 3000));
                 config.AddItem(new MenuItem("BaseUltFirst", "BaseUlt has higher priority")).SetValue(false);
@@ -104,12 +106,22 @@ namespace RandomUlt.Helpers
                 config.AddItem(new MenuItem("drawNotification", "Draw notification")).SetValue(true);
             }
             config.AddItem(new MenuItem("RandomUltDrawings", "Draw possible place")).SetValue(false);
-            config.AddItem(new MenuItem("ComboBlock", "Disabled by keypress"))
+            Menu orbBlock=new Menu("Block keys", "BlockKeys");
+            orbBlock.AddItem(new MenuItem("OrbBlock1", "Disabled by keypress"))
+                .SetValue(new KeyBind(65, KeyBindType.Press));
+            orbBlock.AddItem(new MenuItem("OrbBlock2", "Disabled by keypress"))
+                .SetValue(new KeyBind(88, KeyBindType.Press));
+            orbBlock.AddItem(new MenuItem("OrbBlock3", "Disabled by keypress"))
+                .SetValue(new KeyBind(67, KeyBindType.Press));
+            orbBlock.AddItem(new MenuItem("ComboBlock", "Disabled by Combo"))
                 .SetValue(new KeyBind(32, KeyBindType.Press));
+            orbBlock.AddItem(new MenuItem("OnlyCombo", "Only Combo key")).SetValue(true);
+            config.AddSubMenu(orbBlock);
             Enemies = HeroManager.Enemies.Select(x => new Positions(x)).ToList();
             Game.OnUpdate += Game_OnUpdate;
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnTeleport += Obj_AI_Base_OnTeleport;
+            
         }
 
 
@@ -266,6 +278,16 @@ namespace RandomUlt.Helpers
             }
             if (!SupportedChamps() || !configMenu.Item("UseR").GetValue<bool>() || !R.IsReady() || !enabled ||
                 configMenu.Item("ComboBlock").GetValue<KeyBind>().Active)
+            {
+                return;
+            }
+            if (player.CountEnemiesInRange(configMenu.Item("EnemiesAroundYou").GetValue<Slider>().Value)>=1)
+            {
+                return; 
+            }
+            if (!configMenu.Item("OnlyCombo").GetValue<bool>() && 
+                (configMenu.Item("OrbBlock1").GetValue<KeyBind>().Active || configMenu.Item("OrbBlock2").GetValue<KeyBind>().Active ||
+                configMenu.Item("OrbBlock3").GetValue<KeyBind>().Active))
             {
                 return;
             }
