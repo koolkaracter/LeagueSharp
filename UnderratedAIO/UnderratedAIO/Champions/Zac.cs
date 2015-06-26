@@ -255,10 +255,9 @@ namespace UnderratedAIO.Champions
             }
 
             if (R.IsReady() && config.Item("user", true).GetValue<bool>() &&
-                (config.Item("Rmin", true).GetValue<Slider>().Value <= player.CountEnemiesInRange(R.Range) ||
-                 (ComboDamage(target) > target.Health) && !E.IsCharging && !Q.IsReady() &&
-                 target.Distance(player) < R.Range && player.HealthPercent<50) && !target.HasBuffOfType(BuffType.Knockback) &&
-                !target.HasBuffOfType(BuffType.Knockup) && !target.HasBuffOfType(BuffType.Stun))
+                config.Item("Rmin", true).GetValue<Slider>().Value <= player.CountEnemiesInRange(R.Range) &&
+                !target.HasBuffOfType(BuffType.Knockback) && !target.HasBuffOfType(BuffType.Knockup) &&
+                !target.HasBuffOfType(BuffType.Stun))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -454,7 +453,7 @@ namespace UnderratedAIO.Champions
             menuLC.AddItem(new MenuItem("wMinHit", "   W min hit", true)).SetValue(new Slider(3, 1, 6));
             menuLC.AddItem(new MenuItem("useeLC", "Use E", true)).SetValue(true);
             menuLC.AddItem(new MenuItem("eMinHit", "   E min hit", true)).SetValue(new Slider(3, 1, 6));
-            menuC.AddItem(new MenuItem("collectBlobs", "Collect nearby blobs", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("collectBlobs", "Collect nearby blobs", true)).SetValue(true);
             menuLC.AddItem(new MenuItem("minmana", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
