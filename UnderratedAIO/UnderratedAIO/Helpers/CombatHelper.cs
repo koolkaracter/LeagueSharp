@@ -183,6 +183,27 @@ namespace UnderratedAIO.Helpers
 
         #region Common
 
+        public static HitChance GetHitChance(int qHit)
+        {
+            var hitC = HitChance.High;
+            switch (qHit)
+            {
+                case 1:
+                    hitC = HitChance.Low;
+                    break;
+                case 2:
+                    hitC = HitChance.Medium;
+                    break;
+                case 3:
+                    hitC = HitChance.High;
+                    break;
+                case 4:
+                    hitC = HitChance.VeryHigh;
+                    break;
+            }
+            return hitC;
+        }
+
         public static List<Vector3> PointsAroundTheTarget(Obj_AI_Base target, float dist)
         {
             if (target == null)
