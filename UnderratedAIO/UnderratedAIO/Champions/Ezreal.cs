@@ -27,10 +27,6 @@ namespace UnderratedAIO.Champions
 
         public Ezreal()
         {
-            if (player.BaseSkinName != "Ezreal")
-            {
-                return;
-            }
             InitEzreal();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Ezreal</font>");
@@ -41,8 +37,6 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Orbwalking.OnAttack += Orbwalking_OnAttack;
         }
-
-
 
 
         private void Orbwalking_OnAttack(AttackableUnit unit, AttackableUnit target)
@@ -120,6 +114,19 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseCleanse(config);
             }
+            if (config.Item("EzAutoQ", true).GetValue<KeyBind>().Active && Q.IsReady() &&
+                config.Item("EzminmanaaQ", true).GetValue<Slider>().Value < player.ManaPercent &&
+                orbwalker.ActiveMode!=Orbwalking.OrbwalkingMode.Combo &&
+                Orbwalking.CanMove(100))
+            {
+                Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
+                if (target != null && Q.CanCast(target) && target.IsValidTarget())
+                {
+                    Q.CastIfHitchanceEquals(
+                        target, CombatHelper.GetHitChance(config.Item("qHit", true).GetValue<Slider>().Value),
+                        config.Item("packets").GetValue<bool>());
+                }
+            }
         }
 
         private void Harass()
@@ -136,10 +143,23 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("useqH", true).GetValue<bool>() && Q.IsReady())
             {
-                var targQ = Q.GetPrediction(target);
-                if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && targQ.Hitchance >= HitChance.High)
+                var miniPred =
+                    MinionManager.GetMinions(
+                        Orbwalking.GetRealAutoAttackRange(player), MinionTypes.All, MinionTeam.NotAlly)
+                        .FirstOrDefault(
+                            minion =>
+                                HealthPrediction.GetHealthPrediction(
+                                    minion,
+                                    (int) (player.AttackCastDelay * 1000) - 100 + Game.Ping / 2 +
+                                    1000 * (int) player.Distance(minion) / (int) Orbwalking.GetMyProjectileSpeed()) < 0);
+                if (!Orbwalking.Orbwalker.PriorizeFarm || (Orbwalking.Orbwalker.PriorizeFarm && miniPred == null))
                 {
-                    Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
+                    var targQ = Q.GetPrediction(target);
+                    if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) &&
+                        targQ.Hitchance >= HitChance.High)
+                    {
+                        Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
+                    }
                 }
             }
             if (config.Item("usewH", true).GetValue<bool>() && W.IsReady())
@@ -181,6 +201,11 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+            if (config.Item("selected").GetValue<bool>())
+            {
+                target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
+                orbwalker.ForceTarget(target);
+            }
             if (config.Item("useItems").GetValue<bool>())
             {
                 ItemHandler.UseItems(target, config);
@@ -194,21 +219,22 @@ namespace UnderratedAIO.Champions
                     Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
                 }
             }
-            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && !justJumped)
+            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && !justJumped &&
+                (cmbDmg + player.GetAutoAttackDamage(target) > target.Health || player.Mana > Q.Instance.ManaCost * 2))
             {
                 var tarPered = W.GetPrediction(target);
-                if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
-                    tarPered.Hitchance >= HitChance.High)
+                if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position))
                 {
-                    W.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
+                    W.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
                 }
             }
             if (R.IsReady() && !justJumped)
             {
                 var dist = player.Distance(Rtarget);
-                if (config.Item("user", true).GetValue<bool>() && !justQ && !Q.CanCast(target) && !justW && !W.CanCast(target) &&
-                    !CombatHelper.CheckCriticalBuffs(Rtarget) && config.Item("usermin", true).GetValue<Slider>().Value < dist &&
-                    3000 > dist && Rtarget.Health < R.GetDamage(Rtarget) * 0.7 && target.CountAlliesInRange(600)<1)
+                if (config.Item("user", true).GetValue<bool>() && !justQ && !Q.CanCast(target) && !justW &&
+                    !W.CanCast(target) && !CombatHelper.CheckCriticalBuffs(Rtarget) &&
+                    config.Item("usermin", true).GetValue<Slider>().Value < dist && 3000 > dist &&
+                    Rtarget.Health < R.GetDamage(Rtarget) * 0.7 && target.CountAlliesInRange(600) < 1)
                 {
                     var time = player.Distance(Rtarget) / R.Speed + 1000;
                     var tarPered = Prediction.GetPrediction(Rtarget, time);
@@ -217,7 +243,8 @@ namespace UnderratedAIO.Champions
                 if (target.CountAlliesInRange(700) > 0)
                 {
                     R.CastIfWillHit(
-                        target, config.Item("usertf", true).GetValue<Slider>().Value, config.Item("packets").GetValue<bool>());
+                        target, config.Item("usertf", true).GetValue<Slider>().Value,
+                        config.Item("packets").GetValue<bool>());
                 }
             }
             bool canKill = cmbDmg > target.Health;
@@ -250,7 +277,8 @@ namespace UnderratedAIO.Champions
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
-                !player.IsChannelingImportantSpell() && !justQ && !Q.CanCast(target) && !justW && !W.CanCast(target) && !justJumped)
+                !player.IsChannelingImportantSpell() && !justQ && !Q.CanCast(target) && !justW && !W.CanCast(target) &&
+                !justJumped)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
@@ -281,7 +309,8 @@ namespace UnderratedAIO.Champions
                                 (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LastHit
                                     ? Q.GetDamage(m)
                                     : Q.GetDamage(m) * config.Item("qLHDamage", true).GetValue<Slider>().Value / 100) &&
-                                Q.CanCast(m) && HealthPrediction.GetHealthPrediction(m,(int) (m.Distance(player)/Q.Speed*1000))>0);
+                                Q.CanCast(m) &&
+                                HealthPrediction.GetHealthPrediction(m, (int) (m.Distance(player) / Q.Speed * 1000)) > 0);
                 if (minions != null && LastAttackedminiMinion != null)
                 {
                     foreach (var minion in
@@ -291,6 +320,12 @@ namespace UnderratedAIO.Champions
                                 (m.NetworkId == LastAttackedminiMinion.NetworkId &&
                                  Utils.GameTimeTickCount - LastAttackedminiMinionTime > 700)))
                     {
+                        if (minion.Team == GameObjectTeam.Neutral && minion.CountAlliesInRange(500) > 0 &&
+                            minion.NetworkId != LastAttackedminiMinion.NetworkId)
+                        {
+                            continue;
+                        }
+
                         if (minion.Distance(player) <= player.AttackRange && !Orbwalking.CanAttack() &&
                             Orbwalking.CanMove(100))
                         {
@@ -304,6 +339,7 @@ namespace UnderratedAIO.Champions
                 }
             }
         }
+
         private void Game_OnDraw(EventArgs args)
         {
             DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), Q.Range);
@@ -312,28 +348,13 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
-            return;
-            var target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
-            var bestPositons =
-                (from pos in
-                    CombatHelper.PointsAroundTheTarget(target.Position, 750)
-                        .Where(
-                            p =>
-                                !p.IsWall() && p.IsValid() && p.Distance(player.Position) < E.Range &&
-                                p.Distance(target.Position) < 680)
-                    let mob =
-                        ObjectManager.Get<Obj_AI_Base>()
-                            .Where(
-                                m =>
-                                    m.IsEnemy && m.IsValidTarget() && m.Distance(target.Position) < 750 &&
-                                    m.SkinName != target.SkinName)
-                            .OrderBy(m => m.Distance(pos))
-                            .FirstOrDefault()
-                    where (mob != null && mob.Distance(pos) > pos.Distance(target.Position) + 35) || (mob == null)
-                    select pos).ToList();
-            foreach (var V in bestPositons)
+            if (config.Item("ShowState", true).GetValue<bool>())
             {
-                Drawing.DrawCircle(V, 80, Color.Blue);
+                config.Item("EzAutoQ", true).Permashow(true, "Auto Q");
+            }
+            else
+            {
+                config.Item("EzAutoQ", true).Permashow(false, "Auto Q");
             }
         }
 
@@ -427,6 +448,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("user", "Use R in 1v1", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usermin", "   Min range", true)).SetValue(new Slider(800, 0, 1500));
             menuC.AddItem(new MenuItem("usertf", "R min enemy in teamfight", true)).SetValue(new Slider(3, 1, 5));
+            menuC.AddItem(new MenuItem("selected", "Focus Selected target")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
@@ -444,7 +466,8 @@ namespace UnderratedAIO.Champions
             // Lasthit Settings
             Menu menuLH = new Menu("Lasthit ", "Lasthcsettings");
             menuLH.AddItem(new MenuItem("useqLH", "Use Q", true)).SetValue(true);
-            menuLH.AddItem(new MenuItem("qLHDamage", "   Q lasthit damage percent", true)).SetValue(new Slider(1, 1, 100));
+            menuLH.AddItem(new MenuItem("qLHDamage", "   Q lasthit damage percent", true))
+                .SetValue(new Slider(1, 1, 100));
             menuLH.AddItem(new MenuItem("minmanaLH", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLH);
             Menu menuM = new Menu("Misc ", "Msettings");
@@ -453,7 +476,15 @@ namespace UnderratedAIO.Champions
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);
+            Menu autoQ = new Menu("Auto Harass", "autoQ");
+            autoQ.AddItem(
+                new MenuItem("EzAutoQ", "Auto Q toggle", true).SetShared().SetValue(new KeyBind('H', KeyBindType.Toggle)));
+            autoQ.AddItem(new MenuItem("EzminmanaaQ", "Keep X% mana", true)).SetValue(new Slider(40, 1, 100));
+            autoQ.AddItem(new MenuItem("qHit", "Q hitChance", true).SetValue(new Slider(4, 1, 4)));
+            autoQ.AddItem(new MenuItem("ShowState", "Show always", true)).SetValue(true);
+            menuM.AddSubMenu(autoQ);
             config.AddSubMenu(menuM);
+            config.Item("EzAutoQ", true).Permashow(true, "Auto Q");
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
