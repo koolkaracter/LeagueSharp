@@ -192,7 +192,7 @@ namespace UnderratedAIO.Champions
                 else
                 {
                     MinionManager.FarmLocation bestPositionE =
-                        E.GetLineFarmLocation(
+                        E.GetCircularFarmLocation(
                             MinionManager.GetMinions(eRanges[E.Level - 1], MinionTypes.All, MinionTeam.NotAlly));
                     var castPos = Vector3.Zero;
                     if (bestPositionE.MinionsHit < config.Item("eMinHit", true).GetValue<Slider>().Value &&
@@ -216,9 +216,20 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(
-                GetTargetRange(), TargetSelector.DamageType.Magical, true,
-                HeroManager.Enemies.Where(h => h.IsInvulnerable));
+            Obj_AI_Hero target = null;
+            if (E.IsCharging)
+            {
+                target = TargetSelector.GetTarget(
+                    GetTargetRange(), TargetSelector.DamageType.Magical, true,
+                    HeroManager.Enemies.Where(
+                        h => h.IsInvulnerable && CombatHelper.GetAngle(player, target.Position) > 50));
+            }
+            else
+            {
+                target = TargetSelector.GetTarget(
+                    GetTargetRange(), TargetSelector.DamageType.Magical, true,
+                    HeroManager.Enemies.Where(h => h.IsInvulnerable));
+            }
             if (target == null)
             {
                 return;
