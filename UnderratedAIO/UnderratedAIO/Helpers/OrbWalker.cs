@@ -99,7 +99,6 @@ namespace UnderratedAIO.Helpers
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
             Spellbook.OnStopCast += SpellbookOnStopCast;
             MissileClient.OnCreate += MissileClient_OnCreate;
-
         }
 
         /// <summary>
@@ -239,7 +238,6 @@ namespace UnderratedAIO.Helpers
         public static bool CanAttack()
         {
             return Utils.GameTimeTickCount + Game.Ping / 2 + 25 >= LastAATick + Player.AttackDelay * 1000 && Attack;
-
         }
 
         /// <summary>
@@ -257,7 +255,8 @@ namespace UnderratedAIO.Helpers
                 return true;
             }
 
-            return NoCancelChamps.Contains(Player.ChampionName) || (Utils.GameTimeTickCount + Game.Ping / 2 >= LastAATick + Player.AttackCastDelay * 1000 + extraWindup);
+            return NoCancelChamps.Contains(Player.ChampionName) ||
+                   (Utils.GameTimeTickCount + Game.Ping / 2 >= LastAATick + Player.AttackCastDelay * 1000 + extraWindup);
         }
 
         public static void SetMovementDelay(int delay)
@@ -295,7 +294,7 @@ namespace UnderratedAIO.Helpers
             {
                 if (Player.Path.Count() > 1)
                 {
-                    Player.IssueOrder((GameObjectOrder)10, Player.ServerPosition);
+                    Player.IssueOrder((GameObjectOrder) 10, Player.ServerPosition);
                     Player.IssueOrder(GameObjectOrder.HoldPosition, Player.ServerPosition);
                     LastMoveCommandPosition = Player.ServerPosition;
                 }
@@ -322,9 +321,14 @@ namespace UnderratedAIO.Helpers
                             _minDistance * (position.To2D() - Player.ServerPosition.To2D()).Normalized().To3D();
                 }
             }
+            if (point.Distance(LastMoveCommandPosition) < 80)
+            {
+                return;
+            }
             Player.IssueOrder(GameObjectOrder.MoveTo, point);
             LastMoveCommandPosition = point;
         }
+
         private static void MissileClient_OnCreate(GameObject sender, EventArgs args)
         {
             var missile = sender as MissileClient;
@@ -333,6 +337,7 @@ namespace UnderratedAIO.Helpers
                 _missileLaunched = true;
             }
         }
+
         /// <summary>
         ///     Orbwalk a target while moving to Position.
         /// </summary>
@@ -342,16 +347,15 @@ namespace UnderratedAIO.Helpers
             float holdAreaRadius = 0,
             bool useFixedDistance = true,
             bool randomizeMinDistance = true,
-            bool autoWindup=false,
-            bool meleePrediction=true,
-            bool movement=true)
+            bool autoWindup = false,
+            bool meleePrediction = true,
+            bool movement = true)
         {
             try
             {
                 if (autoWindup)
                 {
-                        extraWindup =25 + Game.Ping * (1.4f + Player.AttackCastDelay*2) ;
-                    
+                    extraWindup = 25 + Game.Ping * (1.4f + Player.AttackCastDelay * 2);
                 }
                 if (target.IsValidTarget() && CanAttack())
                 {
@@ -361,7 +365,8 @@ namespace UnderratedAIO.Helpers
                     {
                         if (!NoCancelChamps.Contains(Player.ChampionName))
                         {
-                            LastAATick = Utils.GameTimeTickCount + Game.Ping + 100 - (int)(ObjectManager.Player.AttackCastDelay * 1000f);
+                            LastAATick = Utils.GameTimeTickCount + Game.Ping + 100 -
+                                         (int) (ObjectManager.Player.AttackCastDelay * 1000f);
                             _missileLaunched = false;
                         }
                         Player.IssueOrder(GameObjectOrder.AttackUnit, target);
@@ -375,21 +380,22 @@ namespace UnderratedAIO.Helpers
                 }
                 if (CanMove(extraWindup))
                 {
-
                     if (player.IsMelee() && meleePrediction && target != null &&
                         target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) &&
                         target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 450)
                     {
                         var prediction = AutoAttack.GetPrediction((Obj_AI_Base) target);
-                        var pos = player.CountEnemiesInRange(1500) == 1 ? target.Position.Extend(prediction.UnitPosition, GetRealAutoAttackRange(player)) : prediction.CastPosition;
+                        var pos = player.CountEnemiesInRange(1500) == 1
+                            ? target.Position.Extend(prediction.UnitPosition, GetRealAutoAttackRange(player))
+                            : prediction.CastPosition;
                         Obj_AI_Hero tar = (Obj_AI_Hero) target;
-                        if (player.Distance(target) > target.BoundingRadius && !CombatHelper.IsFacing((Obj_AI_Base)target, player.Position, 120f) && tar.IsMoving)
+                        if (player.Distance(target) > target.BoundingRadius &&
+                            !CombatHelper.IsFacing((Obj_AI_Base) target, player.Position, 120f) && tar.IsMoving)
                         {
                             AutoAttack.Delay = player.BasicAttack.SpellCastTime;
                             AutoAttack.Speed = player.BasicAttack.MissileSpeed;
-                            MoveTo(pos); 
+                            MoveTo(pos);
                         }
-
                     }
                     else
                     {
@@ -457,7 +463,7 @@ namespace UnderratedAIO.Helpers
 
                     if (Spell.Target is Obj_AI_Base)
                     {
-                        var target = (Obj_AI_Base)Spell.Target;
+                        var target = (Obj_AI_Base) Spell.Target;
                         if (target.IsValid)
                         {
                             FireOnTargetSwitch(target);
@@ -466,7 +472,7 @@ namespace UnderratedAIO.Helpers
 
                         //Trigger it for ranged until the missiles catch normal attacks again!
                         Utility.DelayAction.Add(
-                            (int)(unit.AttackCastDelay * 1000 + 40), () => FireAfterAttack(unit, _lastTarget));
+                            (int) (unit.AttackCastDelay * 1000 + 40), () => FireAfterAttack(unit, _lastTarget));
                     }
                 }
 
@@ -531,13 +537,12 @@ namespace UnderratedAIO.Helpers
                     new MenuItem("HoldPosRadius", "Hold Position Radius").SetShared().SetValue(new Slider(90, 0, 150)));
                 misc.AddItem(new MenuItem("PriorizeFarm", "Priorize farm over harass").SetShared().SetValue(true));
                 misc.AddItem(
-                    new MenuItem("LastHitDmg", "Percentage of damage for lasthit").SetShared().SetValue(new Slider(100, 0, 100)));
+                    new MenuItem("LastHitDmg", "Percentage of damage for lasthit").SetShared()
+                        .SetValue(new Slider(100, 0, 100)));
                 misc.AddItem(new MenuItem("MissileCheck", "Use Missile Check").SetShared().SetValue(true));
                 var comboOpt = new Menu("Combo Options", "comboOpt");
-                comboOpt.AddItem(
-                    new MenuItem("ComboMovement", "   Movement").SetShared().SetValue(true));
-                comboOpt.AddItem(
-                    new MenuItem("ComboMelee", "   Melee prediction").SetShared().SetValue(true));
+                comboOpt.AddItem(new MenuItem("ComboMovement", "   Movement").SetShared().SetValue(true));
+                comboOpt.AddItem(new MenuItem("ComboMelee", "   Melee prediction").SetShared().SetValue(true));
                 misc.AddSubMenu(comboOpt);
                 _config.AddSubMenu(misc);
                 /* Delay sliders */
@@ -570,7 +575,10 @@ namespace UnderratedAIO.Helpers
             {
                 get { return _config.Item("MissileCheck").GetValue<bool>(); }
             }
-
+            public static bool PriorizeFarm
+            {
+                get { return _config.Item("PriorizeFarm").GetValue<bool>(); }
+            }
             public OrbwalkingMode ActiveMode
             {
                 get
@@ -651,7 +659,8 @@ namespace UnderratedAIO.Helpers
                 if ((ActiveMode == OrbwalkingMode.Mixed || ActiveMode == OrbwalkingMode.LaneClear) &&
                     !_config.Item("PriorizeFarm").GetValue<bool>())
                 {
-                    var target = TargetSelector.GetTarget(GetRealAutoAttackRange(player), TargetSelector.DamageType.Physical);
+                    var target = TargetSelector.GetTarget(
+                        GetRealAutoAttackRange(player), TargetSelector.DamageType.Physical);
                     if (target != null)
                     {
                         return target;
@@ -723,7 +732,13 @@ namespace UnderratedAIO.Helpers
                 if (ActiveMode != OrbwalkingMode.LastHit)
                 {
                     var target = TargetSelector.GetTarget(-1, TargetSelector.DamageType.Physical);
-                    if (target.IsValidTarget())
+                    var miniPred =
+                        MinionManager.GetMinions(GetRealAutoAttackRange(player), MinionTypes.All, MinionTeam.NotAlly)
+                            .FirstOrDefault(minion => HealthPrediction.GetHealthPrediction(minion, (int)(Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2 +
+                                1000 * (int)Player.Distance(minion) / (int)GetMyProjectileSpeed()) < 0);
+                    if (target.IsValidTarget() &&
+                        (!_config.Item("PriorizeFarm").GetValue<bool>() ||
+                         (_config.Item("PriorizeFarm").GetValue<bool>() && miniPred == null)))
                     {
                         return target;
                     }
@@ -782,7 +797,7 @@ namespace UnderratedAIO.Helpers
                 {
                     if (!Enabled)
                     {
-                      return;  
+                        return;
                     }
                     if (ActiveMode == OrbwalkingMode.None)
                     {
@@ -795,13 +810,12 @@ namespace UnderratedAIO.Helpers
                     }
                     var target = GetTarget();
 
-                        Orbwalk(
-                          target, (_orbwalkingPoint.To2D().IsValid()) ? _orbwalkingPoint : Game.CursorPos,
-                          _config.Item("ExtraWindup").GetValue<Slider>().Value,
-                          _config.Item("HoldPosRadius").GetValue<Slider>().Value, true, true,
-                          _config.Item("AutoWindup").GetValue<bool>(),
-                          _config.Item("ComboMelee").GetValue<bool>(),
-                          _config.Item("ComboMovement").GetValue<bool>());  
+                    Orbwalk(
+                        target, (_orbwalkingPoint.To2D().IsValid()) ? _orbwalkingPoint : Game.CursorPos,
+                        _config.Item("ExtraWindup").GetValue<Slider>().Value,
+                        _config.Item("HoldPosRadius").GetValue<Slider>().Value, true, true,
+                        _config.Item("AutoWindup").GetValue<bool>(), _config.Item("ComboMelee").GetValue<bool>(),
+                        _config.Item("ComboMovement").GetValue<bool>());
                 }
                 catch (Exception e)
                 {
