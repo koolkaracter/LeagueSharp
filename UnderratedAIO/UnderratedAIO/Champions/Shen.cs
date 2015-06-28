@@ -11,45 +11,52 @@ using Orbwalking = UnderratedAIO.Helpers.Orbwalking;
 
 namespace UnderratedAIO.Champions
 {
-    class Shen
+    internal class Shen
     {
         public static Menu config;
         private static Orbwalking.Orbwalker orbwalker;
-        private static readonly Obj_AI_Hero me = ObjectManager.Player;
+        private static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, W, E, EFlash, R;
         public static float currEnergy;
         public static bool haspassive = true;
         public static bool PingCasted = false;
-        public static float eEnergy= 120f+5f;
+        public static int[] eEnergy = new Int32[] { 100, 95, 90, 85, 80 };
         private const int XOffset = 36;
         private const int YOffset = 9;
         private const int Width = 103;
         private const int Height = 8;
-        private static readonly Render.Text Text = new Render.Text(0, 0, "", 11, new ColorBGRA(255, 0, 0, 255), "monospace");
+        public static int[] ShieldBuff = new Int32[] { 60, 100, 140, 180, 200 };
+        public static float DamageTaken, DamageTakenTime;
+        public static bool IncSpell;
+
+        private static readonly Render.Text Text = new Render.Text(
+            0, 0, "", 11, new ColorBGRA(255, 0, 0, 255), "monospace");
+
         public static AutoLeveler autoLeveler;
 
         public Shen()
         {
-            if (me.BaseSkinName != "Shen") return;
             InitShen();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Shen</font>");
             Game.OnUpdate += Game_OnGameUpdate;
             Drawing.OnDraw += Game_OnDraw;
-            Obj_AI_Base.OnCreate += OnCreate;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapcloser;
             Interrupter2.OnInterruptableTarget += OnPossibleToInterrupt;
             Obj_AI_Base.OnDamage += Obj_AI_Base_OnDamage;
+            Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
             Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
-
         }
 
-        void Obj_AI_Base_OnDamage(AttackableUnit sender, AttackableUnitDamageEventArgs args)
+        private void Obj_AI_Base_OnDamage(AttackableUnit sender, AttackableUnitDamageEventArgs args)
         {
             var t = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(h => h.NetworkId == args.SourceNetworkId);
             var s = ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(h => h.NetworkId == args.TargetNetworkId);
-            if (t != null && s != null && (t.IsMe && ObjectManager.Get<Obj_AI_Turret>().FirstOrDefault(tw => tw.Distance(t) < 750 && tw.Distance(s) < 750) != null))
+            if (t != null && s != null &&
+                (t.IsMe &&
+                 ObjectManager.Get<Obj_AI_Turret>().FirstOrDefault(tw => tw.Distance(t) < 750 && tw.Distance(s) < 750) !=
+                 null))
             {
                 if (config.Item("autotauntattower").GetValue<bool>() && E.CanCast(s))
                 {
@@ -59,58 +66,94 @@ namespace UnderratedAIO.Champions
         }
 
 
-
         private void OnPossibleToInterrupt(Obj_AI_Hero unit, Interrupter2.InterruptableTargetEventArgs args)
         {
-            if (!config.Item("useeint").GetValue<bool>()) return;
-            if (unit.IsValidTarget(E.Range) && E.IsReady()) E.Cast(unit, config.Item("packets").GetValue<bool>());
+            if (!config.Item("useeint").GetValue<bool>())
+            {
+                return;
+            }
+            if (unit.IsValidTarget(E.Range) && E.IsReady())
+            {
+                E.Cast(unit, config.Item("packets").GetValue<bool>());
+            }
         }
 
         private static void Game_OnDraw(EventArgs args)
         {
-            DrawHelper.DrawCircle(config.Item("drawaa").GetValue<Circle>(), me.AttackRange);
+            DrawHelper.DrawCircle(config.Item("drawaa").GetValue<Circle>(), player.AttackRange);
             DrawHelper.DrawCircle(config.Item("drawqq").GetValue<Circle>(), Q.Range);
             DrawHelper.DrawCircle(config.Item("drawee").GetValue<Circle>(), E.Range);
             DrawHelper.DrawCircle(config.Item("draweeflash").GetValue<Circle>(), EFlash.Range);
-            Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
-            if (config.Item("drawallyhp").GetValue<bool>()) DrawHealths();
-            if (config.Item("drawincdmg").GetValue<bool>()) getIncDmg();
-            Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();          
+            Helpers.Jungle.ShowSmiteStatus(
+                config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
+            if (config.Item("drawallyhp").GetValue<bool>())
+            {
+                DrawHealths();
+            }
+            if (config.Item("drawincdmg").GetValue<bool>())
+            {
+                getIncDmg();
+            }
+            Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
         }
+
         private static void DrawHealths()
         {
             float i = 0;
-            foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsAlly && !hero.IsMe && !hero.IsDead))
+            foreach (
+                var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsAlly && !hero.IsMe && !hero.IsDead))
             {
                 var playername = hero.Name;
-                if (playername.Length > 13) playername=playername.Remove(9) + "...";
+                if (playername.Length > 13)
+                {
+                    playername = playername.Remove(9) + "...";
+                }
                 var champion = hero.SkinName;
-                if (champion.Length > 12) champion = champion.Remove(7) + "...";
-                var percent = (int)(hero.Health / hero.MaxHealth * 100);
+                if (champion.Length > 12)
+                {
+                    champion = champion.Remove(7) + "...";
+                }
+                var percent = (int) (hero.Health / hero.MaxHealth * 100);
                 var color = Color.Red;
-                if (percent > 25) color = Color.Orange;
-                if (percent > 50) color = Color.Yellow;
-                if (percent > 75) color = Color.Green;
-                Drawing.DrawText(Drawing.Width * 0.8f, Drawing.Height * 0.1f + i, color, playername + "(" + champion + ")");
-                Drawing.DrawText(Drawing.Width * 0.9f, Drawing.Height * 0.1f + i, color, ((int)hero.Health).ToString() + " (" + percent.ToString() + "%)");
+                if (percent > 25)
+                {
+                    color = Color.Orange;
+                }
+                if (percent > 50)
+                {
+                    color = Color.Yellow;
+                }
+                if (percent > 75)
+                {
+                    color = Color.LimeGreen;
+                }
+                Drawing.DrawText(
+                    Drawing.Width * 0.8f, Drawing.Height * 0.1f + i, color, playername + "(" + champion + ")");
+                Drawing.DrawText(
+                    Drawing.Width * 0.9f, Drawing.Height * 0.1f + i, color,
+                    ((int) hero.Health).ToString() + " (" + percent.ToString() + "%)");
                 i += 20f;
             }
         }
+
         private static void getIncDmg()
         {
             var color = Color.Red;
             float result = CombatHelper.getIncDmg();
-            var barPos = me.HPBarPosition;
-            var damage = (float)result;
-            if (damage == 0) return;
-            var percentHealthAfterDamage = Math.Max(0, me.Health - damage) / me.MaxHealth;
+            var barPos = player.HPBarPosition;
+            var damage = (float) result;
+            if (damage == 0)
+            {
+                return;
+            }
+            var percentHealthAfterDamage = Math.Max(0, player.Health - damage) / player.MaxHealth;
             var xPos = barPos.X + XOffset + Width * percentHealthAfterDamage;
 
-            if (damage > me.Health)
+            if (damage > player.Health)
             {
-                Text.X = (int)barPos.X + XOffset;
-                Text.Y = (int)barPos.Y + YOffset - 13;
-                Text.text = ((int)(me.Health - damage)).ToString();
+                Text.X = (int) barPos.X + XOffset;
+                Text.Y = (int) barPos.Y + YOffset - 13;
+                Text.text = ((int) (player.Health - damage)).ToString();
                 Text.OnEndScene();
             }
 
@@ -121,11 +164,12 @@ namespace UnderratedAIO.Champions
         {
             GetPassive();
             Ulti();
-            currEnergy = me.Mana;
-			if (config.Item("useeflash").GetValue<KeyBind>().Active && me.Spellbook.CanUseSpell(me.GetSpellSlot("SummonerFlash")) == SpellState.Ready)
-			{
-			    FlashCombo();
-			}
+            currEnergy = player.Mana;
+            if (config.Item("useeflash").GetValue<KeyBind>().Active &&
+                player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready)
+            {
+                FlashCombo();
+            }
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -144,67 +188,111 @@ namespace UnderratedAIO.Champions
                     break;
                 default:
                     break;
-
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
+            if (config.Item("QSSEnabled").GetValue<bool>())
+            {
+                ItemHandler.UseCleanse(config);
+            }
+            if (System.Environment.TickCount - DamageTakenTime > 3000)
+            {
+                DamageTakenTime = System.Environment.TickCount;
+                DamageTaken = 0f;
+            }
+            if (!W.IsReady())
+            {
+                return;
+            }
+            var shield = (ShieldBuff[W.Level - 1] + 0.6f * player.FlatMagicDamageMod) *
+                         config.Item("wabove").GetValue<Slider>().Value / 100f;
+            if (shield <= DamageTaken || IncSpell)
+            {
+                if ((config.Item("autow").GetValue<bool>() &&(config.Item("autowwithe").GetValue<bool>() &&
+                     currEnergy - player.Spellbook.GetSpell(SpellSlot.W).ManaCost > getEenergy()) ||
+                    !config.Item("autowwithe").GetValue<bool>()) ||
+                    (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && config.Item("usew").GetValue<bool>()))
+                {
+                    W.Cast();   
+                }
+                
+
+            }
         }
 
         private static void GetPassive()
         {
-            var has=false;
-            foreach (BuffInstance buff in me.Buffs)
+            var has = false;
+            foreach (BuffInstance buff in player.Buffs)
             {
                 if (buff.Name == "shenwayoftheninjaaura")
                 {
                     has = true;
                 }
             }
-            if(has){
-                  haspassive = true;
-            }else{
-                  haspassive = false;
-            }         
+            haspassive = has;
         }
 
         private static void OnEnemyGapcloser(ActiveGapcloser gapcloser)
         {
-            if (!config.Item("useeagc").GetValue<bool>()) return;
-            if (gapcloser.Sender.IsValidTarget(E.Range) && E.IsReady() && me.Distance(gapcloser.Sender.Position) < 400) E.Cast(gapcloser.End, config.Item("packets").GetValue<bool>());
+            if (!config.Item("useeagc").GetValue<bool>())
+            {
+                return;
+            }
+            if (gapcloser.Sender.IsValidTarget(E.Range) && E.IsReady() &&
+                player.Distance(gapcloser.Sender.Position) < 400)
+            {
+                E.Cast(gapcloser.End, config.Item("packets").GetValue<bool>());
+            }
         }
 
         private static void Clear()
         {
             var minions = ObjectManager.Get<Obj_AI_Minion>().Where(m => m.IsValidTarget(400)).ToList();
             if (minions.Count() > 2)
-                {
+            {
                 if (Items.HasItem(3077) && Items.CanUseItem(3077))
-                Items.UseItem(3077);
-                if (Items.HasItem(3074) && Items.CanUseItem(3074))
-                Items.UseItem(3074);
+                {
+                    Items.UseItem(3077);
                 }
+                if (Items.HasItem(3074) && Items.CanUseItem(3074))
+                {
+                    Items.UseItem(3074);
+                }
+            }
         }
+
         private static void Ulti()
         {
-            if (!R.IsReady() || PingCasted || me.IsDead) return;
+            if (!R.IsReady() || PingCasted || player.IsDead)
+            {
+                return;
+            }
 
-            foreach (var allyObj in ObjectManager.Get<Obj_AI_Hero>().Where(i => i.IsAlly && !i.IsMe && !i.IsDead && ((Checkinrange(i) && ((i.Health * 100 / i.MaxHealth) <= config.Item("atpercent").GetValue<Slider>().Value)) || (CombatHelper.CheckCriticalBuffs(i) && i.CountEnemiesInRange(600) < 1))))
+            foreach (var allyObj in
+                ObjectManager.Get<Obj_AI_Hero>()
+                    .Where(
+                        i =>
+                            i.IsAlly && !i.IsMe && !i.IsDead &&
+                            ((Checkinrange(i) &&
+                              ((i.Health * 100 / i.MaxHealth) <= config.Item("atpercent").GetValue<Slider>().Value)) ||
+                             (CombatHelper.CheckCriticalBuffs(i) && i.CountEnemiesInRange(600) < 1))))
+            {
+                if (config.Item("user").GetValue<bool>() && orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo &&
+                    R.IsReady() && player.CountEnemiesInRange((int) E.Range) < 1 &&
+                    !config.Item("ult" + allyObj.SkinName).GetValue<bool>())
                 {
-                    if (config.Item("user").GetValue<bool>() && orbwalker.ActiveMode!=Orbwalking.OrbwalkingMode.Combo && R.IsReady() && me.CountEnemiesInRange((int)E.Range) < 1 && !config.Item("ult" + allyObj.SkinName).GetValue<bool>())
-                    {
-                        
-                        R.Cast(allyObj);
-                        return;
-                    }
-                    else
-                    {
-                        DrawHelper.popUp("Use R to help " + allyObj.ChampionName, 3000, Color.Red, Color.White, Color.Red);
-                    }
-                    PingCasted = true;
-                    Utility.DelayAction.Add(5000, () => PingCasted = false);
+                    R.Cast(allyObj);
+                    return;
                 }
-            
+                else
+                {
+                    DrawHelper.popUp("Use R to help " + allyObj.ChampionName, 3000, Color.Red, Color.White, Color.Red);
+                }
+                PingCasted = true;
+                Utility.DelayAction.Add(5000, () => PingCasted = false);
+            }
         }
+
         private static bool Checkinrange(Obj_AI_Hero i)
         {
             if (i.CountEnemiesInRange(750) >= 1 && i.CountEnemiesInRange(750) < 3)
@@ -213,219 +301,190 @@ namespace UnderratedAIO.Champions
             }
             return false;
         }
-        private static void AutoQ()
-        {
-            if (!Q.IsReady() || me.HasBuff("Recall")) return;
-            if (config.Item("autoqwithe").GetValue<bool>() || config.Item("autoqwithe").GetValue<bool>() && (currEnergy - me.Spellbook.GetSpell(SpellSlot.Q).ManaCost < eEnergy)) return;
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
-            if (target.Distance(me.Position) < Q.Range)
-            {
-                if (target.IsValidTarget(Q.Range))
-
-                    Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
-                    currEnergy -= me.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
-            }
-        }
 
         private static void LasthitQ()
         {
-            if (config.Item("autoqwithe").GetValue<bool>() && !(currEnergy - me.Spellbook.GetSpell(SpellSlot.Q).ManaCost > eEnergy)) return;
-            var allMinions = MinionManager.GetMinions(me.ServerPosition, Q.Range);
-            if (config.Item("autoqls").GetValue<bool>() && Q.IsReady())
+            if (config.Item("autoqwithe").GetValue<bool>() &&
+                !(currEnergy - player.Spellbook.GetSpell(SpellSlot.Q).ManaCost > getEenergy()))
+            {
+                return;
+            }
+            var allMinions = MinionManager.GetMinions(player.ServerPosition, Q.Range);
+            if (config.Item("autoqls").GetValue<bool>() && Q.IsReady() && Orbwalking.CanMove(100))
             {
                 foreach (var minion in allMinions)
                 {
                     if (minion.IsValidTarget() &&
-                    HealthPrediction.GetHealthPrediction(minion,
-                    (int)(me.Distance(minion.Position) * 1000 / 1400)) <
-                    me.GetSpellDamage(minion, SpellSlot.Q))
+                        HealthPrediction.GetHealthPrediction(
+                            minion, (int) (player.Distance(minion.Position) * 1000 / 1400)) <
+                        player.GetSpellDamage(minion, SpellSlot.Q))
                     {
                         Q.CastOnUnit(minion);
-                        currEnergy -= me.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
+                        currEnergy -= player.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
                         return;
                     }
                 }
             }
         }
-        private static void Harass(){
-            if (config.Item("harassqwithe").GetValue<bool>() && !(currEnergy - me.Spellbook.GetSpell(SpellSlot.Q).ManaCost > eEnergy)) return;
+
+        private static double getEenergy()
+        {
+            if (E.Level - 1 >= 0)
+            {
+                return eEnergy[E.Level - 1];
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        private static void Harass()
+        {
+            if (config.Item("harassqwithe").GetValue<bool>() &&
+                !(currEnergy - player.Spellbook.GetSpell(SpellSlot.Q).ManaCost > getEenergy()))
+            {
+                return;
+            }
             Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
-            if (Q.IsReady() && config.Item("harassq").GetValue<bool>())
+            if (target != null && Q.IsReady() && config.Item("harassq").GetValue<bool>() && Orbwalking.CanMove(100))
             {
                 Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
-                currEnergy -= me.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
+                currEnergy -= player.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
             }
-
         }
+
         private static void Combo()
         {
             var minHit = config.Item("useemin").GetValue<Slider>().Value;
-            Obj_AI_Hero target = TargetSelector.GetTarget(E.Range+400, TargetSelector.DamageType.Magical);
+            Obj_AI_Hero target = TargetSelector.GetTarget(E.Range + 400, TargetSelector.DamageType.Magical);
             Obj_AI_Hero targetQ = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
-            if (target == null) return;
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
-            if (config.Item("usee").GetValue<bool>() && E.IsReady() && me.Distance(target.Position)<E.Range)
+            if (target == null)
+            {
+                return;
+            }
+            if (config.Item("useItems").GetValue<bool>())
+            {
+                ItemHandler.UseItems(target, config, ComboDamage(target));
+            }
+            if (config.Item("usee").GetValue<bool>() && E.IsReady() && player.Distance(target.Position) < E.Range)
             {
                 if (minHit > 1)
                 {
                     CastEmin(target, minHit);
                 }
-                else if (me.Distance(target.Position) > me.AttackRange && E.GetPrediction(target).Hitchance >= HitChance.Low)
+                else if (player.Distance(target.Position) > player.AttackRange &&
+                         E.GetPrediction(target).Hitchance >= HitChance.Low)
                 {
                     E.Cast(target, config.Item("packets").GetValue<bool>());
-                    
                 }
             }
-            if (Q.IsReady() && config.Item("useq").GetValue<bool>() && Q.CanCast(targetQ) && currEnergy - me.Spellbook.GetSpell(SpellSlot.Q).ManaCost >= eEnergy)
+            if (Q.IsReady() && config.Item("useq").GetValue<bool>() && Q.CanCast(targetQ) && Orbwalking.CanMove(100))
             {
                 Q.CastOnUnit(targetQ, config.Item("packets").GetValue<bool>());
-                currEnergy -= me.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
+                currEnergy -= player.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
             }
-            bool hasIgnite = me.Spellbook.CanUseSpell(me.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            var ignitedmg = (float)me.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
-            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite && !E.CanCast(target) && !Q.CanCast(target))
+            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
+            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
+                !E.CanCast(target) && !Q.CanCast(target))
             {
-                me.Spellbook.CastSpell(me.GetSpellSlot("SummonerDot"), target);
+                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-
         }
 
         public static void CastEmin(Obj_AI_Base target, int min)
         {
-            foreach (var enemy in ObjectManager.Get<Obj_AI_Base>().Where(i => i.Distance(me)<E.Range && i.IsEnemy && !i.IsDead && !i.IsMinion))
+            foreach (var enemy in
+                ObjectManager.Get<Obj_AI_Base>()
+                    .Where(i => i.Distance(player) < E.Range && i.IsEnemy && !i.IsDead && !i.IsMinion))
             {
-                E.CastIfWillHit(enemy, min-1, config.Item("packets").GetValue<bool>());
+                E.CastIfWillHit(enemy, min - 1, config.Item("packets").GetValue<bool>());
                 return;
-
             }
-            if (me.Distance(target.Position) > me.AttackRange && E.IsReady())
-                {
-                    E.CastIfWillHit(target, 0, config.Item("packets").GetValue<bool>());    
-                }
+            if (player.Distance(target.Position) > player.AttackRange && E.IsReady())
+            {
+                E.CastIfWillHit(target, 0, config.Item("packets").GetValue<bool>());
+            }
         }
 
         private static void FlashCombo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(EFlash.Range, TargetSelector.DamageType.Magical);
-            //System.IO.File.AppendAllText(@"C:\Users\Public\TestFolder\PacketLog.txt", "Target: " + target.Position.ToString() + "\n" + "Me: " + me.Position.ToString() + "\n" + "Best: " + getPosToEflash(target.Position).ToString() + "\n");
-            if (config.Item("usee").GetValue<bool>() && E.IsReady() && me.Distance(target.Position) < EFlash.Range && me.Distance(target.Position) > 480 && !((getPosToEflash(target.Position)).IsWall()))
+            if (config.Item("usee").GetValue<bool>() && E.IsReady() && player.Distance(target.Position) < EFlash.Range &&
+                player.Distance(target.Position) > 480 && !((getPosToEflash(target.Position)).IsWall()))
             {
-                //Game.PrintChat("ok");
-                //Packet.S2C.Ping.Encoded(new Packet.S2C.Ping.Struct(target.Position.X, target.Position.Y, me.NetworkId, 0, Packet.PingType.Fallback)).Process();
-                me.Spellbook.CastSpell(me.GetSpellSlot("SummonerFlash"), getPosToEflash(target.Position));
-                
+                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), getPosToEflash(target.Position));
+
                 E.Cast(target.Position, config.Item("packets").GetValue<bool>());
-                
             }
-            if (Q.IsReady() && config.Item("useq").GetValue<bool>() && currEnergy - me.Spellbook.GetSpell(SpellSlot.E).ManaCost >= eEnergy)
+            if (Q.IsReady() && config.Item("useq").GetValue<bool>() &&
+                currEnergy - player.Spellbook.GetSpell(SpellSlot.E).ManaCost >= getEenergy())
             {
                 Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
-                currEnergy -= me.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
+                currEnergy -= player.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
             }
             ItemHandler.UseItems(target, config);
+        }
 
-        }
-		public static Vector3 getPosToEflash(Vector3 target)
+        public static Vector3 getPosToEflash(Vector3 target)
         {
-            return target + (me.Position - target)/2;
+            return target + (player.Position - target) / 2;
         }
+
         private static float ComboDamage(Obj_AI_Hero hero)
         {
             float damage = 0;
-            if (Q.IsReady() && me.Spellbook.GetSpell(SpellSlot.Q).ManaCost < me.Mana)
-                damage += (float)Damage.GetSpellDamage(me, hero, SpellSlot.Q);
-            if (E.IsReady() && me.Spellbook.GetSpell(SpellSlot.E).ManaCost < me.Mana)
-                damage += (float)Damage.GetSpellDamage(me, hero, SpellSlot.E);
-            if (Items.HasItem(3077) && Items.CanUseItem(3077))
+            if (Q.IsReady() && player.Spellbook.GetSpell(SpellSlot.Q).ManaCost < player.Mana)
             {
-                damage += (float)me.GetItemDamage(hero, Damage.DamageItems.Tiamat);
+                damage += (float) Damage.GetSpellDamage(player, hero, SpellSlot.Q);
             }
-            if (Items.HasItem(3074) && Items.CanUseItem(3074))
+            if (E.IsReady() && player.Spellbook.GetSpell(SpellSlot.E).ManaCost < player.Mana)
             {
-                damage += (float)me.GetItemDamage(hero, Damage.DamageItems.Hydra);
-            }
-            if (Items.HasItem(3144) && Items.CanUseItem(3144))
-            {
-                damage += (float)me.GetItemDamage(hero, Damage.DamageItems.Bilgewater);
-            }
-            if (Items.HasItem(3153) && Items.CanUseItem(3153))
-            {
-                damage += (float)me.GetItemDamage(hero, Damage.DamageItems.Botrk);
-            }
-            if (Items.HasItem(3146) && Items.CanUseItem(3146))
-            {
-                damage += (float)me.GetItemDamage(hero, Damage.DamageItems.Hexgun);
-            }
-            if (Items.HasItem(3091) && Items.CanUseItem(3091))
-            {
-                damage += (float)me.CalcDamage(hero, Damage.DamageType.Magical, 42);
+                damage += (float) Damage.GetSpellDamage(player, hero, SpellSlot.E);
             }
             if (haspassive)
             {
-                var passive = me.MaxHealth / 10 + 4+me.Level * 4;
-                damage += (float)me.CalcDamage(hero, Damage.DamageType.Magical, passive);
+                var bonusHp = ((player.MaxHealth - (485.8f + (85 * (player.Level - 1)))) * 0.10);
+                var passive = bonusHp + 4 + player.Level * 4;
+                damage += (float) player.CalcDamage(hero, Damage.DamageType.Magical, passive);
             }
-            if (me.Spellbook.CanUseSpell(me.GetSpellSlot("summonerdot")) == SpellState.Ready && hero.Health - damage < (float)me.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite))
+            if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready &&
+                hero.Health - damage < (float) player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite))
             {
-                damage += (float)me.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
+                damage += (float) player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
             }
             return damage;
         }
-        public static List<Obj_AI_Base> CheckingCollision(Obj_AI_Base From, Obj_AI_Base Target, Spell Skill, bool Mid = true, bool OnlyHero = false)
+
+        private void Game_ProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
-            var ListCol = new List<Obj_AI_Base>();
-            foreach (var Obj in ObjectManager.Get<Obj_AI_Base>().Where(i => IsValid(i, Skill.Range) && Skill.GetPrediction(i).Hitchance >= HitChance.Medium && ((!OnlyHero && !(i is Obj_AI_Turret)) || (OnlyHero && i is Obj_AI_Hero)) && i != Target))
+            if (!W.IsReady(2000))
             {
-                var Segment = (Mid ? Obj : Target).Position.To2D().ProjectOn(From.Position.To2D(), (Mid ? Target : Obj).Position.To2D());
-                if (Segment.IsOnSegment && Obj.Position.Distance(new Vector3(Segment.SegmentPoint.X, Obj.Position.Y, Segment.SegmentPoint.Y)) <= Skill.Width + Obj.BoundingRadius) ListCol.Add(Obj);
+                return;
             }
-            return ListCol.Distinct().ToList();
-        }
-        
-        public static bool IsValid(Obj_AI_Base Target, float Range = float.MaxValue, bool EnemyOnly = true, Vector3 From = default(Vector3))
-        {
-            if (Target == null || !Target.IsValid || Target.IsDead || !Target.IsVisible || (EnemyOnly && !Target.IsTargetable) || (EnemyOnly && Target.IsInvulnerable) || Target.IsMe) return false;
-            if (EnemyOnly ? Target.IsAlly : Target.IsEnemy) return false;
-            if ((From != default(Vector3) ? From : me.Position).Distance(Target.Position) > Range) return false;
-            return true;
-        }
-        private static void OnCreate(GameObject sender, EventArgs args)
-        {
-            if (config.Item("autowwithe").GetValue<bool>() && !(currEnergy - me.Spellbook.GetSpell(SpellSlot.W).ManaCost > eEnergy)) return;
-            if (sender is Obj_SpellMissile && sender.IsValid && config.Item("autow").GetValue<bool>() && W.IsReady())
+            Obj_AI_Hero target = args.Target as Obj_AI_Hero;
+            if (target != null && target.IsMe)
             {
-                var missle = (Obj_SpellMissile)sender;
-                var caster = missle.SpellCaster;
-                if (caster.IsEnemy)
+                if (sender.IsValid && !sender.IsDead && sender.IsEnemy && target.IsValid && target.IsMe)
                 {
-                    var ShieldBuff = new Int32[] { 60, 100, 140, 180, 200 }[W.Level - 1] + 0.6 * me.FlatMagicDamageMod;
-                    if (missle.SData.Name.Contains("BasicAttack"))
+                    if (Orbwalking.IsAutoAttack(args.SData.Name))
                     {
-                        if (missle.Target.IsMe && ShieldBuff / 100 * config.Item("wabove").GetValue<Slider>().Value < caster.GetAutoAttackDamage(me, true))
-                        {
-                            W.Cast();
-                            currEnergy -= me.Spellbook.GetSpell(SpellSlot.W).ManaCost;
-                        }
+                        var dmg = (float) sender.GetAutoAttackDamage(player, true);
+                        DamageTaken += dmg;
                     }
-                    else if (missle.Target.IsMe || missle.EndPosition.Distance(me.Position) <= 130)
+                    else
                     {
-                        if (missle.SData.Name == "summonerdot")
+                        if (W.IsReady())
                         {
-                            if (me.Health <= (caster as Obj_AI_Hero).GetSummonerSpellDamage(me, Damage.SummonerSpell.Ignite) && ShieldBuff < (caster as Obj_AI_Hero).GetSummonerSpellDamage(me, Damage.SummonerSpell.Ignite))
-                            {
-                                W.Cast();
-                                currEnergy -= me.Spellbook.GetSpell(SpellSlot.W).ManaCost;
-                            }
-                        }
-                        else if (ShieldBuff / 100 * config.Item("wabove").GetValue<Slider>().Value < (caster as Obj_AI_Hero).GetSpellDamage(me, (caster as Obj_AI_Hero).GetSpellSlot(missle.SData.Name), 1))
-                        {
-                            W.Cast();
-                            currEnergy -= me.Spellbook.GetSpell(SpellSlot.W).ManaCost;
+                            IncSpell = true;
+                            Utility.DelayAction.Add(300, () => IncSpell = false);
                         }
                     }
                 }
             }
         }
+
         private static void InitShen()
         {
             Q = new Spell(SpellSlot.Q, 475);
@@ -434,9 +493,11 @@ namespace UnderratedAIO.Champions
             E = new Spell(SpellSlot.E, 600);
             E.SetSkillshot(0f, 50f, 1600f, false, SkillshotType.SkillshotLine);
             EFlash = new Spell(SpellSlot.E, 990);
-            EFlash.SetSkillshot(E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false, SkillshotType.SkillshotLine);
+            EFlash.SetSkillshot(
+                E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false, SkillshotType.SkillshotLine);
             R = new Spell(SpellSlot.R, float.MaxValue);
         }
+
         private static void InitMenu()
         {
             config = new Menu("Shen", "SRS_Shen", true);
@@ -451,10 +512,14 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuOrb);
             // Draw settings
             Menu menuD = new Menu("Drawings ", "dsettings");
-            menuD.AddItem(new MenuItem("drawaa", "Draw AA range")).SetValue(new Circle(false, Color.FromArgb(150, 150, 62, 172)));
-            menuD.AddItem(new MenuItem("drawqq", "Draw Q range")).SetValue(new Circle(false, Color.FromArgb(150, 150, 62, 172)));
-            menuD.AddItem(new MenuItem("drawee", "Draw E range")).SetValue(new Circle(false, Color.FromArgb(150, 150, 62, 172)));
-            menuD.AddItem(new MenuItem("draweeflash", "Draw E+flash range")).SetValue(new Circle(true, Color.FromArgb(50, 250, 248, 110)));
+            menuD.AddItem(new MenuItem("drawaa", "Draw AA range"))
+                .SetValue(new Circle(false, Color.FromArgb(150, 150, 62, 172)));
+            menuD.AddItem(new MenuItem("drawqq", "Draw Q range"))
+                .SetValue(new Circle(false, Color.FromArgb(150, 150, 62, 172)));
+            menuD.AddItem(new MenuItem("drawee", "Draw E range"))
+                .SetValue(new Circle(false, Color.FromArgb(150, 150, 62, 172)));
+            menuD.AddItem(new MenuItem("draweeflash", "Draw E+flash range"))
+                .SetValue(new Circle(true, Color.FromArgb(50, 250, 248, 110)));
             menuD.AddItem(new MenuItem("drawallyhp", "Draw teammates' HP")).SetValue(true);
             menuD.AddItem(new MenuItem("drawincdmg", "Draw incoming damage")).SetValue(true);
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage")).SetValue(true);
@@ -490,7 +555,8 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("autotauntattower", "Auto taunt in tower range")).SetValue(true);
             menuU.AddItem(new MenuItem("useeagc", "Use E to anti gap closer")).SetValue(false);
             menuU.AddItem(new MenuItem("useeint", "Use E to interrupt")).SetValue(true);
-            menuU.AddItem(new MenuItem("useeflash", "Flash+E")).SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+            menuU.AddItem(new MenuItem("useeflash", "Flash+E"))
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
             menuU.AddItem(new MenuItem("user", "Use R")).SetValue(true);
             menuU.AddItem(new MenuItem("atpercent", "Friend under")).SetValue(new Slider(20, 0, 100));
             menuU = Jungle.addJungleOptions(menuU);
@@ -504,12 +570,14 @@ namespace UnderratedAIO.Champions
             var sulti = new Menu("Don't ult on ", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsAlly))
             {
-                if (hero.SkinName != me.SkinName)
+                if (hero.SkinName != player.SkinName)
+                {
                     sulti.AddItem(new MenuItem("ult" + hero.SkinName, hero.SkinName)).SetValue(false);
+                }
             }
             config.AddSubMenu(sulti);
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
-            config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",",".")));
+            config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
         }
     }
