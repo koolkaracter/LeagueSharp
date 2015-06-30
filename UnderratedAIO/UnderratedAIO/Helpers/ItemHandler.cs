@@ -10,25 +10,25 @@ namespace UnderratedAIO.Helpers
     public class ItemHandler
     {
         public static Obj_AI_Hero player = ObjectManager.Player;
-        public static Items.Item botrk = new Items.Item(3153, 450);
-        public static Items.Item tiamat = new Items.Item(3077, 400);
-        public static Items.Item hydra = new Items.Item(3074, 400);
-        public static Items.Item randuins = new Items.Item(3143, 500);
-        public static Items.Item odins = new Items.Item(3180, 520);
-        public static Items.Item bilgewater = new Items.Item(3144, 450);
-        public static Items.Item hexgun = new Items.Item(3146, 700);
+        public static Items.Item botrk = LeagueSharp.Common.Data.ItemData.Blade_of_the_Ruined_King.GetItem();
+        public static Items.Item tiamat = LeagueSharp.Common.Data.ItemData.Tiamat_Melee_Only.GetItem();
+        public static Items.Item hydra = LeagueSharp.Common.Data.ItemData.Ravenous_Hydra_Melee_Only.GetItem();
+        public static Items.Item randuins = LeagueSharp.Common.Data.ItemData.Randuins_Omen.GetItem();
+        public static Items.Item odins = LeagueSharp.Common.Data.ItemData.Odyns_Veil.GetItem();
+        public static Items.Item bilgewater = LeagueSharp.Common.Data.ItemData.Bilgewater_Cutlass.GetItem();
+        public static Items.Item hexgun = LeagueSharp.Common.Data.ItemData.Hextech_Gunblade.GetItem();
         public static Items.Item Dfg = new Items.Item(3128, 750);
         public static Items.Item Bft = new Items.Item(3188, 750);
-        public static Items.Item Ludens = new Items.Item(3188, 750);
+        public static Items.Item Ludens = LeagueSharp.Common.Data.ItemData.Ludens_Echo.GetItem();
         public static Items.Item sheen = new Items.Item(3057, player.AttackRange);
         public static Items.Item gaunlet = new Items.Item(3025, player.AttackRange);
         public static Items.Item trinity = new Items.Item(3078, player.AttackRange);
         public static Items.Item lich = new Items.Item(3100, player.AttackRange);
         public static Items.Item youmuu = new Items.Item(3142, player.AttackRange);
 
-        public static Items.Item frost = new Items.Item(3092, 850);
-        public static Items.Item mountain = new Items.Item(3401, 700);
-        public static Items.Item solari = new Items.Item(3190, 600);
+        public static Items.Item frost = LeagueSharp.Common.Data.ItemData.Frost_Queens_Claim.GetItem();
+        public static Items.Item mountain = LeagueSharp.Common.Data.ItemData.Face_of_the_Mountain.GetItem();
+        public static Items.Item solari = LeagueSharp.Common.Data.ItemData.Locket_of_the_Iron_Solari.GetItem();
 
         public static Items.Item Qss = new Items.Item(3140, 0);
         public static Items.Item Mercurial = new Items.Item(3139, 0);
@@ -40,7 +40,7 @@ namespace UnderratedAIO.Helpers
 
         public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg = 0f)
         {
-            if (config.Item("hyd").GetValue<bool>() && player.BaseSkinName != "Renekton")
+            if (config.Item("hyd").GetValue<bool>() && player.CharData.BaseSkinName != "Renekton")
             {
                 castHydra(target);
             }
@@ -64,7 +64,7 @@ namespace UnderratedAIO.Helpers
                     }
                 }
                 else if (player.CountEnemiesInRange(odins.Range) >= config.Item("odinmin").GetValue<Slider>().Value ||
-                         (Math.Max(comboDmg, odinDmg) > target.Health && player.Distance(target) < odins.Range))
+                         (Math.Max(comboDmg, odinDmg) > target.Health && player.Distance(target) < odins.Range && !CombatHelper.CheckCriticalBuffs(target)))
                 {
                     odins.Cast();
                 }
@@ -357,7 +357,7 @@ namespace UnderratedAIO.Helpers
             {
                 damage += Damage.GetItemDamage(player, target, Damage.DamageItems.Botrk);
             }
-            if (Items.HasItem(sheen.Id) && (Items.CanUseItem(sheen.Id) || player.HasBuff("sheen", true)))
+            if (Items.HasItem(sheen.Id) && (Items.CanUseItem(sheen.Id) || player.HasBuff("sheen")))
             {
                 damage += player.CalcDamage(target, Damage.DamageType.Physical, player.BaseAttackDamage);
             }
