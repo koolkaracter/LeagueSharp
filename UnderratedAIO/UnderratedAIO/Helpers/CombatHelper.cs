@@ -63,7 +63,6 @@ namespace UnderratedAIO.Helpers
                     "LissandraRSelf", "JudicatorIntervention", "ZacRebirthReady", "AatroxPassiveReady", "Rebirth",
                     "alistartrample", "NocturneShroudofDarknessShield", "SpellShield"
                 });
-
         private static List<int> defItems =
             new List<int>(new int[] { ItemHandler.Qss.Id, ItemHandler.Qss.Id, ItemHandler.Dervish.Id });
 
@@ -311,7 +310,25 @@ namespace UnderratedAIO.Helpers
             }
             return false;
         }
-
+        public static bool CheckBuffs(Obj_AI_Hero i)
+        {
+            foreach (BuffInstance buff in i.Buffs)
+            {
+                if (dotsSmallDmg.Contains(buff.Name))
+                {
+                    return true;
+                }
+                if (dotsMedDmg.Contains(buff.Name))
+                {
+                    return true;
+                }
+                if (dotsHighDmg.Contains(buff.Name))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         public static float getIncDmg()
         {
             double result = 0;

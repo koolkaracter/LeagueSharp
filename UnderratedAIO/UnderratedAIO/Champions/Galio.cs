@@ -1,0 +1,446 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.Design;
+using System.Drawing.Text;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using Color = System.Drawing.Color;
+using LeagueSharp;
+using LeagueSharp.Common;
+using SharpDX;
+using UnderratedAIO.Helpers;
+using Environment = UnderratedAIO.Helpers.Environment;
+using Orbwalking = UnderratedAIO.Helpers.Orbwalking;
+
+namespace UnderratedAIO.Champions
+{
+    internal class Galio
+    {
+        public static Menu config;
+        public static Orbwalking.Orbwalker orbwalker;
+        public static AutoLeveler autoLeveler;
+        public static Spell Q, W, E, R;
+        public static readonly Obj_AI_Hero player = ObjectManager.Player;
+        public static List<WDatas> IncomingDamages = new List<WDatas>();
+        public float DamageTakenTime;
+
+        public Galio()
+        {
+            InitGalio();
+            InitMenu();
+            Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Galio</font>");
+            Drawing.OnDraw += Game_OnDraw;
+            Game.OnUpdate += Game_OnGameUpdate;
+            Helpers.Jungle.setSmiteSlot();
+            Interrupter2.OnInterruptableTarget += Interrupter2_OnInterruptableTarget;
+            Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
+            Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
+            Spellbook.OnCastSpell += Spellbook_OnCastSpell;
+            foreach (var ally in ObjectManager.Get<Obj_AI_Hero>().Where(h => h.IsAlly))
+            {
+                IncomingDamages.Add(new WDatas(ally));
+            }
+        }
+
+        private void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
+        {
+            if (sender.Owner.IsMe && args.Slot == SpellSlot.R && W.IsReady())
+            {
+                if (player.Mana > R.Instance.ManaCost + W.Instance.ManaCost)
+                {
+                    W.Cast(player, config.Item("packets").GetValue<bool>());
+                }
+            }
+        }
+
+
+        private void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender,
+            Interrupter2.InterruptableTargetEventArgs args)
+        {
+            if (R.IsReady() && config.Item("Interrupt", true).GetValue<bool>() && sender.Distance(player) < R.Range)
+            {
+                CastR();
+            }
+        }
+
+        private void InitGalio()
+        {
+            Q = new Spell(SpellSlot.Q, 940);
+            Q.SetSkillshot(0.5f, 120, 1300, false, SkillshotType.SkillshotCircle);
+            W = new Spell(SpellSlot.W, 800);
+            E = new Spell(SpellSlot.E, 1180);
+            E.SetSkillshot(0.5f, 140, 1200, false, SkillshotType.SkillshotLine);
+            R = new Spell(SpellSlot.R, 575);
+        }
+
+        private void Game_OnGameUpdate(EventArgs args)
+        {
+            Orbwalking.Attack = true;
+            orbwalker.SetMovement(true);
+            if (rActive)
+            {
+                Orbwalking.Attack = false;
+                orbwalker.SetMovement(false);
+            }
+            if (System.Environment.TickCount - DamageTakenTime > 3000)
+            {
+                resetData();
+            }
+            switch (orbwalker.ActiveMode)
+            {
+                case Orbwalking.OrbwalkingMode.Combo:
+                    Combo();
+                    break;
+                case Orbwalking.OrbwalkingMode.Mixed:
+                    Harass();
+                    break;
+                case Orbwalking.OrbwalkingMode.LaneClear:
+                    Clear();
+                    break;
+                case Orbwalking.OrbwalkingMode.LastHit:
+                    break;
+                default:
+                    break;
+            }
+            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            if (config.Item("QSSEnabled").GetValue<bool>() && !rActive)
+            {
+                ItemHandler.UseCleanse(config);
+            }
+            if (config.Item("manualRflash", true).GetValue<KeyBind>().Active &&
+                player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready)
+            {
+                FlashCombo();
+            }
+            if (config.Item("AutoW", true).GetValue<bool>() && W.IsReady())
+            {
+                CastW(false);
+            }
+            if (W.IsReady() && !rActive &&
+                ((config.Item("AutoW", true).GetValue<bool>()) ||
+                 (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && config.Item("usew", true).GetValue<bool>())))
+            {
+                foreach (
+                    var i in
+                        IncomingDamages.Where(i => i.Hero.IsValid && i.Hero.Distance(player) < W.Range)
+                            .OrderByDescending(i => TargetSelector.GetPriority(i.Hero)))
+                {
+                    if (CheckAutoW(i.Hero) && CombatHelper.CheckBuffs(i.Hero))
+                    {
+                        W.Cast(i.Hero, config.Item("packets").GetValue<bool>());
+                    }
+                }
+            }
+        }
+
+        private void resetData()
+        {
+            DamageTakenTime = System.Environment.TickCount;
+            foreach (var incDamage in IncomingDamages)
+            {
+                incDamage.DamageTaken = 0f;
+                incDamage.DamageCount = 0;
+            }
+        }
+
+        private bool CheckAutoW(Obj_AI_Hero ally)
+        {
+            return config.Item("AutoWmana", true).GetValue<Slider>().Value > player.ManaPercent &&
+                   config.Item("AutoWhealth", true).GetValue<Slider>().Value > ally.HealthPercent;
+        }
+
+        private void FlashCombo()
+        {
+            if (!rActive)
+            {
+                player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            }
+            var points = CombatHelper.PointsAroundTheTarget(player, 425);
+            var best =
+                points.Where(
+                    p =>
+                        !p.IsWall() && p.Distance(player.Position) > 200 && p.Distance(player.Position) < 425 &&
+                        p.IsValid() &&
+                        config.Item("Rmin", true).GetValue<Slider>().Value <= p.CountEnemiesInRange(R.Range))
+                    .OrderByDescending(p => p.CountEnemiesInRange(R.Range))
+                    .FirstOrDefault();
+            if (best.CountEnemiesInRange(R.Range) > player.CountEnemiesInRange(R.Range))
+            {
+                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), best);
+                Utility.DelayAction.Add(50, () => { R.Cast(config.Item("packets").GetValue<bool>()); });
+            }
+        }
+
+        private void Harass()
+        {
+            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+            float perc = config.Item("minmanaH", true).GetValue<Slider>().Value / 100f;
+            if (player.Mana < player.MaxMana * perc || target == null)
+            {
+                return;
+            }
+            if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target))
+            {
+                Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+            }
+            if (config.Item("useeH", true).GetValue<bool>() && E.CanCast(target))
+            {
+                E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+            }
+        }
+
+        private void Clear()
+        {
+            float perc = config.Item("minmana", true).GetValue<Slider>().Value / 100f;
+            if (player.Mana < player.MaxMana * perc)
+            {
+                return;
+            }
+            if (config.Item("useqLC", true).GetValue<bool>() && Q.IsReady())
+            {
+                MinionManager.FarmLocation bestPositionQ =
+                    Q.GetCircularFarmLocation(MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly));
+
+                if (bestPositionQ.MinionsHit >= config.Item("qMinHit", true).GetValue<Slider>().Value)
+                {
+                    Q.Cast(bestPositionQ.Position, config.Item("packets").GetValue<bool>());
+                }
+            }
+            if (config.Item("useeLC", true).GetValue<bool>() && E.IsReady())
+            {
+                MinionManager.FarmLocation bestPositionE =
+                    E.GetLineFarmLocation(
+                        MinionManager.GetMinions(
+                            ObjectManager.Player.ServerPosition, E.Range, MinionTypes.All, MinionTeam.NotAlly));
+
+                if (bestPositionE.MinionsHit >= config.Item("eMinHit", true).GetValue<Slider>().Value)
+                {
+                    E.Cast(bestPositionE.Position, config.Item("packets").GetValue<bool>());
+                }
+            }
+        }
+
+        private void Combo()
+        {
+            Obj_AI_Hero target = TargetSelector.GetTarget(
+                E.Range, TargetSelector.DamageType.Magical, true, HeroManager.Enemies.Where(h => h.IsInvulnerable));
+            if (target == null)
+            {
+                return;
+            }
+            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
+            if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
+                !CombatHelper.CheckCriticalBuffs(target) && !Q.CanCast(target))
+            {
+                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
+            }
+            if (config.Item("usew", true).GetValue<bool>() && W.IsReady())
+            {
+                CastW(true);
+            }
+            if (rActive)
+            {
+                return;
+            }
+            if (config.Item("useItems").GetValue<bool>())
+            {
+                ItemHandler.UseItems(target, config);
+            }
+            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target))
+            {
+                Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+            }
+            if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target))
+            {
+                E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+            }
+
+            if (R.IsReady() && config.Item("user", true).GetValue<bool>() &&
+                config.Item("Rmin", true).GetValue<Slider>().Value <= player.CountEnemiesInRange(R.Range))
+            {
+                CastR();
+            }
+        }
+
+        private void CastW(bool combo)
+        {
+            foreach (var incDamage in
+                IncomingDamages.Where(i => i.Hero.Distance(player) < W.Range && i.Hero.IsValid)
+                    .OrderByDescending(i => TargetSelector.GetPriority(i.Hero)))
+            {
+                if (incDamage.DamageCount >= config.Item("Wmin", true).GetValue<Slider>().Value && (combo || (!combo && CheckAutoW(incDamage.Hero))))
+                {
+                    W.Cast(incDamage.Hero, config.Item("packets").GetValue<bool>());
+                    return;
+                }
+            }
+        }
+
+        private void CastR()
+        {
+            if (
+                !HeroManager.Enemies.Any(
+                    e =>
+                        e.Distance(player) < R.Range && e.HasBuff("GarenQ") ||
+                        (e.HasBuff("UdyrBearStance") && !player.HasBuff("UdyrBearStunCheck"))))
+            {
+                R.Cast(config.Item("packets").GetValue<bool>());
+            }
+        }
+
+        private static bool rActive
+        {
+            get { return player.Buffs.Any(buff => buff.Name == "GalioIdolOfDurand"); }
+        }
+
+        private void Game_OnDraw(EventArgs args)
+        {
+            DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), Q.Range);
+            DrawHelper.DrawCircle(config.Item("drawww", true).GetValue<Circle>(), W.Range);
+            DrawHelper.DrawCircle(config.Item("drawee", true).GetValue<Circle>(), E.Range);
+            DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), R.Range);
+            Helpers.Jungle.ShowSmiteStatus(
+                config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
+            Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
+        }
+
+        private static float ComboDamage(Obj_AI_Hero hero)
+        {
+            double damage = 0;
+            if (Q.IsReady())
+            {
+                damage += Damage.GetSpellDamage(player, hero, SpellSlot.Q);
+            }
+            if (E.IsReady())
+            {
+                damage += Damage.GetSpellDamage(player, hero, SpellSlot.E);
+            }
+            if (R.IsReady())
+            {
+                damage += Damage.GetSpellDamage(player, hero, SpellSlot.R);
+            }
+            //damage += ItemHandler.GetItemsDamage(hero);
+            var ignitedmg = player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
+            if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready &&
+                hero.Health < damage + ignitedmg)
+            {
+                damage += ignitedmg;
+            }
+            return (float) damage;
+        }
+
+        private void Game_ProcessSpell(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if (!(sender is Obj_AI_Base))
+            {
+                return;
+            }
+            Obj_AI_Hero target = args.Target as Obj_AI_Hero;
+            if (target != null && target.IsAlly)
+            {
+                if (sender.IsValid && !sender.IsDead && sender.IsEnemy)
+                {
+                    var data = IncomingDamages.FirstOrDefault(i => i.Hero.NetworkId == target.NetworkId);
+                    if (Orbwalking.IsAutoAttack(args.SData.Name))
+                    {
+                        var dmg = (float) sender.GetAutoAttackDamage(target, true);
+                        data.DamageTaken += dmg;
+                        data.DamageCount++;
+                    }
+                    else
+                    {
+                        data.DamageCount++;
+                        Utility.DelayAction.Add(
+                            300, () =>
+                            {
+                                if (data.DamageCount > 0)
+                                {
+                                    data.DamageCount--;
+                                }
+                            });
+                    }
+                }
+            }
+        }
+
+        private void InitMenu()
+        {
+            config = new Menu("Galio ", "Galio", true);
+            // Target Selector
+            Menu menuTS = new Menu("Selector", "tselect");
+            TargetSelector.AddToMenu(menuTS);
+            config.AddSubMenu(menuTS);
+            // Orbwalker
+            Menu menuOrb = new Menu("Orbwalker", "orbwalker");
+            orbwalker = new Orbwalking.Orbwalker(menuOrb);
+            config.AddSubMenu(menuOrb);
+            // Draw settings
+            Menu menuD = new Menu("Drawings ", "dsettings");
+            menuD.AddItem(new MenuItem("drawqq", "Draw Q range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawww", "Draw W range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawee", "Draw E range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawrr", "Draw R range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage", true)).SetValue(true);
+            config.AddSubMenu(menuD);
+            // Combo Settings
+            Menu menuC = new Menu("Combo ", "csettings");
+            menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(false);
+            menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("Rmin", "   R min", true)).SetValue(new Slider(2, 1, 5));
+            menuC.AddItem(new MenuItem("manualRflash", "Cast R with flash", true))
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+            menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
+            menuC = ItemHandler.addItemOptons(menuC);
+            config.AddSubMenu(menuC);
+            // Harass Settings
+            Menu menuH = new Menu("Harass ", "Hsettings");
+            menuH.AddItem(new MenuItem("useqH", "Use Q", true)).SetValue(true);
+            menuH.AddItem(new MenuItem("useeH", "Use E", true)).SetValue(true);
+            menuH.AddItem(new MenuItem("minmanaH", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
+            config.AddSubMenu(menuH);
+            // LaneClear Settings
+            Menu menuLC = new Menu("LaneClear ", "Lcsettings");
+            menuLC.AddItem(new MenuItem("useqLC", "Use Q", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("qMinHit", "   Q min hit", true)).SetValue(new Slider(3, 1, 6));
+            menuLC.AddItem(new MenuItem("useeLC", "Use E", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("eMinHit", "   E min hit", true)).SetValue(new Slider(3, 1, 6));
+            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
+            config.AddSubMenu(menuLC);
+            Menu menuM = new Menu("Misc ", "Msettings");
+            menuM.AddItem(new MenuItem("Interrupt", "Cast R to interrupt spells", true)).SetValue(false);
+            menuM.AddItem(new MenuItem("AutoW", "Auto cast W", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("Wmin", "W min hits", true)).SetValue(new Slider(3, 1, 10));
+            menuM.AddItem(new MenuItem("AutoWmana", "   Min mana", true)).SetValue(new Slider(50, 1, 100));
+            menuM.AddItem(new MenuItem("AutoWhealth", "   Under health", true)).SetValue(new Slider(70, 1, 100));
+            menuM = Jungle.addJungleOptions(menuM);
+            menuM = ItemHandler.addCleanseOptions(menuM);
+            Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
+            autoLeveler = new AutoLeveler(autolvlM);
+            menuM.AddSubMenu(autolvlM);
+            config.AddSubMenu(menuM);
+            config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
+            config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
+            config.AddToMainMenu();
+        }
+    }
+
+    internal class WDatas
+    {
+        public float DamageTaken;
+        public int DamageCount;
+        public Obj_AI_Hero Hero;
+
+        public WDatas(Obj_AI_Hero _hero)
+        {
+            this.Hero = _hero;
+        }
+    }
+}
