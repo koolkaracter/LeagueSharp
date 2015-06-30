@@ -165,7 +165,7 @@ namespace UnderratedAIO.Champions
                         config.Item("Rmin", true).GetValue<Slider>().Value <= p.CountEnemiesInRange(R.Range))
                     .OrderByDescending(p => p.CountEnemiesInRange(R.Range))
                     .FirstOrDefault();
-            if (best.CountEnemiesInRange(R.Range) > player.CountEnemiesInRange(R.Range))
+            if (best.CountEnemiesInRange(R.Range) > player.CountEnemiesInRange(R.Range) && CheckInterrupt(best))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), best);
                 Utility.DelayAction.Add(50, () => { R.Cast(config.Item("packets").GetValue<bool>()); });
@@ -280,14 +280,19 @@ namespace UnderratedAIO.Champions
 
         private void CastR()
         {
-            if (
-                !HeroManager.Enemies.Any(
-                    e =>
-                        e.Distance(player) < R.Range && e.HasBuff("GarenQ") ||
-                        (e.HasBuff("UdyrBearStance") && !player.HasBuff("UdyrBearStunCheck"))))
+            if (CheckInterrupt(player.Position))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
+        }
+
+        private bool CheckInterrupt(Vector3 pos)
+        {
+            return
+                !HeroManager.Enemies.Any(
+                    e =>
+                        e.Distance(pos) < R.Range && (e.HasBuff("GarenQ") ||
+                        (e.HasBuff("UdyrBearStance") && !player.HasBuff("UdyrBearStunCheck"))));
         }
 
         private static bool rActive
