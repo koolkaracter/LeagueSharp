@@ -285,7 +285,8 @@ namespace UnderratedAIO.Helpers
             bool useFixedDistance = true,
             bool randomizeMinDistance = true)
         {
-            if (Utils.GameTimeTickCount - LastMoveCommandT < _delay && !overrideTimer)
+            var deltaT = Utils.GameTimeTickCount - LastMoveCommandT;
+            if (deltaT < _delay && !overrideTimer)
             {
                 return;
             }
@@ -321,7 +322,7 @@ namespace UnderratedAIO.Helpers
                             _minDistance * (position.To2D() - Player.ServerPosition.To2D()).Normalized().To3D();
                 }
             }
-            if (point.Distance(LastMoveCommandPosition) < 80)
+            if (point.Distance(LastMoveCommandPosition) < 80 && deltaT < 1000)
             {
                 return;
             }
