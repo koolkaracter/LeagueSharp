@@ -77,8 +77,11 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            Orbwalking.Attack = true;
-            orbwalker.SetMovement(true);
+            if (!rActive)
+            {
+                Orbwalking.Attack = true;
+                orbwalker.SetMovement(true);  
+            }
             if (rActive || justR)
             {
                 Orbwalking.Attack = false;
