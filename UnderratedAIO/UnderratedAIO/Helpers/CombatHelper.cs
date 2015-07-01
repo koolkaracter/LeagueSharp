@@ -31,8 +31,7 @@ namespace UnderratedAIO.Helpers
 
         private static List<string> dotsSmallDmg =
             new List<string>(
-                new string[]
-                { "deadlyvenom", "toxicshotparticle", "MordekaiserChildrenOfTheGrave", "DariusNoxianTacticsONH" });
+                new string[] { "deadlyvenom", "toxicshotparticle", "MordekaiserChildrenOfTheGrave", "dariushemo" });
 
         private static List<string> defSpells = new List<string>(new string[] { "summonerheal", "summonerbarrier" });
 

@@ -24,6 +24,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static List<WDatas> IncomingDamages = new List<WDatas>();
         public float DamageTakenTime;
+        public bool justR, justQ, justE;
 
         public Galio()
         {
@@ -78,7 +79,7 @@ namespace UnderratedAIO.Champions
         {
             Orbwalking.Attack = true;
             orbwalker.SetMovement(true);
-            if (rActive)
+            if (rActive || justR)
             {
                 Orbwalking.Attack = false;
                 orbwalker.SetMovement(false);
@@ -117,16 +118,17 @@ namespace UnderratedAIO.Champions
             {
                 CastW(false);
             }
-            if (W.IsReady() && !rActive &&
+            if (W.IsReady() &&
                 ((config.Item("AutoW", true).GetValue<bool>()) ||
                  (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && config.Item("usew", true).GetValue<bool>())))
             {
-                foreach (
-                    var i in
-                        IncomingDamages.Where(i => i.Hero.IsValid && i.Hero.Distance(player) < W.Range)
-                            .OrderByDescending(i => TargetSelector.GetPriority(i.Hero)))
+                foreach (var i in
+                    IncomingDamages.Where(i => i.Hero.IsValid && i.Hero.Distance(player) < W.Range)
+                        .OrderByDescending(i => TargetSelector.GetPriority(i.Hero)))
                 {
-                    if (CheckAutoW(i.Hero) && CombatHelper.CheckBuffs(i.Hero))
+                    var checkBuff = CombatHelper.CheckBuffs(i.Hero);
+                    if ((CheckAutoW(i.Hero) && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && checkBuff) ||
+                        (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo && checkBuff))
                     {
                         W.Cast(i.Hero, config.Item("packets").GetValue<bool>());
                     }
@@ -146,7 +148,7 @@ namespace UnderratedAIO.Champions
 
         private bool CheckAutoW(Obj_AI_Hero ally)
         {
-            return config.Item("AutoWmana", true).GetValue<Slider>().Value > player.ManaPercent &&
+            return config.Item("AutoWmana", true).GetValue<Slider>().Value < player.ManaPercent &&
                    config.Item("AutoWhealth", true).GetValue<Slider>().Value > ally.HealthPercent;
         }
 
@@ -156,20 +158,26 @@ namespace UnderratedAIO.Champions
             {
                 player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
             }
-            var points = CombatHelper.PointsAroundTheTarget(player, 425);
-            var best =
-                points.Where(
-                    p =>
-                        !p.IsWall() && p.Distance(player.Position) > 200 && p.Distance(player.Position) < 425 &&
-                        p.IsValid() &&
-                        config.Item("Rmin", true).GetValue<Slider>().Value <= p.CountEnemiesInRange(R.Range))
-                    .OrderByDescending(p => p.CountEnemiesInRange(R.Range))
-                    .FirstOrDefault();
-            if (best.CountEnemiesInRange(R.Range) > player.CountEnemiesInRange(R.Range) && CheckInterrupt(best))
+            if (R.IsReady())
             {
-                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), best);
-                Utility.DelayAction.Add(50, () => { R.Cast(config.Item("packets").GetValue<bool>()); });
+                var points = CombatHelper.PointsAroundTheTarget(player, 425);
+                var best =
+                    points.Where(
+                        p =>
+                            !p.IsWall() && p.Distance(player.Position) > 200 && p.Distance(player.Position) < 425 &&
+                            p.IsValid() &&
+                            config.Item("Rminflash", true).GetValue<Slider>().Value <=
+                            p.CountEnemiesInRange(R.Range - 50))
+                        .OrderByDescending(p => p.CountEnemiesInRange(R.Range - 50))
+                        .FirstOrDefault();
+                if (best.CountEnemiesInRange(R.Range - 50) > player.CountEnemiesInRange(R.Range) && CheckInterrupt(best))
+                {
+                    player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), best);
+                    Utility.DelayAction.Add(50, () => { R.Cast(config.Item("packets").GetValue<bool>()); });
+                    return;
+                }
             }
+            Combo();
         }
 
         private void Harass()
@@ -232,7 +240,7 @@ namespace UnderratedAIO.Champions
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
-                !CombatHelper.CheckCriticalBuffs(target) && !Q.CanCast(target))
+                !CombatHelper.CheckCriticalBuffs(target) && !Q.CanCast(target) && !justQ && !justE && !rActive)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
@@ -240,7 +248,7 @@ namespace UnderratedAIO.Champions
             {
                 CastW(true);
             }
-            if (rActive)
+            if (rActive || justR)
             {
                 return;
             }
@@ -270,7 +278,8 @@ namespace UnderratedAIO.Champions
                 IncomingDamages.Where(i => i.Hero.Distance(player) < W.Range && i.Hero.IsValid)
                     .OrderByDescending(i => TargetSelector.GetPriority(i.Hero)))
             {
-                if (incDamage.DamageCount >= config.Item("Wmin", true).GetValue<Slider>().Value && (combo || (!combo && CheckAutoW(incDamage.Hero))))
+                if (incDamage.DamageCount >= config.Item("Wmin", true).GetValue<Slider>().Value &&
+                    (combo || (!combo && CheckAutoW(incDamage.Hero))))
                 {
                     W.Cast(incDamage.Hero, config.Item("packets").GetValue<bool>());
                     return;
@@ -291,8 +300,10 @@ namespace UnderratedAIO.Champions
             return
                 !HeroManager.Enemies.Any(
                     e =>
-                        e.Distance(pos) < R.Range && (e.HasBuff("GarenQ") ||
-                        (e.HasBuff("UdyrBearStance") && !player.HasBuff("UdyrBearStunCheck"))));
+                        e.Distance(pos) < R.Range &&
+                        (e.HasBuff("GarenQ") || e.HasBuff("powerfist") || e.HasBuff("renektonpreexecute") ||
+                         e.HasBuff("xenzhaocombotarget") ||
+                         (e.HasBuff("UdyrBearStance") && !player.HasBuff("UdyrBearStunCheck"))));
         }
 
         private static bool rActive
@@ -342,6 +353,21 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+            if (sender.IsMe && args.SData.Name == "GalioIdolOfDurand")
+            {
+                justR = true;
+                Utility.DelayAction.Add(200, () => justR = false);
+            }
+            if (sender.IsMe && args.SData.Name == "GalioResoluteSmite")
+            {
+                justQ = true;
+                Utility.DelayAction.Add(getDelay(Q, args.End), () => justR = false);
+            }
+            if (sender.IsMe && args.SData.Name == "GalioRighteousGust")
+            {
+                justE = true;
+                Utility.DelayAction.Add(getDelay(E, args.End), () => justR = false);
+            }
             Obj_AI_Hero target = args.Target as Obj_AI_Hero;
             if (target != null && target.IsAlly)
             {
@@ -368,6 +394,11 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
+        }
+
+        private int getDelay(Spell spell, Vector3 pos)
+        {
+            return (int) (spell.Delay * 1000 + player.Distance(pos) / spell.Speed);
         }
 
         private void InitMenu()
@@ -400,8 +431,9 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "   R min", true)).SetValue(new Slider(2, 1, 5));
-            menuC.AddItem(new MenuItem("manualRflash", "Cast R with flash", true))
+            menuC.AddItem(new MenuItem("manualRflash", "Combo with flash", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+            menuC.AddItem(new MenuItem("Rminflash", "   R min", true)).SetValue(new Slider(3, 1, 5));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
