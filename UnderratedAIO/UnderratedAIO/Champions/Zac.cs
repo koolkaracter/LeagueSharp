@@ -28,10 +28,6 @@ namespace UnderratedAIO.Champions
 
         public Zac()
         {
-            if (player.BaseSkinName != "Zac")
-            {
-                return;
-            }
             InitZac();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Zac</font>");
@@ -58,7 +54,7 @@ namespace UnderratedAIO.Champions
         private void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender,
             Interrupter2.InterruptableTargetEventArgs args)
         {
-            if (E.IsReady() && config.Item("Interrupt", true).GetValue<bool>() && sender.Distance(player) < R.Range)
+            if (R.IsReady() && config.Item("Interrupt", true).GetValue<bool>() && sender.Distance(player) < R.Range)
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -77,13 +73,17 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            Orbwalking.Attack = true;
-            orbwalker.SetMovement(true);
+
             if (E.IsCharging || eActive)
             {
                 Orbwalking.Attack = false;
                 orbwalker.SetMovement(false);
             }
+            else
+            {
+                Orbwalking.Attack = true;
+                orbwalker.SetMovement(true);
+            }   
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -281,10 +281,9 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var eFlyPred = E.GetPrediction(target);
-
+            var enemyPred = Prediction.GetPrediction(target, eChannelTimes[E.Level - 1]+target.Distance(player)/E.Speed/1000);
             if (E.IsCharging)
             {
-                pos = eFlyPred.CastPosition;
                 if (!eFlyPred.CastPosition.IsValid() || eFlyPred.CastPosition.IsWall())
                 {
                     return;
@@ -309,7 +308,7 @@ namespace UnderratedAIO.Champions
                     E.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
                 }
             }
-            else if (eFlyPred.UnitPosition.Distance(player.Position) < eRanges[E.Level - 1] &&
+            else if (enemyPred.UnitPosition.Distance(player.Position) < eRanges[E.Level - 1] &&
                      config.Item("Emin", true).GetValue<Slider>().Value < target.Distance(player.Position))
             {
                 E.SetCharged("ZacE", "ZacE", 300, eRanges[E.Level - 1], eChannelTimes[E.Level - 1]);
@@ -382,7 +381,7 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
             if (pos.IsValid())
             {
-                // Render.Circle.DrawCircle(pos, 100, Color.Aqua, 7);
+                //Render.Circle.DrawCircle(pos, 100, Color.Aqua, 7);
             }
         }
 

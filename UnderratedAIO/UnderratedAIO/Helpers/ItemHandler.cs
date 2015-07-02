@@ -20,6 +20,8 @@ namespace UnderratedAIO.Helpers
         public static Items.Item Dfg = new Items.Item(3128, 750);
         public static Items.Item Bft = new Items.Item(3188, 750);
         public static Items.Item Ludens = LeagueSharp.Common.Data.ItemData.Ludens_Echo.GetItem();
+        public static Items.Item Muramana = LeagueSharp.Common.Data.ItemData.Muramana.GetItem();
+        public static Items.Item Muramana2 = LeagueSharp.Common.Data.ItemData.Muramana2.GetItem();
         public static Items.Item sheen = new Items.Item(3057, player.AttackRange);
         public static Items.Item gaunlet = new Items.Item(3025, player.AttackRange);
         public static Items.Item trinity = new Items.Item(3078, player.AttackRange);
@@ -37,6 +39,7 @@ namespace UnderratedAIO.Helpers
         public static Items.Item Wooglet = new Items.Item(3090, 0);
 
         public static bool QssUsed = false;
+        public static float MuramanaTime;
 
         public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg = 0f)
         {
@@ -64,7 +67,8 @@ namespace UnderratedAIO.Helpers
                     }
                 }
                 else if (player.CountEnemiesInRange(odins.Range) >= config.Item("odinmin").GetValue<Slider>().Value ||
-                         (Math.Max(comboDmg, odinDmg) > target.Health && player.Distance(target) < odins.Range && !CombatHelper.CheckCriticalBuffs(target)))
+                         (Math.Max(comboDmg, odinDmg) > target.Health && player.HealthPercent<30 && player.Distance(target) < odins.Range &&
+                          !CombatHelper.CheckCriticalBuffs(target)))
                 {
                     odins.Cast();
                 }
@@ -81,8 +85,8 @@ namespace UnderratedAIO.Helpers
                     }
                 }
                 else if ((player.Distance(target) > config.Item("bilminr").GetValue<Slider>().Value &&
-                          IsHeRunAway(target) &&
-                          (target.Health / target.MaxHealth * 100f) < 40 && target.Distance(player)>player.AttackRange) ||
+                          IsHeRunAway(target) && (target.Health / target.MaxHealth * 100f) < 40 &&
+                          target.Distance(player) > player.AttackRange) ||
                          (Math.Max(comboDmg, bilDmg) > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     bilgewater.Cast(target);
@@ -104,14 +108,15 @@ namespace UnderratedAIO.Helpers
                           config.Item("botrmyhealth").GetValue<Slider>().Value &&
                           (target.Health / target.MaxHealth * 100f) <
                           config.Item("botrenemyhealth").GetValue<Slider>().Value) ||
-                         (IsHeRunAway(target) &&
-                          (target.Health / target.MaxHealth * 100f) < 40 && target.Distance(player) > player.AttackRange) ||
+                         (IsHeRunAway(target) && (target.Health / target.MaxHealth * 100f) < 40 &&
+                          target.Distance(player) > player.AttackRange) ||
                          (Math.Max(comboDmg, botrDmg) > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     botrk.Cast(target);
                 }
             }
-            if (target != null && config.Item("hex").GetValue<bool>() && Items.HasItem(hexgun.Id) && Items.CanUseItem(hexgun.Id))
+            if (target != null && config.Item("hex").GetValue<bool>() && Items.HasItem(hexgun.Id) &&
+                Items.CanUseItem(hexgun.Id))
             {
                 var hexDmg = Damage.GetItemDamage(player, target, Damage.DamageItems.Hexgun);
                 if (config.Item("hexonlyks").GetValue<bool>())
@@ -122,23 +127,29 @@ namespace UnderratedAIO.Helpers
                     }
                 }
                 else if ((player.Distance(target) > config.Item("hexminr").GetValue<Slider>().Value &&
-                          IsHeRunAway(target) &&
-                          (target.Health / target.MaxHealth * 100f) < 40 && target.Distance(player) > player.AttackRange) ||
+                          IsHeRunAway(target) && (target.Health / target.MaxHealth * 100f) < 40 &&
+                          target.Distance(player) > player.AttackRange) ||
                          (Math.Max(comboDmg, hexDmg) > target.Health && (player.Health / player.MaxHealth * 100f) < 50))
                 {
                     hexgun.Cast(target);
                 }
             }
-            if (Items.HasItem(Dfg.Id) && Items.CanUseItem(Dfg.Id))
+            if (config.Item("Muramana").GetValue<bool>() &&
+                ((!MuramanaEnabled && config.Item("MuramanaMinmana").GetValue<Slider>().Value < player.ManaPercent) ||
+                 (MuramanaEnabled && config.Item("MuramanaMinmana").GetValue<Slider>().Value > player.ManaPercent)))
             {
-                Dfg.Cast(target);
+                if (Muramana.IsOwned() && Muramana.IsReady())
+                {
+                    Muramana.Cast();
+                }
+                if (Muramana2.IsOwned() && Muramana2.IsReady())
+                {
+                    Muramana2.Cast();
+                }
             }
-            if (Items.HasItem(Bft.Id) && Items.CanUseItem(Bft.Id))
-            {
-                Bft.Cast(target);
-            }
+            MuramanaTime = System.Environment.TickCount;
             if (config.Item("you").GetValue<bool>() && Items.HasItem(youmuu.Id) && Items.CanUseItem(youmuu.Id) &&
-                target != null && player.Distance(target) < player.AttackRange + 50 && target.HealthPercent<65)
+                target != null && player.Distance(target) < player.AttackRange + 50 && target.HealthPercent < 65)
             {
                 youmuu.Cast();
             }
@@ -179,7 +190,8 @@ namespace UnderratedAIO.Helpers
                     ObjectManager.Get<Obj_AI_Hero>()
                         .Where(
                             h =>
-                                h.IsAlly && !h.IsMe && !h.IsDead && player.Distance(h) < mountain.Range && config.Item("mountainpriority" + h.ChampionName).GetValue<Slider>().Value>0 &&
+                                h.IsAlly && !h.IsMe && !h.IsDead && player.Distance(h) < mountain.Range &&
+                                config.Item("mountainpriority" + h.ChampionName).GetValue<Slider>().Value > 0 &&
                                 (h.Health / h.MaxHealth * 100f) < config.Item("mountainmin").GetValue<Slider>().Value);
                 if (targ != null)
                 {
@@ -276,6 +288,11 @@ namespace UnderratedAIO.Helpers
                                 : hexgun.Range - 20), 0, (int) hexgun.Range));
             menuI.AddSubMenu(menuHextech);
 
+            Menu menuMura = new Menu("Muramana ", "Mura");
+            menuMura.AddItem(new MenuItem("Muramana", "Enabled")).SetValue(true);
+            menuMura.AddItem(new MenuItem("MuramanaMinmana", "Min mana")).SetValue(new Slider(40, 0, 100));
+            menuI.AddSubMenu(menuMura);
+
             Menu menuFrost = new Menu("Frost Queen's Claim ", "Frost");
             menuFrost.AddItem(new MenuItem("frost", "Enabled")).SetValue(true);
             menuFrost.AddItem(new MenuItem("frostlow", "Use on low HP")).SetValue(true);
@@ -305,6 +322,8 @@ namespace UnderratedAIO.Helpers
             menuI.AddItem(new MenuItem("you", "Youmuu's Ghostblade")).SetValue(true);
             menuI.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             mConfig.AddSubMenu(menuI);
+            Game.OnUpdate += Game_OnGameUpdate;
+            odins.Range = 500f;
             return mConfig;
         }
 
@@ -590,6 +609,27 @@ namespace UnderratedAIO.Helpers
                     }
                 }
             }
+        }
+
+        private static void Game_OnGameUpdate(EventArgs args)
+        {
+            var deltaT = System.Environment.TickCount - MuramanaTime;
+            if (MuramanaEnabled && deltaT > 500 && deltaT < 1000)
+            {
+                if (Muramana.IsOwned() && Muramana.IsReady())
+                {
+                    Muramana.Cast();
+                }
+                if (Muramana2.IsOwned() && Muramana2.IsReady())
+                {
+                    Muramana2.Cast();
+                }
+            }
+        }
+
+        public static bool MuramanaEnabled
+        {
+            get { return player.HasBuff("Muramana"); }
         }
     }
 }

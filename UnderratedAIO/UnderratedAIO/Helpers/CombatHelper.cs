@@ -31,7 +31,8 @@ namespace UnderratedAIO.Helpers
 
         private static List<string> dotsSmallDmg =
             new List<string>(
-                new string[] { "deadlyvenom", "toxicshotparticle", "MordekaiserChildrenOfTheGrave", "dariushemo", "brandablaze" });
+                new string[]
+                { "deadlyvenom", "toxicshotparticle", "MordekaiserChildrenOfTheGrave", "dariushemo", "brandablaze" });
 
         private static List<string> defSpells = new List<string>(new string[] { "summonerheal", "summonerbarrier" });
 
@@ -54,14 +55,16 @@ namespace UnderratedAIO.Helpers
                     "IreliaEquilibriumStrike", "InfiniteDuress", "SkarnerImpale", "SowTheWind", "PuncturingTaunt",
                     "UrgotSwap2", "NasusW", "VolibearW", "Feast", "NocturneUnspeakableHorror"
                 });
+
         public static List<string> invulnerable =
-    new List<string>(
-        new string[]
+            new List<string>(
+                new string[]
                 {
                     "sionpassivezombie", "willrevive", "BraumShieldRaise", "UndyingRage", "PoppyDiplomaticImmunity",
                     "LissandraRSelf", "JudicatorIntervention", "ZacRebirthReady", "AatroxPassiveReady", "Rebirth",
                     "alistartrample", "NocturneShroudofDarknessShield", "SpellShield"
                 });
+
         private static List<int> defItems =
             new List<int>(new int[] { ItemHandler.Qss.Id, ItemHandler.Qss.Id, ItemHandler.Dervish.Id });
 
@@ -106,11 +109,15 @@ namespace UnderratedAIO.Helpers
             {
                 return new Vector3();
             }
-            return 
-            PointsAroundTheTarget(target.Position, 500)
-                .Where(p => p.IsValid() && target.Distance(p) > 80 && target.Distance(p) < 485 && player.Distance(p) < 400 && !p.IsWall() && Environment.Map.CheckWalls(p, target.Position))
-                .FirstOrDefault();
+            return
+                PointsAroundTheTarget(target.Position, 500)
+                    .Where(
+                        p =>
+                            p.IsValid() && target.Distance(p) > 80 && target.Distance(p) < 485 &&
+                            player.Distance(p) < 400 && !p.IsWall() && Environment.Map.CheckWalls(p, target.Position))
+                    .FirstOrDefault();
         }
+
         public static Vector3 PositionToPoppyE(Obj_AI_Base target)
         {
             if (target == null)
@@ -118,10 +125,16 @@ namespace UnderratedAIO.Helpers
                 return new Vector3();
             }
             return
-            PointsAroundTheTarget(target.Position, 500)
-                .Where(p => p.Distance(player.Position) < 500 && p.IsValid() && target.Distance(p) < Orbwalking.GetRealAutoAttackRange(player) && !p.IsWall() && Environment.Map.CheckWalls(p, target.Position))
-                .OrderBy(p=>p.Distance(player.Position)).FirstOrDefault();
+                PointsAroundTheTarget(target.Position, 500)
+                    .Where(
+                        p =>
+                            p.Distance(player.Position) < 500 && p.IsValid() &&
+                            target.Distance(p) < Orbwalking.GetRealAutoAttackRange(player) && !p.IsWall() &&
+                            Environment.Map.CheckWalls(p, target.Position))
+                    .OrderBy(p => p.Distance(player.Position))
+                    .FirstOrDefault();
         }
+
         #endregion
 
         #region Riven
@@ -211,16 +224,18 @@ namespace UnderratedAIO.Helpers
             List<Vector3> list = new List<Vector3>();
             var newPos = new Vector3();
             var prec = 15;
-            if (dist>1)
+            if (dist > 1)
             {
                 prec = 30;
             }
-            var k = (float)((2 * dist * Math.PI)/prec);
-            for (int i = 1; i < prec+1; i++)
+            var k = (float) ((2 * dist * Math.PI) / prec);
+            for (int i = 1; i < prec + 1; i++)
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    var perimeter=target.Position.Extend(new Vector3(target.Direction.X, target.Direction.Y, target.Position.Z),dist);
+                    var perimeter =
+                        target.Position.Extend(
+                            new Vector3(target.Direction.X, target.Direction.Y, target.Position.Z), dist);
                     newPos = new Vector3(perimeter.X + 65 * j, perimeter.Y + 65 * j, target.Position.Z);
                     var rotated = newPos.To2D().RotateAroundPoint(target.Position.To2D(), k * i).To3D();
                     list.Add(rotated);
@@ -229,7 +244,8 @@ namespace UnderratedAIO.Helpers
 
             return list;
         }
-        public static List<Vector3> PointsAroundTheTarget(Vector3 pos, float dist, float prec=15, float prec2=6)
+
+        public static List<Vector3> PointsAroundTheTarget(Vector3 pos, float dist, float prec = 15, float prec2 = 6)
         {
             if (!pos.IsValid())
             {
@@ -253,9 +269,11 @@ namespace UnderratedAIO.Helpers
             {
                 for (int j = 0; j < 6; j++)
                 {
-                    list.Add(new Vector3(pos.X + (float)(Math.Cos(angle * i) * (j * step)), pos.Y + (float)(Math.Sin(angle * i) * (j * step)) - 90, pos.Z));
+                    list.Add(
+                        new Vector3(
+                            pos.X + (float) (Math.Cos(angle * i) * (j * step)),
+                            pos.Y + (float) (Math.Sin(angle * i) * (j * step)) - 90, pos.Z));
                 }
-                
             }
 
             return list;
@@ -268,28 +286,43 @@ namespace UnderratedAIO.Helpers
                 return new List<Vector3>();
             }
             List<Vector3> list = new List<Vector3>();
-            var max = 2 * dist/2 * Math.PI / width/2;
+            var max = 2 * dist / 2 * Math.PI / width / 2;
             var angle = 360f / max * Math.PI / 180.0f;
             for (int i = 0; i < max; i++)
             {
-                list.Add(new Vector3(pos.X + (float)(Math.Cos(angle * i) * dist), pos.Y + (float)(Math.Sin(angle * i) * dist), pos.Z));
+                list.Add(
+                    new Vector3(
+                        pos.X + (float) (Math.Cos(angle * i) * dist), pos.Y + (float) (Math.Sin(angle * i) * dist),
+                        pos.Z));
             }
 
             return list;
         }
 
-        public static bool IsFacing(Obj_AI_Base source, Vector3 target, float angle=90)
+        public static bool IsFacing(Obj_AI_Base source, Vector3 target, float angle = 90)
         {
-            if (source==null || !target.IsValid())
+            if (source == null || !target.IsValid())
+            {
                 return false;
-            return (double)Geometry.AngleBetween(Geometry.Perpendicular(Geometry.To2D(source.Direction)), Geometry.To2D(target - source.Position)) < 90.0;
+            }
+            return
+                (double)
+                    Geometry.AngleBetween(
+                        Geometry.Perpendicular(Geometry.To2D(source.Direction)), Geometry.To2D(target - source.Position)) <
+                90.0;
         }
+
         public static double GetAngle(Obj_AI_Base source, Vector3 target)
         {
             if (source == null || !target.IsValid())
+            {
                 return 0;
-            return Geometry.AngleBetween(Geometry.Perpendicular(Geometry.To2D(source.Direction)), Geometry.To2D(target - source.Position));;
+            }
+            return Geometry.AngleBetween(
+                Geometry.Perpendicular(Geometry.To2D(source.Direction)), Geometry.To2D(target - source.Position));
+            ;
         }
+
         public static bool CheckCriticalBuffs(Obj_AI_Hero i)
         {
             foreach (BuffInstance buff in i.Buffs)
@@ -309,6 +342,7 @@ namespace UnderratedAIO.Helpers
             }
             return false;
         }
+
         public static bool CheckBuffs(Obj_AI_Hero i)
         {
             foreach (BuffInstance buff in i.Buffs)
@@ -328,6 +362,7 @@ namespace UnderratedAIO.Helpers
             }
             return false;
         }
+
         public static float getIncDmg()
         {
             double result = 0;
@@ -607,6 +642,7 @@ namespace UnderratedAIO.Helpers
             }
             return false;
         }
+
         public static bool isTargetedCC(string Spellname)
         {
             return TargetedCC.Contains(Spellname);
@@ -622,15 +658,17 @@ namespace UnderratedAIO.Helpers
             }
             return false;
         }
+
         public static bool IsPossibleToReachHim2(Obj_AI_Hero target, float moveSpeedBuff, float duration)
         {
             var distance = player.Distance(target);
-            if (player.MoveSpeed*(1+moveSpeedBuff)*duration > distance)
+            if (player.MoveSpeed * (1 + moveSpeedBuff) * duration > distance)
             {
                 return true;
             }
             return false;
         }
+
         public static bool IsAutoattack(string spellName)
         {
             if (autoAttacks.Contains(spellName))
@@ -641,5 +679,14 @@ namespace UnderratedAIO.Helpers
         }
 
         #endregion
+
+        internal static int CountEnemiesInRangeAfterTime(Vector3 pos, float range, float delay, bool nowToo)
+        {
+            var enemies = (from h in HeroManager.Enemies
+                let pred = Prediction.GetPrediction(h, delay)
+                where pred.UnitPosition.Distance(pos) < range
+                select h);
+            return nowToo ? enemies.Count(h => h.Distance(pos) < range) : enemies.Count();
+        }
     }
 }
