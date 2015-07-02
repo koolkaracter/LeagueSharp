@@ -369,8 +369,8 @@ namespace UnderratedAIO.Champions
                         enemy.IsValidTarget() && enemy.Distance(player) < 200 &&
                         CombatHelper.IsFacing(enemy, player.Position, 90f) &&
                         !CombatHelper.IsFacing(player, enemy.Position, 90f) && player.IsMoving && enemy.IsMoving);
-            if (config.Item("useqH", true).GetValue<bool>() &&
-                (qTarget != null || target.HasBuff("poisontrailtarget") || player.Distance(target) <= 200))
+            if (config.Item("useq", true).GetValue<bool>() &&
+                (qTarget != null || target.HasBuff("poisontrailtarget") || player.Distance(target) <= 500))
             {
                 CastQ();
             }
