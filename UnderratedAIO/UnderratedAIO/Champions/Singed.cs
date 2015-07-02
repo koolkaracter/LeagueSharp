@@ -28,10 +28,6 @@ namespace UnderratedAIO.Champions
 
         public Singed()
         {
-            if (player.BaseSkinName != "Singed")
-            {
-                return;
-            }
             InitSinged();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Singed</font>");
@@ -63,21 +59,7 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
-        {
-            if (sender == null || !sender.Owner.IsMe || orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo)
-            {
-                return;
-            }
-            var target = (Obj_AI_Base) args.Target;
-            if (args.Slot == SpellSlot.E && target is Obj_AI_Hero && W.IsReady() && E.CanCast((Obj_AI_Base) args.Target) &&
-                config.Item("QwithE", true).GetValue<bool>() &&
-                target.Health > Q.GetDamage(target) * 3 + E.GetDamage(target))
-            {
-                args.Process = false;
-                W.Cast(args.Target.Position.Extend(player.Position, 515 + player.Distance(args.Target.Position)));
-            }
-        }
+        private void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args) {}
 
 
         private void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args)
@@ -285,15 +267,12 @@ namespace UnderratedAIO.Champions
         {
             float perc = config.Item("minmana", true).GetValue<Slider>().Value / 100f;
             var buff = Jungle.GetNearest(player.Position);
-            Console.WriteLine(1);
             if (buff != null && config.Item("useeLCsteal", true).GetValue<bool>() && E.IsReady())
             {
-                Console.WriteLine(2);
                 var dmg = new double[] { 50, 65, 80, 95, 110 }[E.Level] + 0.75 * player.FlatMagicDamageMod +
                           Math.Min(300, new double[] { 6, 6.5, 7, 7.5, 8 }[E.Level] / 100 * buff.MaxHealth);
                 if (E.CanCast(buff) && Damage.CalcDamage(player, buff, Damage.DamageType.Magical, dmg) > buff.Health)
                 {
-                    Console.WriteLine(3);
                     E.CastOnUnit(buff, config.Item("packets").GetValue<bool>());
                 }
             }
@@ -321,10 +300,9 @@ namespace UnderratedAIO.Champions
                         .OrderBy(m => m.Distance(player))
                         .FirstOrDefault();
 
-                if (mini != null && Orbwalking.CanMove(100))
+                if (mini != null && Orbwalking.CanMove(100) && player.Mana>30)
                 {
-                    player.IssueOrder(
-                        GameObjectOrder.MoveTo, player.Position.Extend(mini.Position, player.Distance(mini) + 100));
+                    player.IssueOrder(GameObjectOrder.MoveTo, player.Position.Extend(mini.Position, player.Distance(mini) + 100));
                 }
             }
         }
@@ -396,7 +374,7 @@ namespace UnderratedAIO.Champions
             {
                 CastQ();
             }
-            if (config.Item("usew", true).GetValue<bool>() && !config.Item("QwithE", true).GetValue<bool>() &&
+            if (config.Item("usew", true).GetValue<bool>() && !config.Item("WwithE", true).GetValue<bool>() &&
                 W.IsReady() && W.CanCast(target))
             {
                 var tarPered = W.GetPrediction(target);
@@ -406,17 +384,13 @@ namespace UnderratedAIO.Champions
                     W.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
                 }
             }
-            if (config.Item("usee", true).GetValue<bool>() && E.IsReady() && E.CanCast(target))
-            {
-                E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
-            }
             if (R.IsReady() && config.Item("user", true).GetValue<bool>() &&
                 (((config.Item("rUnderHealt", true).GetValue<Slider>().Value > player.HealthPercent &&
-                  0 < player.CountEnemiesInRange(750)) ||
-                 config.Item("rMinEnemy", true).GetValue<Slider>().Value <= player.CountEnemiesInRange(750)) &&
-                (!config.Item("rkeepManaE", true).GetValue<bool>() ||
-                 (config.Item("rkeepManaE", true).GetValue<bool>() &&
-                  player.Mana - R.Instance.ManaCost > E.Instance.ManaCost))))
+                   0 < player.CountEnemiesInRange(750)) ||
+                  config.Item("rMinEnemy", true).GetValue<Slider>().Value <= player.CountEnemiesInRange(750)) &&
+                 (!config.Item("rkeepManaE", true).GetValue<bool>() ||
+                  (config.Item("rkeepManaE", true).GetValue<bool>() &&
+                   player.Mana - R.Instance.ManaCost > E.Instance.ManaCost))))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -425,6 +399,26 @@ namespace UnderratedAIO.Champions
             if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > target.Health && hasIgnite)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
+            }
+            if (E.IsReady() && config.Item("usee", true).GetValue<bool>())
+            {
+                Orbwalking.Attack = false;  
+            }
+            var throwPos = target.Position.Extend(player.Position, 500);
+            if (config.Item("usee", true).GetValue<bool>() && E.IsReady() && E.CanCast(target) &&
+                ((throwPos.CountAlliesInRange(700) > target.CountAlliesInRange(700) &&
+                  HeroManager.Allies.FirstOrDefault(a => a.Distance(throwPos) < 700 && a.HealthPercent < 25) == null) ||
+                 W.GetDamage(target) > target.Health || !target.HasBuff("poisontrailtarget") || config.Item("WwithE", true).GetValue<bool>()))
+            {
+                var pos = Prediction.GetPrediction(target, W.Delay/2).UnitPosition.Extend(player.Position, 515 + player.Distance(target.Position));
+                if (config.Item("WwithE", true).GetValue<bool>() && W.IsReady() &&
+                    player.Mana > E.Instance.ManaCost + W.Instance.ManaCost + 15 &&
+                    !pos.IsWall() && target.Health>E.GetDamage(target)+Q.GetDamage(target))
+                {
+                    W.Cast(pos);
+                    return;
+                }
+                E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -496,7 +490,7 @@ namespace UnderratedAIO.Champions
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(false);
-            menuC.AddItem(new MenuItem("QwithE", " W to snare only", true)).SetValue(false);
+            menuC.AddItem(new MenuItem("WwithE", "   W+E combo", true)).SetValue(false);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(false);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("rUnderHealt", "   Under health", true)).SetValue(new Slider(60, 0, 100));
