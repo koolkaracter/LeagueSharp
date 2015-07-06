@@ -634,7 +634,7 @@ namespace RandomUlt.Helpers
                 {
                     dmg = dmg * 2;
                 }
-                if (dmg * 0.7 - 10 - bonuShieldNearTowers > target.Health)
+                if (dmg * 0.8 - 10 - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
