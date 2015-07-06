@@ -87,6 +87,10 @@ namespace RandomUlt.Helpers
                 {
                     config.AddItem(new MenuItem("XerathUlts", "Xerath ults to damage")).SetValue(new Slider(2, 1, 3));
                 }
+                if (player.ChampionName == "Draven")
+                {
+                    config.AddItem(new MenuItem("Backdamage", "Count second hit")).SetValue(false);
+                }
                 config.AddItem(new MenuItem("Hitchance", "Hitchance")).SetValue(new Slider(3, 1, 5));
                 config.AddItem(new MenuItem("Info ", "--5 is the highest chance to hit"));
                 Menu DontUlt = new Menu("Don't Ult", "DontUltRandomUlt");
@@ -617,9 +621,20 @@ namespace RandomUlt.Helpers
             {
                 bonuShieldNearTowers = 300f;
             }
-            if (player.ChampionName == "Ezreal" || player.ChampionName == "Draven")
+            if (player.ChampionName == "Ezreal")
             {
-                if (dmg * 0.7 - 50 - bonuShieldNearTowers > target.Health)
+                if (dmg * 0.7 - 10 - bonuShieldNearTowers > target.Health)
+                {
+                    return true;
+                }
+            }
+            if (player.ChampionName == "Draven")
+            {
+                if (configMenu.Item("Backdamage").GetValue<bool>())
+                {
+                    dmg = dmg * 2;
+                }
+                if (dmg * 0.7 - 10 - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
