@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing.Text;
 using System.Linq;
 using Color = System.Drawing.Color;
@@ -87,7 +88,7 @@ namespace UnderratedAIO.Champions
             W.SetSkillshot(0.25f, 80f, 1600f, false, SkillshotType.SkillshotLine);
             E = new Spell(SpellSlot.E, 450);
             R = new Spell(SpellSlot.R, 2000);
-            R.SetSkillshot(1f, 160f, 2000f, false, SkillshotType.SkillshotLine);
+            R.SetSkillshot(1.2f, 160f, 2000f, false, SkillshotType.SkillshotLine);
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -116,8 +117,7 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("EzAutoQ", true).GetValue<KeyBind>().Active && Q.IsReady() &&
                 config.Item("EzminmanaaQ", true).GetValue<Slider>().Value < player.ManaPercent &&
-                orbwalker.ActiveMode!=Orbwalking.OrbwalkingMode.Combo &&
-                Orbwalking.CanMove(100))
+                orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo && Orbwalking.CanMove(100))
             {
                 Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
                 if (target != null && Q.CanCast(target) && target.IsValidTarget())
@@ -195,7 +195,7 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+            Obj_AI_Hero target=getTarget();
             Obj_AI_Hero Rtarget = TargetSelector.GetTarget(2000, TargetSelector.DamageType.Magical);
             if (target == null)
             {
@@ -236,9 +236,7 @@ namespace UnderratedAIO.Champions
                     config.Item("usermin", true).GetValue<Slider>().Value < dist && 3000 > dist &&
                     Rtarget.Health < R.GetDamage(Rtarget) * 0.7 && target.CountAlliesInRange(600) < 1)
                 {
-                    var time = player.Distance(Rtarget) / R.Speed + 1000;
-                    var tarPered = Prediction.GetPrediction(Rtarget, time);
-                    R.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
+                    R.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
                 }
                 if (target.CountAlliesInRange(700) > 0)
                 {
@@ -281,6 +279,22 @@ namespace UnderratedAIO.Champions
                 !justJumped)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
+            }
+        }
+
+        private Obj_AI_Hero getTarget()
+        {
+            switch (config.Item("DmgType", true).GetValue<StringList>().SelectedIndex)
+            {
+                case 0:
+                    return TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+                    break;
+                case 1:
+                    return TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
+                    break;
+                default:
+                    return TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+                    break;
             }
         }
 
@@ -473,12 +487,15 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
+            menuM.AddItem(new MenuItem("DmgType", "Damage Type", true))
+                .SetValue(new StringList(new[] { "AP", "AD" }, 0));
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);
             Menu autoQ = new Menu("Auto Harass", "autoQ");
             autoQ.AddItem(
-                new MenuItem("EzAutoQ", "Auto Q toggle", true).SetShared().SetValue(new KeyBind('H', KeyBindType.Toggle)));
+                new MenuItem("EzAutoQ", "Auto Q toggle", true).SetShared()
+                    .SetValue(new KeyBind('H', KeyBindType.Toggle)));
             autoQ.AddItem(new MenuItem("EzminmanaaQ", "Keep X% mana", true)).SetValue(new Slider(40, 1, 100));
             autoQ.AddItem(new MenuItem("qHit", "Q hitChance", true).SetValue(new Slider(4, 1, 4)));
             autoQ.AddItem(new MenuItem("ShowState", "Show always", true)).SetValue(true);
