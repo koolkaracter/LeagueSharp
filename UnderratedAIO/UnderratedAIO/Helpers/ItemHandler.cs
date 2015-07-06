@@ -614,7 +614,7 @@ namespace UnderratedAIO.Helpers
         private static void Game_OnGameUpdate(EventArgs args)
         {
             var deltaT = System.Environment.TickCount - MuramanaTime;
-            if (MuramanaEnabled && deltaT > 500 && deltaT < 1000)
+            if (MuramanaEnabled && ((deltaT > 500 && deltaT < 1000) || player.InFountain()))
             {
                 if (Muramana.IsOwned() && Muramana.IsReady())
                 {
