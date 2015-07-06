@@ -113,14 +113,26 @@ namespace UnderratedAIO.Champions
             }
         }
 
+        private void LastHit()
+        {
+            if (config.Item("useqLH", true).GetValue<bool>())
+            {
+                LastHitQ();
+            }
+            var targetW =
+                MinionManager.GetMinions(W.Range)
+                    .FirstOrDefault(
+                        m =>
+                            m.IsEnemy && m.HasBuff("kennenmarkofstorm") && m.Health < W.GetDamage(m, 1) &&
+                            player.Distance(m) < W.Range);
+            if (config.Item("usewLH", true).GetValue<bool>() && W.IsReady() && targetW != null)
+            {
+                W.Cast(config.Item("packets").GetValue<bool>());
+            }
+        }
+
         private void Clear()
         {
-            var targetQ =
-                ObjectManager.Get<Obj_AI_Base>()
-                    .Where(m => m.IsEnemy && Q.CanCast(m) && !(m is Obj_AI_Turret))
-                    .OrderBy(m => Q.GetDamage(m) < m.Health)
-                    .ThenByDescending(m => m.Health)
-                    .FirstOrDefault();
             var targetW =
                 ObjectManager.Get<Obj_AI_Base>()
                     .Where(m => m.IsEnemy && player.Distance(m) < W.Range && m.HasBuff("kennenmarkofstorm"));
@@ -140,9 +152,9 @@ namespace UnderratedAIO.Champions
                 E.Cast(config.Item("packets").GetValue<bool>());
                 return;
             }
-            if (config.Item("useqClear", true).GetValue<bool>() && Q.CanCast(targetQ) && !targetQ.IsDashing())
+            if (config.Item("useqClear", true).GetValue<bool>() && Q.IsReady())
             {
-                Q.Cast(targetQ, config.Item("packets").GetValue<bool>());
+                LastHitQ();
             }
             if (W.IsReady() && targetW.Count() >= config.Item("minw", true).GetValue<Slider>().Value &&
                 !player.HasBuff("KennenLightningRush"))
@@ -157,54 +169,42 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private void LastHit()
+        private void LastHitQ()
         {
-            var targetW =
-                MinionManager.GetMinions(W.Range)
-                    .FirstOrDefault(
+            var targetQ =
+                MinionManager.GetMinions(Q.Range)
+                    .Where(
                         m =>
-                            m.IsEnemy && m.HasBuff("kennenmarkofstorm") && m.Health < W.GetDamage(m, 1) &&
-                            player.Distance(m) < W.Range);
-
-
-            if (config.Item("useqLH", true).GetValue<bool>())
+                            m.IsEnemy && m.Health < Q.GetDamage(m) && Q.CanCast(m) &&
+                            HealthPrediction.GetHealthPrediction(m, (int) (player.Distance(m) / Q.Speed * 1000)) > 0);
+            if (targetQ != null && LastAttackedminiMinion != null)
             {
-                var targetQ =
-                    MinionManager.GetMinions(Q.Range)
-                        .Where(
-                            m =>
-                                m.IsEnemy && m.Health < Q.GetDamage(m) && Q.CanCast(m) &&
-                                HealthPrediction.GetHealthPrediction(m, (int) (player.Distance(m) / Q.Speed * 1000)) > 0);
-                if (targetQ != null && LastAttackedminiMinion != null)
+                foreach (var target in
+                    targetQ.Where(
+                        m =>
+                            m.NetworkId != LastAttackedminiMinion.NetworkId ||
+                            (m.NetworkId == LastAttackedminiMinion.NetworkId &&
+                             Utils.GameTimeTickCount - LastAttackedminiMinionTime > 700)))
                 {
-                    foreach (var target in
-                        targetQ.Where(
-                            m =>
-                                m.NetworkId != LastAttackedminiMinion.NetworkId ||
-                                (m.NetworkId == LastAttackedminiMinion.NetworkId &&
-                                 Utils.GameTimeTickCount - LastAttackedminiMinionTime > 700)))
+                    if (target.Distance(player) < Orbwalking.GetRealAutoAttackRange(player) && !Orbwalking.CanAttack() &&
+                        Orbwalking.CanMove(100))
                     {
-                        if (target.Distance(player) < Orbwalking.GetRealAutoAttackRange(player) &&
-                            !Orbwalking.CanAttack() && Orbwalking.CanMove(100))
-                        {
-                            Q.Cast(target, config.Item("packets").GetValue<bool>());
-                        }
-                        else if (target.Distance(player) > Orbwalking.GetRealAutoAttackRange(player))
-                        {
-                            Q.Cast(target, config.Item("packets").GetValue<bool>());
-                        }
+                        Q.Cast(target, config.Item("packets").GetValue<bool>());
+                    }
+                    else if (target.Distance(player) > Orbwalking.GetRealAutoAttackRange(player))
+                    {
+                        Q.Cast(target, config.Item("packets").GetValue<bool>());
                     }
                 }
-            }
-            if (config.Item("usewLH", true).GetValue<bool>() && W.IsReady() && targetW != null)
-            {
-                W.Cast(config.Item("packets").GetValue<bool>());
             }
         }
 
         private void Harass()
         {
-            LastHit();
+            if (config.Item("useqLH", true).GetValue<bool>() && Q.IsReady())
+            {
+                LastHitQ();
+            }
             Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
             if (target == null)
             {
@@ -391,8 +391,8 @@ namespace UnderratedAIO.Champions
             menuClear.AddItem(new MenuItem("minw", "Min to W", true)).SetValue(new Slider(3, 1, 8));
             menuClear.AddItem(new MenuItem("useeClear", "Use E", true)).SetValue(true);
             config.AddSubMenu(menuClear);
-            // LastHit Settings
-            Menu menuLH = new Menu("LastHit ", "Lcsettings");
+            // LastHitQ Settings
+            Menu menuLH = new Menu("LastHitQ ", "Lcsettings");
             menuLH.AddItem(new MenuItem("useqLH", "Use Q", true)).SetValue(true);
             menuLH.AddItem(new MenuItem("usewLH", "Use W", true)).SetValue(true);
             config.AddSubMenu(menuLH);
