@@ -37,7 +37,6 @@ namespace UnderratedAIO.Champions
             {
                 orbwalker.Enabled = false;
             }
-
             if (config.Item("Enabledcomm").GetValue<bool>())
             {
                 autoLeveler.enabled = true;
@@ -68,7 +67,6 @@ namespace UnderratedAIO.Champions
                 
             }
         }
-
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(900, TargetSelector.DamageType.Physical);

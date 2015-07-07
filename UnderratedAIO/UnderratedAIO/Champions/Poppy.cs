@@ -22,10 +22,6 @@ namespace UnderratedAIO.Champions
 
         public Poppy()
         {
-            if (player.BaseSkinName != "Poppy")
-            {
-                return;
-            }
             Initpoppy();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Poppy</font>");

@@ -23,10 +23,6 @@ namespace UnderratedAIO.Champions
 
         public Nocturne()
         {
-            if (player.BaseSkinName != "Nocturne")
-            {
-                return;
-            }
             InitNocturne();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Nocturne</font>");
@@ -34,7 +30,7 @@ namespace UnderratedAIO.Champions
             Game.OnUpdate += Game_OnGameUpdate;
             Helpers.Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
-            Obj_AI_Hero.OnProcessSpellCast+=Obj_AI_Hero_OnProcessSpellCast;
+            Obj_AI_Base.OnProcessSpellCast+=Obj_AI_Hero_OnProcessSpellCast;
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -216,6 +212,10 @@ namespace UnderratedAIO.Champions
 
         private void Obj_AI_Hero_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
         {
+            if (!(sender is Obj_AI_Base))
+            {
+                return;
+            }
             if (config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
                 W.IsReady())
             {

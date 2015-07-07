@@ -25,7 +25,6 @@ namespace UnderratedAIO.Champions
 
         public Volibear()
         {
-            if (player.BaseSkinName != "Volibear") return;
             InitVolibear();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Volibear</font>");

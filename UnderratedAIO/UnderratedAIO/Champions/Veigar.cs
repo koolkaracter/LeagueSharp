@@ -27,10 +27,6 @@ namespace UnderratedAIO.Champions
         public Obj_AI_Hero IgniteTarget;
         public Veigar()
         {
-            if (player.BaseSkinName != "Veigar")
-            {
-                return;
-            }
             InitVeigar();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Veigar</font>");
@@ -413,7 +409,6 @@ namespace UnderratedAIO.Champions
                 Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
             }
         }
-
         private void LastHitQ(bool auto = false)
         {
             if (!Q.IsReady())

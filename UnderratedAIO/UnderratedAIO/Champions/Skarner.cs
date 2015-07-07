@@ -20,10 +20,6 @@ namespace UnderratedAIO.Champions
 
         public Skarner()
         {
-            if (player.BaseSkinName != "Skarner")
-            {
-                return;
-            }
             InitSkarner();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Skarner</font>");
@@ -125,7 +121,7 @@ namespace UnderratedAIO.Champions
                 E.Cast(bestPositionE.Position, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("useqLC").GetValue<bool>() && Q.IsReady() &&
-                qMinions >= config.Item("qhitLC").GetValue<Slider>().Value)
+                qMinions >= config.Item("qhitLC").GetValue<Slider>().Value && Orbwalking.CanMove(100))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }

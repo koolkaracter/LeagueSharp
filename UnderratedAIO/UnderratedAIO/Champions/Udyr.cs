@@ -36,10 +36,6 @@ namespace UnderratedAIO.Champions
 
         public Udyr()
         {
-            if (player.BaseSkinName != "Udyr")
-            {
-                return;
-            }
             InitUdyr();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Udyr</font>");
@@ -108,6 +104,10 @@ namespace UnderratedAIO.Champions
                         stance = Stance.Phoenix;
                         break;
                 }
+            }
+            if (!(sender is Obj_AI_Base))
+            {
+                return;
             }
             Obj_AI_Hero target = args.Target as Obj_AI_Hero;
             if (target != null)

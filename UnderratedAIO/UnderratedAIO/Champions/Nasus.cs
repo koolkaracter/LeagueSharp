@@ -20,10 +20,6 @@ namespace UnderratedAIO.Champions
 
         public Nasus()
         {
-            if (player.BaseSkinName != "Nasus")
-            {
-                return;
-            }
             InitNocturne();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Nasus</font>");

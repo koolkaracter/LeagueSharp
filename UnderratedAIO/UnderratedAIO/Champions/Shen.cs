@@ -463,6 +463,10 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+            if (!(sender is Obj_AI_Base))
+            {
+                return;
+            }
             Obj_AI_Hero target = args.Target as Obj_AI_Hero;
             if (target != null && target.IsMe)
             {
