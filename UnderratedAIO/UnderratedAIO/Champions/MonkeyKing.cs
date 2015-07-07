@@ -103,7 +103,7 @@ namespace UnderratedAIO.Champions
             {
                 Orbwalking.Attack = true;
             }
-            if (rActive)
+            if (rActive && Game.CursorPos.CountEnemiesInRange(300)>1)
             {
                 Obj_AI_Hero target = TargetSelector.GetTarget(
                     E.Range, TargetSelector.DamageType.Physical, true, HeroManager.Enemies.Where(h => h.IsInvulnerable));
@@ -224,7 +224,7 @@ namespace UnderratedAIO.Champions
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
-                !CombatHelper.CheckCriticalBuffs(target) && !E.CanCast(target) && !justQ && !justE && !rActive && (target.Distance(player)>500 || player.HealthPercent<20))
+                !CombatHelper.CheckCriticalBuffs(target) && !E.CanCast(target) && !justQ && !justE && (target.Distance(player)>500 || player.HealthPercent<20))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
@@ -242,7 +242,7 @@ namespace UnderratedAIO.Champions
                 Q.Cast(config.Item("packets").GetValue<bool>());
                 player.IssueOrder(GameObjectOrder.AutoAttack, target);
             }
-            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && !canKill &&
+            if (config.Item("usew", true).GetValue<bool>() && !player.UnderTurret(true) && W.IsReady() && !canKill &&
                 ((!Q.IsReady() && !E.IsReady() && target.HealthPercent > 20 &&
                   config.Item("wHealth", true).GetValue<Slider>().Value > player.HealthPercent) ||
                  (config.Item("wOnFocus", true).GetValue<bool>() && Aggro)))
