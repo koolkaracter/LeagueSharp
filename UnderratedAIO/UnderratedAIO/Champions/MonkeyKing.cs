@@ -22,9 +22,10 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public bool justQ, justE, Aggro;
+        public bool justQ, justE, Aggro, justW;
         public static float DamageTaken, DamageTakenTime;
         public static int DamageCount, DamageTakenLastId;
+        public List<int> aggroList = new List<int>();
 
         public MonkeyKing()
         {
@@ -38,7 +39,17 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
             Orbwalking.AfterAttack += Orbwalking_AfterAttack;
+            Obj_AI_Hero.OnAggro += Obj_AI_Hero_OnAggro;
         }
+
+        private void Obj_AI_Hero_OnAggro(Obj_AI_Base sender, GameObjectAggroEventArgs args)
+        {
+            if (sender.IsEnemy && args.NetworkId == player.NetworkId && !aggroList.Contains(sender.NetworkId))
+            {
+                aggroList.Add(sender.NetworkId);
+            }
+        }
+
 
         private void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target)
         {
@@ -95,7 +106,7 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            if ((wActive && (!Q.IsReady() || Aggro)) || rActive)
+            if ((wActive && (!Q.IsReady() || Aggro || justW)) || rActive)
             {
                 Orbwalking.Attack = false;
             }
@@ -130,7 +141,8 @@ namespace UnderratedAIO.Champions
                                     .FirstOrDefault();
                             break;
                     }
-                    if (player.Distance(point) > 10)
+                    if (player.Distance(point) > 10 &&
+                        point.CountEnemiesInRange(R.Range) > player.CountEnemiesInRange(R.Range))
                     {
                         player.IssueOrder(GameObjectOrder.MoveTo, point);
                     }
@@ -140,7 +152,7 @@ namespace UnderratedAIO.Champions
             {
                 orbwalker.SetMovement(true);
             }
-            if (W.IsReady() && !Aggro && DamageTaken > 60 && DamageCount >= 3)
+            if (W.IsReady() && !Aggro && ((DamageTaken > 60 && DamageCount >= 3) || aggroList.Count >= 3))
             {
                 Aggro = true;
                 Utility.DelayAction.Add(800, () => Aggro = false);
@@ -150,6 +162,7 @@ namespace UnderratedAIO.Champions
                 DamageTakenTime = System.Environment.TickCount;
                 DamageTaken = 0f;
                 DamageCount = 0;
+                aggroList.Clear();
             }
             switch (orbwalker.ActiveMode)
             {
@@ -225,7 +238,7 @@ namespace UnderratedAIO.Champions
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
                 !CombatHelper.CheckCriticalBuffs(target) && !E.CanCast(target) && !justQ && !justE &&
-                (target.Distance(player) > 500 || player.HealthPercent < 20))
+                (target.Distance(player) > 500 || player.HealthPercent < 25))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
@@ -266,7 +279,8 @@ namespace UnderratedAIO.Champions
                 ItemHandler.UseItems(target, config);
             }
             if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target) &&
-                config.Item("eMinRange", true).GetValue<Slider>().Value < player.Distance(target))
+                (config.Item("eMinRange", true).GetValue<Slider>().Value < player.Distance(target) ||
+                 player.HealthPercent < 20))
             {
                 E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
@@ -338,8 +352,13 @@ namespace UnderratedAIO.Champions
                 justE = true;
                 Utility.DelayAction.Add(500, () => justE = false);
             }
+            if (sender.IsMe && args.SData.Name == "MonkeyKingDecoy")
+            {
+                justW = true;
+                Utility.DelayAction.Add(config.Item("wMinTime", true).GetValue<Slider>().Value, () => justW = false);
+            }
             Obj_AI_Hero target = args.Target as Obj_AI_Hero;
-            if (target != null && target.IsAlly)
+            if (target != null && target.IsMe)
             {
                 if (sender.IsValid && !sender.IsDead && sender.IsEnemy)
                 {
@@ -379,6 +398,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
             menuC.AddItem(new MenuItem("wHealth", "   Under health", true)).SetValue(new Slider(50, 0, 100));
             menuC.AddItem(new MenuItem("wOnFocus", "   On focus", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("wMinTime", "   Min time(ms)", true)).SetValue(new Slider(800, 0, 1500));
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("eMinRange", "   Min range", true)).SetValue(new Slider(400, 0, (int) E.Range));
             menuC.AddItem(new MenuItem("userone", "Use R", true)).SetValue(true);
