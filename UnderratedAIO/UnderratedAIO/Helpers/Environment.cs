@@ -135,6 +135,11 @@ namespace UnderratedAIO.Helpers
                 }
                 return (float) basicDmg;
             }
+
+            public static int getSpellDelay(Spell spell, Vector3 pos)
+            {
+                return (int)(spell.Delay * 1000 + player.Distance(pos) / spell.Speed);
+            }
         }
 
         public class Turret

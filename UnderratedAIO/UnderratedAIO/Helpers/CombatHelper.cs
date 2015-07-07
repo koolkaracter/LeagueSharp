@@ -678,6 +678,23 @@ namespace UnderratedAIO.Helpers
             return false;
         }
 
+        public static bool CheckInterrupt(Vector3 pos, float range)
+        {
+            return
+                !HeroManager.Enemies.Any(
+                    e =>
+                        e.Distance(pos) < range &&
+                        (e.HasBuff("GarenQ") || e.HasBuff("powerfist") || e.HasBuff("JaxCounterStrike") ||
+                         e.HasBuff("PowerBall") || e.HasBuff("renektonpreexecute") || e.HasBuff("xenzhaocombotarget") ||
+                         (e.HasBuff("UdyrBearStance") && !player.HasBuff("UdyrBearStunCheck"))));
+        }
+
+        public static float GetBuffTime(BuffInstance buff)
+        {
+            return (float) Math.Floor(buff.EndTime - Game.ClockTime);
+        }
+        
+
         #endregion
 
         internal static int CountEnemiesInRangeAfterTime(Vector3 pos, float range, float delay, bool nowToo)
