@@ -22,10 +22,6 @@ namespace UnderratedAIO.Champions
 
         public Fiora()
         {
-            if (player.BaseSkinName != "Fiora")
-            {
-                return;
-            }
             InitFiora();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Fiora</font>");
@@ -68,15 +64,15 @@ namespace UnderratedAIO.Champions
             bool rapid = player.GetAutoAttackDamage(targ) * 6 + ComboDamage(targ) > targ.Health ||
                          (player.Health < targ.Health && player.Health < player.MaxHealth / 2);
             if (unit.IsMe && E.IsReady() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
-                (config.Item("usee").GetValue<bool>() ||
-                 (unit.IsMe && config.Item("RapidAttack").GetValue<KeyBind>().Active || rapid)) &&
+                (config.Item("usee", true).GetValue<bool>() ||
+                 (unit.IsMe && config.Item("RapidAttack", true).GetValue<KeyBind>().Active || rapid)) &&
                 !Orbwalking.CanAttack())
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
                 Orbwalking.ResetAutoAttackTimer();
             }
             if (unit.IsMe && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
-                (config.Item("RapidAttack").GetValue<KeyBind>().Active || rapid) && !Orbwalking.CanAttack())
+                (config.Item("RapidAttack", true).GetValue<KeyBind>().Active || rapid) && !Orbwalking.CanAttack())
             {
                 if (Q.CanCast(targ))
                 {
@@ -98,14 +94,14 @@ namespace UnderratedAIO.Champions
                 ItemHandler.UseItems(target, config, ComboDamage(target));
             }
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("useq").GetValue<bool>() && Q.IsReady() && lastQ.Equals(0) && Orbwalking.CanMove(100))
+            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && lastQ.Equals(0) && Orbwalking.CanMove(100))
             {
                 if (target.Distance(player) < Q.Range)
                 {
                     Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                     lastQ = System.Environment.TickCount;
                 }
-                else if (config.Item("useqMini").GetValue<bool>())
+                else if (config.Item("useqMini", true).GetValue<bool>())
                 {
                     var mini =
                         MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
@@ -119,7 +115,7 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
-            if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && !lastQ.Equals(0) && Orbwalking.CanMove(100))
+            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && !lastQ.Equals(0) && Orbwalking.CanMove(100))
             {
                 var time = System.Environment.TickCount - lastQ;
                 if (time > 3500f || player.Distance(target) > Orbwalking.GetRealAutoAttackRange(player) ||
@@ -129,7 +125,7 @@ namespace UnderratedAIO.Champions
                     lastQ = 0;
                 }
             }
-            if (config.Item("user").GetValue<bool>() && R.CanCast(target) && ComboDamage(target) > target.Health * 1.3 &&
+            if (config.Item("user", true).GetValue<bool>() && R.CanCast(target) && ComboDamage(target) > target.Health * 1.3 &&
                 NeedToUlt(target))
             {
                 R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
@@ -168,11 +164,11 @@ namespace UnderratedAIO.Champions
             if (target != null &&
                 (W.IsReady() && target.IsMe &&
                  (Orbwalking.IsAutoAttack(spellName) || CombatHelper.IsAutoattack(spellName)) &&
-                 ((config.Item("usew").GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) ||
-                  config.Item("autoW").GetValue<bool>()) &&
+                 ((config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) ||
+                  config.Item("autoW", true).GetValue<bool>()) &&
                  !(hero is Obj_AI_Turret || hero.Name == "OdinNeutralGuardian") && player.Distance(hero) < 700))
             {
-                var perc = config.Item("minmanaP").GetValue<Slider>().Value / 100f;
+                var perc = config.Item("minmanaP", true).GetValue<Slider>().Value / 100f;
                 if (player.Mana > player.MaxMana * perc && hero.TotalAttackDamage > 50 &&
                     ((player.UnderTurret(true) && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) ||
                      !player.UnderTurret(true)))
@@ -180,7 +176,7 @@ namespace UnderratedAIO.Champions
                     W.Cast(config.Item("packets").GetValue<bool>());
                 }
             }
-            if (!config.Item("dodgeWithR").GetValue<bool>())
+            if (!config.Item("dodgeWithR", true).GetValue<bool>())
             {
                 return;
             }
@@ -239,7 +235,7 @@ namespace UnderratedAIO.Champions
 
         private void Clear()
         {
-            float perc = (float) config.Item("minmana").GetValue<Slider>().Value / 100f;
+            float perc = (float)config.Item("minmana", true).GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc)
             {
                 return;
@@ -250,11 +246,11 @@ namespace UnderratedAIO.Champions
                     .Where(i => i.Distance(player) < Q.Range && i.Health < Q.GetDamage(i))
                     .OrderByDescending(i => i.Distance(player))
                     .FirstOrDefault();
-            if (config.Item("useqLC").GetValue<bool>() && Q.CanCast(target))
+            if (config.Item("useqLC", true).GetValue<bool>() && Q.CanCast(target))
             {
                 Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("useeLC").GetValue<bool>() &&
+            if (config.Item("useeLC", true).GetValue<bool>() &&
                 Environment.Minion.countMinionsInrange(player.Position, Q.Range) > 3)
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
@@ -263,9 +259,9 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnDraw(EventArgs args)
         {
-            DrawHelper.DrawCircle(config.Item("drawaa").GetValue<Circle>(), player.AttackRange);
-            DrawHelper.DrawCircle(config.Item("drawqq").GetValue<Circle>(), Q.Range);
-            DrawHelper.DrawCircle(config.Item("drawrr").GetValue<Circle>(), R.Range);
+            DrawHelper.DrawCircle(config.Item("drawaa", true).GetValue<Circle>(), Orbwalking.GetRealAutoAttackRange(player));
+            DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), Q.Range);
+            DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), R.Range);
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
@@ -342,37 +338,37 @@ namespace UnderratedAIO.Champions
 
             // Draw settings
             Menu menuD = new Menu("Drawings ", "dsettings");
-            menuD.AddItem(new MenuItem("drawaa", "Draw AA range"))
+            menuD.AddItem(new MenuItem("drawaa", "Draw AA range", true))
                 .SetValue(new Circle(false, Color.FromArgb(180, 58, 100, 150)));
-            menuD.AddItem(new MenuItem("drawqq", "Draw Q range"))
+            menuD.AddItem(new MenuItem("drawqq", "Draw Q range", true))
                 .SetValue(new Circle(false, Color.FromArgb(180, 58, 100, 150)));
-            menuD.AddItem(new MenuItem("drawrr", "Draw R range"))
+            menuD.AddItem(new MenuItem("drawrr", "Draw R range", true))
                 .SetValue(new Circle(false, Color.FromArgb(180, 58, 100, 150)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage")).SetValue(true);
             config.AddSubMenu(menuD);
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
-            menuC.AddItem(new MenuItem("useq", "Use Q")).SetValue(true);
-            menuC.AddItem(new MenuItem("useqMini", "   Use to jump closer")).SetValue(true);
-            menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
-            menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
-            menuC.AddItem(new MenuItem("user", "R if killable")).SetValue(true);
-            menuC.AddItem(new MenuItem("RapidAttack", "Fast AA Combo"))
+            menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useqMini", "   Use to jump closer", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("user", "R if killable", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("RapidAttack", "Fast AA Combo", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Toggle));
-            menuC.AddItem(new MenuItem("dodgeWithR", "Dodge ults with R")).SetValue(true);
+            menuC.AddItem(new MenuItem("dodgeWithR", "Dodge ults with R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // LaneClear Settings
             Menu menuLC = new Menu("LaneClear ", "Lcsettings");
-            menuLC.AddItem(new MenuItem("useqLC", "Use Q")).SetValue(true);
-            menuLC.AddItem(new MenuItem("useeLC", "Use E")).SetValue(true);
-            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
+            menuLC.AddItem(new MenuItem("useqLC", "Use Q", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("useeLC", "Use E", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLC);
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");
-            menuM.AddItem(new MenuItem("autoW", "Auto W AA")).SetValue(true);
-            menuM.AddItem(new MenuItem("minmanaP", "Min mana percent")).SetValue(new Slider(1, 1, 100));
+            menuM.AddItem(new MenuItem("autoW", "Auto W AA", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("minmanaP", "Min mana percent", true)).SetValue(new Slider(1, 1, 100));
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
 

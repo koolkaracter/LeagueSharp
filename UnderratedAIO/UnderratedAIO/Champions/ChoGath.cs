@@ -23,10 +23,6 @@ namespace UnderratedAIO.Champions
 
         public Chogath()
         {
-            if (player.BaseSkinName != "Chogath")
-            {
-                return;
-            }
             InitChoGath();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Cho'Gath</font>");
@@ -172,7 +168,7 @@ namespace UnderratedAIO.Champions
                 MinionManager.FarmLocation bestPositionW = W.GetLineFarmLocation(minionsForW);
                 if (bestPositionW.Position.IsValid())
                 {
-                    if (bestPositionW.MinionsHit > config.Item("whitLC", true).GetValue<Slider>().Value)
+                    if (bestPositionW.MinionsHit >= config.Item("whitLC", true).GetValue<Slider>().Value)
                     {
                         W.Cast(bestPositionW.Position, config.Item("packets").GetValue<bool>());
                     }

@@ -22,10 +22,6 @@ namespace UnderratedAIO.Champions
 
         public Evelynn()
         {
-            if (player.BaseSkinName != "Evelynn")
-            {
-                return;
-            }
             InitEvelynn();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Evelynn</font>");

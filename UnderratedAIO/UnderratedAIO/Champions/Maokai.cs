@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Color = System.Drawing.Color;
-
 using LeagueSharp;
 using LeagueSharp.Common;
-
 using UnderratedAIO.Helpers;
 using Environment = UnderratedAIO.Helpers.Environment;
 using Orbwalking = UnderratedAIO.Helpers.Orbwalking;
@@ -13,7 +11,7 @@ using Orbwalking = UnderratedAIO.Helpers.Orbwalking;
 
 namespace UnderratedAIO.Champions
 {
-    class Maokai
+    internal class Maokai
     {
         public static Menu config;
         public static Orbwalking.Orbwalker orbwalker;
@@ -24,7 +22,6 @@ namespace UnderratedAIO.Champions
 
         public Maokai()
         {
-            if (player.BaseSkinName != "Maokai") return;
             InitMao();
             InitMenu();
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- Maokai</font>");
@@ -38,67 +35,71 @@ namespace UnderratedAIO.Champions
 
         private void OnPossibleToInterrupt(Obj_AI_Hero sender, Interrupter2.InterruptableTargetEventArgs args)
         {
-            if (config.Item("useQint").GetValue<bool>())
+            if (config.Item("useQint", true).GetValue<bool>())
             {
-                if (Qint.CanCast(sender)) Q.Cast(sender, config.Item("packets").GetValue<bool>());
+                if (Qint.CanCast(sender))
+                {
+                    Q.Cast(sender, config.Item("packets").GetValue<bool>());
+                }
             }
         }
 
         private void OnEnemyGapcloser(ActiveGapcloser gapcloser)
         {
-            if (config.Item("useQgc").GetValue<bool>())
+            if (config.Item("useQgc", true).GetValue<bool>())
             {
-                if (gapcloser.Sender.IsValidTarget(Qint.Range) && Q.IsReady()) Q.Cast(gapcloser.End, config.Item("packets").GetValue<bool>());
+                if (gapcloser.Sender.IsValidTarget(Qint.Range) && Q.IsReady())
+                {
+                    Q.Cast(gapcloser.End, config.Item("packets").GetValue<bool>());
+                }
             }
         }
+
         private static bool maoR
         {
-            get
-            { return player.Buffs.Any(buff => buff.Name == "MaokaiDrain3"); }
+            get { return player.Buffs.Any(buff => buff.Name == "MaokaiDrain3"); }
         }
+
         private static int maoRStack
         {
-            get
-            {
-                return R.Instance.Ammo;
-            }
+            get { return R.Instance.Ammo; }
         }
+
         private void Game_OnGameUpdate(EventArgs args)
         {
-                switch (orbwalker.ActiveMode)
-                {
-                    case Orbwalking.OrbwalkingMode.Combo:
-                        Combo();
-                        break;
-                    case Orbwalking.OrbwalkingMode.Mixed:
-                            Harass();
-                        break;
-                    case Orbwalking.OrbwalkingMode.LaneClear:
-                            Clear();
-                        break;
-                    case Orbwalking.OrbwalkingMode.LastHit:
-                        break;
-                    default:
-                        break;
-                }
-                AutoE();
-                Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-                if (config.Item("QSSEnabled").GetValue<bool>()) ItemHandler.UseCleanse(config);
-            
+            switch (orbwalker.ActiveMode)
+            {
+                case Orbwalking.OrbwalkingMode.Combo:
+                    Combo();
+                    break;
+                case Orbwalking.OrbwalkingMode.Mixed:
+                    Harass();
+                    break;
+                case Orbwalking.OrbwalkingMode.LaneClear:
+                    Clear();
+                    break;
+                case Orbwalking.OrbwalkingMode.LastHit:
+                    break;
+                default:
+                    break;
+            }
+            AutoE();
+            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            if (config.Item("QSSEnabled").GetValue<bool>())
+            {
+                ItemHandler.UseCleanse(config);
+            }
         }
 
         private void AutoE()
         {
-            if (config.Item("autoe").GetValue<bool>() && E.IsReady())
+            if (config.Item("autoe", true).GetValue<bool>() && E.IsReady())
             {
                 Obj_AI_Hero target = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Magical);
                 if (E.CanCast(target) &&
-                    (target.HasBuff("zhonyasringshield") || 
-                     target.HasBuffOfType(BuffType.Snare) ||
-                     target.HasBuffOfType(BuffType.Taunt) || 
-                     target.HasBuffOfType(BuffType.Stun) ||
-                     target.HasBuffOfType(BuffType.Suppression) ||
-                     target.HasBuffOfType(BuffType.Fear)))
+                    (target.HasBuff("zhonyasringshield") || target.HasBuffOfType(BuffType.Snare) ||
+                     target.HasBuffOfType(BuffType.Taunt) || target.HasBuffOfType(BuffType.Stun) ||
+                     target.HasBuffOfType(BuffType.Suppression) || target.HasBuffOfType(BuffType.Fear)))
                 {
                     E.Cast(target);
                 }
@@ -107,15 +108,22 @@ namespace UnderratedAIO.Champions
 
         private void Clear()
         {
-            float perc = config.Item("minmana").GetValue<Slider>().Value / 100f;
-            if (player.Mana < player.MaxMana * perc) return;
-            MinionManager.FarmLocation bestPositionE = E.GetCircularFarmLocation(MinionManager.GetMinions(E.Range, MinionTypes.All, MinionTeam.NotAlly));
-            MinionManager.FarmLocation bestPositionQ = Q.GetLineFarmLocation(MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly));
-            if (config.Item("useeLC").GetValue<bool>() && E.IsReady() && bestPositionE.MinionsHit > config.Item("ehitLC").GetValue<Slider>().Value)
+            float perc = config.Item("minmana", true).GetValue<Slider>().Value / 100f;
+            if (player.Mana < player.MaxMana * perc)
+            {
+                return;
+            }
+            MinionManager.FarmLocation bestPositionE =
+                E.GetCircularFarmLocation(MinionManager.GetMinions(E.Range, MinionTypes.All, MinionTeam.NotAlly));
+            MinionManager.FarmLocation bestPositionQ =
+                Q.GetLineFarmLocation(MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly));
+            if (config.Item("useeLC", true).GetValue<bool>() && E.IsReady() &&
+                bestPositionE.MinionsHit > config.Item("ehitLC", true).GetValue<Slider>().Value)
             {
                 E.Cast(bestPositionE.Position, config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("useqLC").GetValue<bool>() && Q.IsReady() && bestPositionQ.MinionsHit > config.Item("qhitLC").GetValue<Slider>().Value)
+            if (config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() &&
+                bestPositionQ.MinionsHit > config.Item("qhitLC", true).GetValue<Slider>().Value)
             {
                 Q.Cast(bestPositionQ.Position, config.Item("packets").GetValue<bool>());
             }
@@ -123,17 +131,23 @@ namespace UnderratedAIO.Champions
 
         private void Harass()
         {
-            float perc = config.Item("minmanaH").GetValue<Slider>().Value / 100f;
-            if (player.Mana < player.MaxMana * perc) return;
+            float perc = config.Item("minmanaH", true).GetValue<Slider>().Value / 100f;
+            if (player.Mana < player.MaxMana * perc)
+            {
+                return;
+            }
             Obj_AI_Hero target = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Magical);
-            if (target == null) return;
-            if (config.Item("useqH").GetValue<bool>() && Q.CanCast(target))
+            if (target == null)
+            {
+                return;
+            }
+            if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target))
             {
                 Q.Cast(target, config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("useeH").GetValue<bool>() && E.CanCast(target))
+            if (config.Item("useeH", true).GetValue<bool>() && E.CanCast(target))
             {
-                    E.Cast(target, config.Item("packets").GetValue<bool>());
+                E.Cast(target, config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -149,88 +163,101 @@ namespace UnderratedAIO.Champions
                         turnOff = true;
                         Utility.DelayAction.Add(2600, () => turnOffUlt());
                     }
-                    
                 }
                 return;
             }
-            if (config.Item("selected").GetValue<bool>())
+            if (config.Item("selected", true).GetValue<bool>())
             {
                 target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
                 orbwalker.ForceTarget(target);
             }
             var manaperc = player.Mana / player.MaxMana * 100;
-            if (player.HasBuff("MaokaiSapMagicMelee") && player.Distance(target)<Orbwalking.GetRealAutoAttackRange(player)+75)
+            if (player.HasBuff("MaokaiSapMagicMelee") &&
+                player.Distance(target) < Orbwalking.GetRealAutoAttackRange(player) + 75)
             {
                 return;
             }
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
-            if (config.Item("useq").GetValue<bool>() && Q.CanCast(target) && config.Item("usee").GetValue<bool>() &&
-                player.Distance(target) <= config.Item("useqrange").GetValue<Slider>().Value &&
-                ((config.Item("useqroot").GetValue<bool>() && (!target.HasBuffOfType(BuffType.Snare) && !target.HasBuffOfType(BuffType.Slow) && !target.HasBuffOfType(BuffType.Stun) && !target.HasBuffOfType(BuffType.Suppression))) || !config.Item("useqroot").GetValue<bool>()))
+            if (config.Item("useItems").GetValue<bool>())
+            {
+                ItemHandler.UseItems(target, config, ComboDamage(target));
+            }
+            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && config.Item("usee", true).GetValue<bool>() &&
+                player.Distance(target) <= config.Item("useqrange", true).GetValue<Slider>().Value &&
+                ((config.Item("useqroot", true).GetValue<bool>() &&
+                  (!target.HasBuffOfType(BuffType.Snare) && !target.HasBuffOfType(BuffType.Slow) &&
+                   !target.HasBuffOfType(BuffType.Stun) && !target.HasBuffOfType(BuffType.Suppression))) ||
+                 !config.Item("useqroot", true).GetValue<bool>()))
             {
                 Q.Cast(target, config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("usew").GetValue<bool>())
+            if (config.Item("usew", true).GetValue<bool>())
             {
-                    
-                    if (config.Item("blocke").GetValue<bool>() && player.Distance(target)<W.Range && W.IsReady() && E.CanCast(target))
-                    {
-                        E.Cast(target, config.Item("packets").GetValue<bool>());
-                        CastR(target);
-                        Utility.DelayAction.Add(100, () => W.Cast(target, config.Item("packets").GetValue<bool>()));
-                    }
-                    else if(W.CanCast(target))
-                    {
-                        CastR(target);
-                        W.Cast(target, config.Item("packets").GetValue<bool>()); 
-                    }
-                    
-            }
-            if (config.Item("usee").GetValue<bool>() && E.CanCast(target))
-            {
-                if (!config.Item("blocke").GetValue<bool>() || config.Item("blocke").GetValue<bool>() && !W.IsReady())
+                if (config.Item("blocke", true).GetValue<bool>() && player.Distance(target) < W.Range && W.IsReady() &&
+                    E.CanCast(target))
                 {
-                    E.Cast(target, config.Item("packets").GetValue<bool>()); 
-                }   
+                    E.Cast(target, config.Item("packets").GetValue<bool>());
+                    CastR(target);
+                    Utility.DelayAction.Add(100, () => W.Cast(target, config.Item("packets").GetValue<bool>()));
+                }
+                else if (W.CanCast(target))
+                {
+                    CastR(target);
+                    W.Cast(target, config.Item("packets").GetValue<bool>());
+                }
             }
-            
+            if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target))
+            {
+                if (!config.Item("blocke", true).GetValue<bool>() || config.Item("blocke", true).GetValue<bool>() && !W.IsReady())
+                {
+                    E.Cast(target, config.Item("packets").GetValue<bool>());
+                }
+            }
+
             if (R.IsReady())
             {
-                bool enoughEnemies = config.Item("user").GetValue<Slider>().Value <= player.CountEnemiesInRange(R.Range-50);
+                bool enoughEnemies = config.Item("user", true).GetValue<Slider>().Value <=
+                                     player.CountEnemiesInRange(R.Range - 50);
                 Obj_AI_Hero targetR = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
 
-                if (maoR && targetR != null && ((config.Item("rks").GetValue<bool>() && (Damage.GetSpellDamage(player, targetR, SpellSlot.R) + player.CalcDamage(target, Damage.DamageType.Magical, maoRStack)) > targetR.Health) || manaperc < config.Item("rmana").GetValue<Slider>().Value || (!enoughEnemies && player.Distance(targetR) > R.Range - 50)))
+                if (maoR && targetR != null &&
+                    ((config.Item("rks", true).GetValue<bool>() &&
+                      (Damage.GetSpellDamage(player, targetR, SpellSlot.R) +
+                       player.CalcDamage(target, Damage.DamageType.Magical, maoRStack)) > targetR.Health) ||
+                     manaperc < config.Item("rmana", true).GetValue<Slider>().Value ||
+                     (!enoughEnemies && player.Distance(targetR) > R.Range - 50)))
                 {
                     R.Cast(config.Item("packets").GetValue<bool>());
                 }
 
-                if (targetR != null && !maoR && manaperc > config.Item("rmana").GetValue<Slider>().Value && (enoughEnemies || R.IsInRange(targetR)))
+                if (targetR != null && !maoR && manaperc > config.Item("rmana", true).GetValue<Slider>().Value &&
+                    (enoughEnemies || R.IsInRange(targetR)))
                 {
                     R.Cast(config.Item("packets").GetValue<bool>());
                 }
             }
-           var ignitedmg = (float)player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
-           bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-           if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite && !E.CanCast(target))
-           {
-               player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
-           }
-
+            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
+            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
+                !E.CanCast(target))
+            {
+                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
+            }
         }
 
         private void turnOffUlt()
         {
             turnOff = false;
-            if (maoR && config.Item("user").GetValue<Slider>().Value > player.CountEnemiesInRange(R.Range - 50))
+            if (maoR && config.Item("user", true).GetValue<Slider>().Value > player.CountEnemiesInRange(R.Range - 50))
             {
-                R.Cast(config.Item("packets").GetValue<bool>());  
+                R.Cast(config.Item("packets").GetValue<bool>());
             }
-            
         }
 
         private void CastR(Obj_AI_Hero target)
         {
-            if (R.IsReady() && !maoR && player.Mana / player.MaxMana * 100 > config.Item("rmana").GetValue<Slider>().Value && config.Item("user").GetValue<Slider>().Value <= target.CountEnemiesInRange(R.Range - 50))
+            if (R.IsReady() && !maoR &&
+                player.Mana / player.MaxMana * 100 > config.Item("rmana", true).GetValue<Slider>().Value &&
+                config.Item("user", true).GetValue<Slider>().Value <= target.CountEnemiesInRange(R.Range - 50))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -242,45 +269,49 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(config.Item("drawww", true).GetValue<Circle>(), W.Range);
             DrawHelper.DrawCircle(config.Item("drawee", true).GetValue<Circle>(), E.Range);
             DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), R.Range);
-            Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
+            Helpers.Jungle.ShowSmiteStatus(
+                config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
         }
+
         private static float ComboDamage(Obj_AI_Hero hero)
         {
             float damage = 0;
             if (Q.IsReady())
             {
-                damage += (float)Damage.GetSpellDamage(player, hero, SpellSlot.Q);
+                damage += (float) Damage.GetSpellDamage(player, hero, SpellSlot.Q);
             }
             if (W.IsReady())
             {
-                damage += (float)Damage.GetSpellDamage(player, hero, SpellSlot.W);
+                damage += (float) Damage.GetSpellDamage(player, hero, SpellSlot.W);
             }
             if (E.IsReady())
             {
-                damage += (float)Damage.GetSpellDamage(player, hero, SpellSlot.E);
-                damage += (float)Damage.GetSpellDamage(player, hero, SpellSlot.E,1);
+                damage += (float) Damage.GetSpellDamage(player, hero, SpellSlot.E);
+                damage += (float) Damage.GetSpellDamage(player, hero, SpellSlot.E, 1);
             }
             if (R.IsReady())
             {
-                damage += (float)Damage.GetSpellDamage(player, hero, SpellSlot.R);
+                damage += (float) Damage.GetSpellDamage(player, hero, SpellSlot.R);
                 damage += (float) player.CalcDamage(hero, Damage.DamageType.Magical, maoRStack);
             }
             if ((Items.HasItem(ItemHandler.Bft.Id) && Items.CanUseItem(ItemHandler.Bft.Id)) ||
                 (Items.HasItem(ItemHandler.Dfg.Id) && Items.CanUseItem(ItemHandler.Dfg.Id)))
             {
-                damage = (float)(damage * 1.2);
+                damage = (float) (damage * 1.2);
             }
-            if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready && hero.Health < damage + player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite))
+            if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready &&
+                hero.Health < damage + player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite))
             {
-                damage += (float)player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
+                damage += (float) player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
             }
             damage += ItemHandler.GetItemsDamage(hero);
             return damage;
         }
+
         private void InitMao()
         {
- 	        Q = new Spell(SpellSlot.Q, 600);
+            Q = new Spell(SpellSlot.Q, 600);
             Q.SetSkillshot(0.50f, 110f, 1200f, false, SkillshotType.SkillshotLine);
             Qint = new Spell(SpellSlot.Q, 250f);
             W = new Spell(SpellSlot.W, 500);
@@ -288,6 +319,7 @@ namespace UnderratedAIO.Champions
             E.SetSkillshot(1f, 250f, 1500f, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R, 450);
         }
+
         private void InitMenu()
         {
             config = new Menu("Maokai", "Maokai", true);
@@ -301,45 +333,50 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuOrb);
             // Draw settings
             Menu menuD = new Menu("Drawings ", "dsettings");
-            menuD.AddItem(new MenuItem("drawqq", "Draw Q range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
-            menuD.AddItem(new MenuItem("drawww", "Draw W range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
-            menuD.AddItem(new MenuItem("drawee", "Draw E range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
-            menuD.AddItem(new MenuItem("drawrr", "Draw R range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawqq", "Draw Q range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawww", "Draw W range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawee", "Draw E range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawrr", "Draw R range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage")).SetValue(true);
             config.AddSubMenu(menuD);
             // Combo settings
             Menu menuC = new Menu("Combo ", "csettings");
-            menuC.AddItem(new MenuItem("useq", "Use Q")).SetValue(true);
-            menuC.AddItem(new MenuItem("useqroot", "   Wait if the target stunned, slowed...")).SetValue(true);
-            menuC.AddItem(new MenuItem("useqrange", "   Q max range")).SetValue(new Slider((int)Q.Range, 0, (int)Q.Range));
-            menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
-            menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
-            menuC.AddItem(new MenuItem("blocke", "   EW Combo if possible")).SetValue(true);
-            menuC.AddItem(new MenuItem("user", "Use R min")).SetValue(new Slider(1, 1, 5));
-            menuC.AddItem(new MenuItem("rks", "   Deactivate to KS target")).SetValue(true);
-            menuC.AddItem(new MenuItem("rmana", "   Deactivate min mana")).SetValue(new Slider(20, 0, 100));
-            menuC.AddItem(new MenuItem("selected", "Focus Selected target")).SetValue(true);
+            menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useqroot", "   Wait if the target stunned, slowed...", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useqrange", "   Q max range", true))
+                .SetValue(new Slider((int) Q.Range, 0, (int) Q.Range));
+            menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("blocke", "   EW Combo if possible", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("user", "Use R min", true)).SetValue(new Slider(1, 1, 5));
+            menuC.AddItem(new MenuItem("rks", "   Deactivate to KS target", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("rmana", "   Deactivate min mana", true)).SetValue(new Slider(20, 0, 100));
+            menuC.AddItem(new MenuItem("selected", "Focus Selected target", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // Harass Settings
             Menu menuH = new Menu("Harass ", "Hsettings");
-            menuH.AddItem(new MenuItem("useqH", "Use Q")).SetValue(true);
-            menuH.AddItem(new MenuItem("useeH", "Use E")).SetValue(true);
-            menuH.AddItem(new MenuItem("minmanaH", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
+            menuH.AddItem(new MenuItem("useqH", "Use Q", true)).SetValue(true);
+            menuH.AddItem(new MenuItem("useeH", "Use E", true)).SetValue(true);
+            menuH.AddItem(new MenuItem("minmanaH", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuH);
             // LaneClear Settings
             Menu menuLC = new Menu("LaneClear ", "Lcsettings");
-            menuLC.AddItem(new MenuItem("useqLC", "Use Q")).SetValue(true);
-            menuLC.AddItem(new MenuItem("qhitLC", "   More than x minion").SetValue(new Slider(2, 1, 10)));
-            menuLC.AddItem(new MenuItem("useeLC", "Use E")).SetValue(true);
-            menuLC.AddItem(new MenuItem("ehitLC", "   More than x minion").SetValue(new Slider(2, 1, 10)));
-            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana")).SetValue(new Slider(1, 1, 100));
+            menuLC.AddItem(new MenuItem("useqLC", "Use Q", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("qhitLC", "   More than x minion", true).SetValue(new Slider(2, 1, 10)));
+            menuLC.AddItem(new MenuItem("useeLC", "Use E", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("ehitLC", "   More than x minion", true).SetValue(new Slider(2, 1, 10)));
+            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
-            menuM.AddItem(new MenuItem("autoe", "Auto E target (Stun/snare...)")).SetValue(true);
-            menuM.AddItem(new MenuItem("useQgc", "Use Q on gapclosers")).SetValue(false);
-            menuM.AddItem(new MenuItem("useQint", "Use W to interrupt")).SetValue(true);
+            menuM.AddItem(new MenuItem("autoe", "Auto E target (Stun/snare...)", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("useQgc", "Use Q on gapclosers", true)).SetValue(false);
+            menuM.AddItem(new MenuItem("useQint", "Use W to interrupt", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
             menuM = ItemHandler.addCleanseOptions(menuM);
 

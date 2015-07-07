@@ -132,6 +132,7 @@ namespace UnderratedAIO.Champions
                         (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo && checkBuff))
                     {
                         W.Cast(i.Hero, config.Item("packets").GetValue<bool>());
+                        return;
                     }
                 }
             }
@@ -168,7 +169,7 @@ namespace UnderratedAIO.Champions
                         .OrderByDescending(p => p.CountEnemiesInRange(R.Range - 100))
                         .FirstOrDefault();
                 if (best.CountEnemiesInRange(R.Range - 150) > player.CountEnemiesInRange(R.Range) &&
-                    CheckInterrupt(best))
+                    CombatHelper.CheckInterrupt(best, R.Range))
                 {
                     player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), best);
                     Utility.DelayAction.Add(
@@ -332,21 +333,10 @@ namespace UnderratedAIO.Champions
 
         private void CastR()
         {
-            if (CheckInterrupt(player.Position))
+            if (CombatHelper.CheckInterrupt(player.Position, R.Range))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
-        }
-
-        private bool CheckInterrupt(Vector3 pos)
-        {
-            return
-                !HeroManager.Enemies.Any(
-                    e =>
-                        e.Distance(pos) < R.Range &&
-                        (e.HasBuff("GarenQ") || e.HasBuff("powerfist") || e.HasBuff("JaxCounterStrike") ||
-                         e.HasBuff("PowerBall") || e.HasBuff("renektonpreexecute") || e.HasBuff("xenzhaocombotarget") ||
-                         (e.HasBuff("UdyrBearStance") && !player.HasBuff("UdyrBearStunCheck"))));
         }
 
         private static bool rActive
