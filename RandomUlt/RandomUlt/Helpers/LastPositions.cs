@@ -641,7 +641,7 @@ namespace RandomUlt.Helpers
             }
             if (player.ChampionName == "Jinx")
             {
-                if (R.GetDamage(target, 1) - 50 - bonuShieldNearTowers > target.Health)
+                if (R.GetDamage(target, 1) - 10 - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
@@ -662,7 +662,7 @@ namespace RandomUlt.Helpers
             }
             if (player.ChampionName == "Ashe" || player.ChampionName == "Lux" || player.ChampionName == "Ziggs")
             {
-                if (dmg - 50 - bonuShieldNearTowers > target.Health)
+                if (dmg - 10 - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
