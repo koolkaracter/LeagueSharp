@@ -24,7 +24,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public bool justQ, justE, Aggro;
         public static float DamageTaken, DamageTakenTime;
-        public static int DamageCount;
+        public static int DamageCount, DamageTakenLastId;
 
         public MonkeyKing()
         {
@@ -88,9 +88,9 @@ namespace UnderratedAIO.Champions
         {
             Q = new Spell(SpellSlot.Q, 375f);
             W = new Spell(SpellSlot.W);
-            E = new Spell(SpellSlot.E, 640f);
+            E = new Spell(SpellSlot.E, 625f);
             E.SetTargetted(0.5f, 2000f);
-            R = new Spell(SpellSlot.R, 375f);
+            R = new Spell(SpellSlot.R, 325f);
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -103,23 +103,23 @@ namespace UnderratedAIO.Champions
             {
                 Orbwalking.Attack = true;
             }
-            if (rActive && Game.CursorPos.CountEnemiesInRange(300)>1)
+            if (rActive && Game.CursorPos.CountEnemiesInRange(300) > 1)
             {
                 Obj_AI_Hero target = TargetSelector.GetTarget(
                     E.Range, TargetSelector.DamageType.Physical, true, HeroManager.Enemies.Where(h => h.IsInvulnerable));
                 if (target != null && target.CountEnemiesInRange(R.Range) > 1)
                 {
                     orbwalker.SetMovement(false);
-                    Vector3 point=Vector3.Zero;
+                    Vector3 point = Vector3.Zero;
                     switch (config.Item("rType", true).GetValue<StringList>().SelectedIndex)
                     {
                         case 0:
                             point =
-                             CombatHelper.PointsAroundTheTarget(player, R.Range)
-                                 .Where(p => p.Distance(player.Position) < R.Range)
-                                 .OrderByDescending(p => p.CountEnemiesInRange(R.Range))
-                                 .ThenBy(p => p.Distance(Game.CursorPos))
-                                 .FirstOrDefault();
+                                CombatHelper.PointsAroundTheTarget(player, R.Range)
+                                    .Where(p => p.Distance(player.Position) < R.Range)
+                                    .OrderByDescending(p => p.CountEnemiesInRange(R.Range))
+                                    .ThenBy(p => p.Distance(Game.CursorPos))
+                                    .FirstOrDefault();
                             break;
                         case 1:
                             point =
@@ -143,7 +143,7 @@ namespace UnderratedAIO.Champions
             if (W.IsReady() && !Aggro && DamageTaken > 60 && DamageCount >= 3)
             {
                 Aggro = true;
-                Utility.DelayAction.Add(500, () => Aggro = false);
+                Utility.DelayAction.Add(800, () => Aggro = false);
             }
             if (System.Environment.TickCount - DamageTakenTime > 1500)
             {
@@ -224,7 +224,8 @@ namespace UnderratedAIO.Champions
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
-                !CombatHelper.CheckCriticalBuffs(target) && !E.CanCast(target) && !justQ && !justE && (target.Distance(player)>500 || player.HealthPercent<20))
+                !CombatHelper.CheckCriticalBuffs(target) && !E.CanCast(target) && !justQ && !justE &&
+                (target.Distance(player) > 500 || player.HealthPercent < 20))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
@@ -236,21 +237,23 @@ namespace UnderratedAIO.Champions
             {
                 Orbwalking.Attack = true;
             }
-            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && target.Health <
-                        player.GetAutoAttackDamage(target) + Q.GetDamage(target))
+            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) &&
+                target.Health < player.GetAutoAttackDamage(target) + Q.GetDamage(target))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
                 player.IssueOrder(GameObjectOrder.AutoAttack, target);
             }
             if (config.Item("usew", true).GetValue<bool>() && !player.UnderTurret(true) && W.IsReady() && !canKill &&
-                ((!Q.IsReady() && !E.IsReady() && target.HealthPercent > 20 &&
-                  config.Item("wHealth", true).GetValue<Slider>().Value > player.HealthPercent) ||
+                ((!Q.IsReady() && !E.IsReady() && !justE && target.HealthPercent > 20 &&
+                  config.Item("wHealth", true).GetValue<Slider>().Value > player.HealthPercent &&
+                  Orbwalking.GetRealAutoAttackRange(target) > player.Distance(target) &&
+                  CombatHelper.IsFacing(target, player.Position, 45)) ||
                  (config.Item("wOnFocus", true).GetValue<bool>() && Aggro)))
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
             if (R.IsReady() && config.Item("userone", true).GetValue<bool>() && canKill && !eActive && !Q.IsReady() &&
-                player.Distance(target) < R.Range && player.HealthPercent<60)
+                player.Distance(target) < R.Range && player.HealthPercent < 55 && player.HealthPercent > 10)
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -262,7 +265,8 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config);
             }
-            if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target))
+            if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target) &&
+                config.Item("eMinRange", true).GetValue<Slider>().Value < player.Distance(target))
             {
                 E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
@@ -339,11 +343,12 @@ namespace UnderratedAIO.Champions
             {
                 if (sender.IsValid && !sender.IsDead && sender.IsEnemy)
                 {
-                    if (Orbwalking.IsAutoAttack(args.SData.Name))
+                    if (Orbwalking.IsAutoAttack(args.SData.Name) && DamageTakenLastId != sender.NetworkId)
                     {
                         var dmg = (float) sender.GetAutoAttackDamage(target, true);
                         DamageTaken += dmg;
                         DamageCount++;
+                        DamageTakenLastId = sender.NetworkId;
                     }
                 }
             }
@@ -375,10 +380,11 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("wHealth", "   Under health", true)).SetValue(new Slider(50, 0, 100));
             menuC.AddItem(new MenuItem("wOnFocus", "   On focus", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("eMinRange", "   Min range", true)).SetValue(new Slider(400, 0, (int) E.Range));
             menuC.AddItem(new MenuItem("userone", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "R min", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("rType", "R type", true))
-                                .SetValue(new StringList(new[] { "Most enemy", "Focus selected"}, 1));
+                .SetValue(new StringList(new[] { "Most enemy", "Focus selected" }, 1));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
