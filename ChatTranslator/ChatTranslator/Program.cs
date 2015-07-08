@@ -74,8 +74,7 @@ namespace ChatTranslator
             Menu logger = new Menu("Logger", "Logger");
             logger.AddItem(new MenuItem("EnabledLog", "Enable").SetValue(true));
             Config.AddSubMenu(logger);
-            Menu copyPaste = new Menu("CopyPaste", "CopyPaste");
-            copyPaste.AddItem(new MenuItem("Copy", "Copy last messages").SetValue(new KeyBind("I".ToCharArray()[0], KeyBindType.Press)));
+            Menu copyPaste = new Menu("Paste", "Paste");
             copyPaste.AddItem(new MenuItem("Paste", "Paste").SetValue(new KeyBind("P".ToCharArray()[0], KeyBindType.Press)));
             copyPaste.AddItem(new MenuItem("PasteForAll", "Paste for all").SetValue(new KeyBind("O".ToCharArray()[0], KeyBindType.Press)));
             copyPaste.AddItem(new MenuItem("DisablePaste", "Disable this section").SetValue(true));
@@ -155,20 +154,6 @@ namespace ChatTranslator
             {
                 return;
             }
-            if (Config.Item("Copy").GetValue<KeyBind>().Active && !copied)
-            {
-                if (lastMessages.Any())
-                {
-                    string lines="";
-                    foreach (var messageData in lastMessages)
-                    {
-                        lines += messageData.sender.Name+": "+messageData.message+"\n";
-                    }
-                    Clipboard.SetText(lines);
-                    copied = true;
-                    Utility.DelayAction.Add(1000, () => copied = false);
-                }
-            }
             if (sent)
             {
                 return;
@@ -219,7 +204,7 @@ namespace ChatTranslator
         {
             if (Clipboard.ContainsText())
             {
-                clipBoard = Clipboard.GetText();
+                clipBoard = setEncodingDefault(Clipboard.GetText());
                 if (clipBoard.Contains("\n"))
                 {
                     clipBoardLines = clipBoard.Split('\n').ToList();
@@ -236,6 +221,16 @@ namespace ChatTranslator
             }
         }
 
+        private static string setEncodingUTF8(string data)
+        {
+            byte[] bytes = Encoding.Default.GetBytes(data);
+            return Encoding.UTF8.GetString(bytes);
+        }
+        private static string setEncodingDefault(string data)
+        {
+            byte[] bytes = Encoding.UTF8.GetBytes(data);
+            return Encoding.Default.GetString(bytes);
+        }
         private static void InitText()
         {
             if (!File.Exists(path + fileName))
