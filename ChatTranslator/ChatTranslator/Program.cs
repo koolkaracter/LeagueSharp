@@ -77,6 +77,7 @@ namespace ChatTranslator
             Menu copyPaste = new Menu("Paste", "Paste");
             copyPaste.AddItem(new MenuItem("Paste", "Paste").SetValue(new KeyBind("P".ToCharArray()[0], KeyBindType.Press)));
             copyPaste.AddItem(new MenuItem("PasteForAll", "Paste for all").SetValue(new KeyBind("O".ToCharArray()[0], KeyBindType.Press)));
+            copyPaste.AddItem(new MenuItem("Delay", "Spam delay").SetValue(new Slider(2000, 0, 2000)));
             copyPaste.AddItem(new MenuItem("DisablePaste", "Disable this section").SetValue(true));
             Config.AddSubMenu(copyPaste);
             Config.AddToMainMenu();
@@ -158,6 +159,7 @@ namespace ChatTranslator
             {
                 return;
             }
+            var delay = Config.Item("Delay").GetValue<Slider>().Value;
             if (Config.Item("Paste").GetValue<KeyBind>().Active)
             {
                 SetClipBoardData();
@@ -165,7 +167,7 @@ namespace ChatTranslator
                 {
                     Game.Say(clipBoard);
                     sent = true;
-                    Utility.DelayAction.Add(2000, () => sent = false);
+                    Utility.DelayAction.Add(delay, () => sent = false);
                 }
                 else
                 {
@@ -174,7 +176,7 @@ namespace ChatTranslator
                         Game.Say(s);
                     }
                     sent = true;
-                    Utility.DelayAction.Add(2000, () => sent = false);
+                    Utility.DelayAction.Add(delay, () => sent = false);
                     clipBoardLines.Clear();
                 }
             }
@@ -185,7 +187,7 @@ namespace ChatTranslator
                 {
                     Game.Say("/all " + clipBoard);
                     sent = true;
-                    Utility.DelayAction.Add(2000, () => sent = false);
+                    Utility.DelayAction.Add(delay, () => sent = false);
                 }
                 else
                 {
@@ -194,7 +196,7 @@ namespace ChatTranslator
                         Game.Say("/all " + s);
                     }
                     sent = true;
-                    Utility.DelayAction.Add(2000, () => sent = false);
+                    Utility.DelayAction.Add(delay, () => sent = false);
                     clipBoardLines.Clear();
                 }
             }
