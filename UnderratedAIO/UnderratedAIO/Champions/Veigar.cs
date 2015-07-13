@@ -100,14 +100,14 @@ namespace UnderratedAIO.Champions
                     {
                         ePos = args.End;
                         justE = true;
-                        Estun = false;
+                        Estun = true;
                         Utility.DelayAction.Add(
                             3500, () =>
                             {
                                 justE = false;
                                 ePos = Vector3.Zero;
                             });
-                        Utility.DelayAction.Add(500, () => { Estun = true; });
+                        Utility.DelayAction.Add(500, () => { Estun = false; });
                     }
                 }
                 if (args.SData.Name == "VeigarPrimordialBurst")
@@ -283,7 +283,7 @@ namespace UnderratedAIO.Champions
                 ItemHandler.UseItems(target, config);
             }
             if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Q.CanCast(target) && target.IsValidTarget() &&
-                !bush && Estun)
+                !bush && !Estun)
             {
                 CastQHero(target);
             }
@@ -403,10 +403,9 @@ namespace UnderratedAIO.Champions
             var targQ = Q.GetPrediction(target, true);
             var collision = Q.GetCollision(
                 player.Position.To2D(), new List<Vector2>() { targQ.CastPosition.To2D() }, 70f);
-            if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count < 2 &&
-                targQ.Hitchance >= HitChance.High)
+            if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count < 2)
             {
-                Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
+                Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
             }
         }
         private void LastHitQ(bool auto = false)
