@@ -78,21 +78,16 @@ namespace TeamStats
             if (!src.IsValid || !dsc.IsValid) return 0f;
             float basicDmg = 0;
             int attacks = (int)Math.Floor(src.AttackSpeedMod*5);
-            for (int i = 0; i < attacks; i++)
+            if (src.Crit>0)
             {
-                
-                if (src.Crit>0)
-                {
                     
-                    basicDmg += (float)src.GetAutoAttackDamage(dsc) * attacks;
-                }
-                else
-                {
+                basicDmg += (float)src.GetAutoAttackDamage(dsc) * attacks * (1 + src.Crit);
+            }
+            else
+            {
 
-                    basicDmg += (float)src.GetAutoAttackDamage(dsc);
-                }
-  
-            };
+                basicDmg += (float)src.GetAutoAttackDamage(dsc) * attacks;
+            }
             float damage = basicDmg;
             var spells = src.Spellbook.Spells;
             
