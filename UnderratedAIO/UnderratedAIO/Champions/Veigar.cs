@@ -25,6 +25,7 @@ namespace UnderratedAIO.Champions
         public Obj_AI_Base qMiniForWait;
         public Obj_AI_Base qMiniTarget;
         public Obj_AI_Hero IgniteTarget;
+
         public Veigar()
         {
             InitVeigar();
@@ -40,6 +41,7 @@ namespace UnderratedAIO.Champions
 
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
         }
+
         private void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args)
         {
             if (sender.IsEnemy && sender is Obj_AI_Hero && config.Item("OnDash", true).GetValue<bool>() && E.IsReady() &&
@@ -128,7 +130,7 @@ namespace UnderratedAIO.Champions
             W = new Spell(SpellSlot.W, 900);
             W.SetSkillshot(1.25f, 225f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             E = new Spell(SpellSlot.E, 1050);
-            E.SetSkillshot(0.8f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
+            E.SetSkillshot(0.85f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R, 650);
         }
 
@@ -139,8 +141,7 @@ namespace UnderratedAIO.Champions
             {
                 case Orbwalking.OrbwalkingMode.Combo:
                     Obj_AI_Hero target = TargetSelector.GetTarget(
-                        1000, TargetSelector.DamageType.Magical, true,
-                        HeroManager.Enemies.Where(h => h.IsInvulnerable));
+                        1000, TargetSelector.DamageType.Magical, true, HeroManager.Enemies.Where(h => h.IsInvulnerable));
                     if (target != null)
                     {
                         var cmbDmg = ComboDamage(target);
@@ -158,7 +159,8 @@ namespace UnderratedAIO.Champions
                                   (config.Item("checkmana", true).GetValue<bool>() && CheckMana())))
                         {
                             Combo(target, cmbDmg, canKill, true);
-                        }else
+                        }
+                        else
                         {
                             Combo(target, cmbDmg, canKill, false);
                         }
@@ -205,12 +207,12 @@ namespace UnderratedAIO.Champions
             if (config.Item("useEkey", true).GetValue<KeyBind>().Active && E.IsReady())
             {
                 Obj_AI_Hero target = TargetSelector.GetTarget(
-                    1000, TargetSelector.DamageType.Magical, true,
-                    HeroManager.Enemies.Where(h => h.IsInvulnerable));
-                if (target!=null)
+                    1000, TargetSelector.DamageType.Magical, true, HeroManager.Enemies.Where(h => h.IsInvulnerable));
+                if (target != null)
                 {
                     player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
-;                   CastE(target); 
+                    ;
+                    CastE(target);
                 }
             }
         }
@@ -310,7 +312,7 @@ namespace UnderratedAIO.Champions
             if (R.IsReady() && R.CanCast(target))
             {
                 if (config.Item("user", true).GetValue<bool>() && !CombatHelper.CheckCriticalBuffs(target) &&
-                    R.CanCast(target) && CheckW(target) && !Q.CanCast(target) && R.GetDamage(target) > target.Health && 
+                    R.CanCast(target) && CheckW(target) && !Q.CanCast(target) && R.GetDamage(target) > target.Health &&
                     !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)))
                 {
                     R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
@@ -318,32 +320,32 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("usee", true).GetValue<bool>() && E.IsReady() &&
                 (((canKill && config.Item("useekill", true).GetValue<bool>()) ||
-                 (!config.Item("useekill", true).GetValue<bool>() && CheckMana())) 
-                 || config.Item("startWithE", true).GetValue<bool>()))
+                  (!config.Item("useekill", true).GetValue<bool>() && CheckMana())) ||
+                 config.Item("startWithE", true).GetValue<bool>()))
             {
                 CastE(target);
             }
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("useIgnite", true).GetValue<bool>() && ((ignitedmg > target.Health && hasIgnite &&
-                !player.IsChannelingImportantSpell() && !justQ && !Q.CanCast(target) && !justR && !R.CanCast(target) &&
-                CheckW(target))|| IgniteTarget!=null))
+            if (config.Item("useIgnite", true).GetValue<bool>() &&
+                ((ignitedmg > target.Health && hasIgnite && !player.IsChannelingImportantSpell() && !justQ &&
+                  !Q.CanCast(target) && !justR && !R.CanCast(target) && CheckW(target)) || IgniteTarget != null))
             {
                 if (IgniteTarget != null)
                 {
-                    player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), IgniteTarget); 
+                    player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), IgniteTarget);
                     return;
                 }
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() &&
-                config.Item("useIgnite", true).GetValue<bool>() && R.GetDamage(target) + ignitedmg > target.Health && 
-                target.Health > R.GetDamage(target) && !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)))
+            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() && hasIgnite &&
+                config.Item("useIgnite", true).GetValue<bool>() && R.GetDamage(target) + ignitedmg > target.Health &&
+                target.Health > R.GetDamage(target) &&
+                !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)))
             {
                 R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                 IgniteTarget = target;
-                Utility.DelayAction.Add(500, () => IgniteTarget=null);
-
+                Utility.DelayAction.Add(500, () => IgniteTarget = null);
             }
         }
 
@@ -373,8 +375,8 @@ namespace UnderratedAIO.Champions
         {
             if (player.CountEnemiesInRange(E.Range) <= 1)
             {
-                var targE = Prediction.GetPrediction(target, 0.5f);
-                if (targE.CastPosition.Distance(player.Position) < E.Range && targE.Hitchance>=HitChance.High)
+                var targE = E.GetPrediction(target);
+                if (targE.CastPosition.Distance(player.Position) < E.Range && targE.Hitchance >= HitChance.High)
                 {
                     E.Cast(targE.CastPosition.Extend(player.Position, 375), config.Item("packets").GetValue<bool>());
                 }
@@ -401,13 +403,13 @@ namespace UnderratedAIO.Champions
         private void CastQHero(Obj_AI_Hero target)
         {
             var targQ = Q.GetPrediction(target, true);
-            var collision = Q.GetCollision(
-                player.Position.To2D(), new List<Vector2>() { targQ.CastPosition.To2D() }, 70f);
+            var collision = Q.GetCollision(player.Position.To2D(), new List<Vector2>() { targQ.CastPosition.To2D() });
             if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && collision.Count < 2)
             {
                 Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
             }
         }
+
         private void LastHitQ(bool auto = false)
         {
             if (!Q.IsReady())
@@ -449,7 +451,7 @@ namespace UnderratedAIO.Champions
                                 if (other != null &&
                                     (player.GetAutoAttackDamage(other) * 2 > other.Health - Q.GetDamage(other)) &&
                                     HealthPrediction.GetHealthPrediction(
-                                        minion, (int) (minion.Distance(player) / Q.Speed * 1000)) > 0 &&
+                                        minion, (int) (minion.Distance(player) / Q.Speed * 1000 + 250f)) > 0 &&
                                     Q.GetDamage(other) < other.Health)
                                 {
                                     qMiniForWait = other;
@@ -582,7 +584,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useekill", "   Only for kill", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useEkey", "   Manual cast", true))
-                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("startWithE", "Start combo with E", true)).SetValue(false);
             menuC.AddItem(new MenuItem("checkmana", "   Check mana", true)).SetValue(true);
