@@ -22,6 +22,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static bool justQ, justW, justR, justE, Estun;
         public static Vector3 wPos, ePos;
+        public static float wTime;
         public Obj_AI_Base qMiniForWait;
         public Obj_AI_Base qMiniTarget;
         public Obj_AI_Hero IgniteTarget;
@@ -93,6 +94,7 @@ namespace UnderratedAIO.Champions
                             {
                                 justW = false;
                                 wPos = Vector3.Zero;
+                                wTime = System.Environment.TickCount;
                             });
                     }
                 }
@@ -189,7 +191,7 @@ namespace UnderratedAIO.Champions
             {
                 LastHitQ(true);
             }
-            if (config.Item("autoW", true).GetValue<bool>() && W.IsReady() && !player.IsRecalling())
+            if (config.Item("autoW", true).GetValue<bool>() && W.IsReady() && !player.IsRecalling() && !Q.IsReady())
             {
                 var targ =
                     HeroManager.Enemies.Where(
@@ -211,7 +213,6 @@ namespace UnderratedAIO.Champions
                 if (target != null)
                 {
                     player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
-                    ;
                     CastE(target);
                 }
             }
@@ -309,15 +310,6 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
-            if (R.IsReady() && R.CanCast(target))
-            {
-                if (config.Item("user", true).GetValue<bool>() && !CombatHelper.CheckCriticalBuffs(target) &&
-                    R.CanCast(target) && CheckW(target) && !Q.CanCast(target) && R.GetDamage(target) > target.Health &&
-                    !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)))
-                {
-                    R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
-                }
-            }
             if (config.Item("usee", true).GetValue<bool>() && E.IsReady() &&
                 (((canKill && config.Item("useekill", true).GetValue<bool>()) ||
                   (!config.Item("useekill", true).GetValue<bool>() && CheckMana())) ||
@@ -338,14 +330,37 @@ namespace UnderratedAIO.Champions
                 }
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() && hasIgnite &&
-                config.Item("useIgnite", true).GetValue<bool>() && R.GetDamage(target) + ignitedmg > target.Health &&
-                target.Health > R.GetDamage(target) &&
-                !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)))
+            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() && R.Instance.ManaCost<player.Mana &&
+                !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) &&
+                !CombatHelper.CheckCriticalBuffs(target))
             {
-                R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
-                IgniteTarget = target;
-                Utility.DelayAction.Add(500, () => IgniteTarget = null);
+                var targetHP = HealthPrediction.GetHealthPrediction(target, 400);
+
+                var killWithIgnite = hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
+                                     R.GetDamage(target) + ignitedmg > targetHP &&
+                                     target.Health > R.GetDamage(target);
+
+                var killWithW = wPos != null && wPos.IsValid() && System.Environment.TickCount - wTime > 700 &&
+                                Prediction.GetPrediction(target, 0.55f).UnitPosition.Distance(wPos) < W.Width &&
+                                R.GetDamage(target) + W.GetDamage(target) > targetHP &&
+                                     target.Health > R.GetDamage(target);
+
+                var killWithIgniteAndW = killWithW && hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
+                                         R.GetDamage(target) + ignitedmg > targetHP &&
+                                         target.Health > R.GetDamage(target) &&
+                                     target.Health > R.GetDamage(target);
+
+                if (killWithW || (targetHP < R.GetDamage(target) && !justQ && CheckW(target)))
+                {
+                    R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                }
+
+                if ((killWithIgnite || killWithIgniteAndW) && CheckW(target))
+                {
+                    R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                    IgniteTarget = target;
+                    Utility.DelayAction.Add(500, () => IgniteTarget = null);
+                }
             }
         }
 
