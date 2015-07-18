@@ -76,10 +76,6 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            if (config.Item("manualRflash", true).GetValue<KeyBind>().Active)
-            {
-                FlashCombo();
-            }
             if (rActive || justR)
             {
                 Orbwalking.Attack = false;
@@ -89,6 +85,10 @@ namespace UnderratedAIO.Champions
             {
                 Orbwalking.Attack = true;
                 orbwalker.SetMovement(true);
+            }
+            if (config.Item("manualRflash", true).GetValue<KeyBind>().Active)
+            {
+                FlashCombo();
             }
             if (System.Environment.TickCount - DamageTakenTime > 1200)
             {
@@ -201,13 +201,18 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+            var hitC = HitChance.High;
+            if (config.Item("useHigherHit", true).GetValue<bool>())
+            {
+                hitC = HitChance.VeryHigh;
+            }
             if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target))
             {
-                Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                Q.CastIfHitchanceEquals(target, hitC, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("useeH", true).GetValue<bool>() && E.CanCast(target))
             {
-                E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                E.CastIfHitchanceEquals(target, hitC, config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -277,13 +282,18 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config);
             }
+            var hitC = HitChance.High;
+            if (config.Item("useHigherHit", true).GetValue<bool>())
+            {
+               hitC=HitChance.VeryHigh; 
+            }
             if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target))
             {
-                Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                Q.CastIfHitchanceEquals(target, hitC, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target))
             {
-                E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                E.CastIfHitchanceEquals(target, hitC, config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -486,6 +496,7 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("Interrupt", "Cast R to interrupt spells", true)).SetValue(false);
+            menuM.AddItem(new MenuItem("useHigherHit", "Higher HitChance(Q-E)", true)).SetValue(true);
             menuM.AddItem(new MenuItem("AutoW", "Auto cast W", true)).SetValue(true);
             menuM.AddItem(new MenuItem("Wmin", "W min hits", true)).SetValue(new Slider(3, 1, 10));
             menuM.AddItem(new MenuItem("Wdam", "W to damage", true))
