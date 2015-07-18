@@ -276,7 +276,7 @@ namespace UnderratedAIO.Champions
 
         private void Combo(Obj_AI_Hero target, float cmbDmg, bool canKill, bool bush)
         {
-            if (target == null)
+            if (target == null || !target.IsValidTarget())
             {
                 return;
             }
@@ -330,25 +330,23 @@ namespace UnderratedAIO.Champions
                 }
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() && R.Instance.ManaCost<player.Mana &&
-                !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) &&
+            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() &&
+                R.Instance.ManaCost < player.Mana && !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) &&
                 !CombatHelper.CheckCriticalBuffs(target))
             {
                 var targetHP = HealthPrediction.GetHealthPrediction(target, 400);
 
                 var killWithIgnite = hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
-                                     R.GetDamage(target) + ignitedmg > targetHP &&
-                                     target.Health > R.GetDamage(target);
+                                     R.GetDamage(target) + ignitedmg > targetHP && target.Health > R.GetDamage(target);
 
                 var killWithW = wPos != null && wPos.IsValid() && System.Environment.TickCount - wTime > 700 &&
                                 Prediction.GetPrediction(target, 0.55f).UnitPosition.Distance(wPos) < W.Width &&
                                 R.GetDamage(target) + W.GetDamage(target) > targetHP &&
-                                     target.Health > R.GetDamage(target);
+                                target.Health > R.GetDamage(target);
 
                 var killWithIgniteAndW = killWithW && hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
                                          R.GetDamage(target) + ignitedmg > targetHP &&
-                                         target.Health > R.GetDamage(target) &&
-                                     target.Health > R.GetDamage(target);
+                                         target.Health > R.GetDamage(target) && target.Health > R.GetDamage(target);
 
                 if (killWithW || (targetHP < R.GetDamage(target) && !justQ && CheckW(target)))
                 {

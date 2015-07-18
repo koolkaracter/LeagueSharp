@@ -53,7 +53,7 @@ namespace UnderratedAIO.Helpers
                     "Drain", "BlindingDart", "RunePrison", "IceBlast", "Dazzle", "Fling", "MaokaiUnstableGrowth",
                     "MordekaiserChildrenOfTheGrave", "ZedUlt", "LuluW", "PantheonW", "ViR", "JudicatorReckoning",
                     "IreliaEquilibriumStrike", "InfiniteDuress", "SkarnerImpale", "SowTheWind", "PuncturingTaunt",
-                    "UrgotSwap2", "NasusW", "VolibearW", "Feast", "NocturneUnspeakableHorror"
+                    "UrgotSwap2", "NasusW", "VolibearW", "Feast", "NocturneUnspeakableHorror", "Terrify"
                 });
 
         public static List<string> invulnerable =
@@ -693,7 +693,24 @@ namespace UnderratedAIO.Helpers
         {
             return (float) Math.Floor(buff.EndTime - Game.ClockTime);
         }
-        
+
+        public static float IgniteDamage(Obj_AI_Hero target)
+        {
+
+            var igniteBuff =
+                target.Buffs.Where(buff => buff.Name == "summonerdot").OrderBy(buff => buff.StartTime).FirstOrDefault();
+            if (igniteBuff == null)
+            {
+                return 0;
+            }
+            else
+            {
+                var igniteDamage = Math.Floor(igniteBuff.EndTime - Game.ClockTime) *
+                                   ((Obj_AI_Hero) igniteBuff.Caster).GetSummonerSpellDamage(
+                                       target, Damage.SummonerSpell.Ignite) / 5;
+                return (float) igniteDamage;
+            }
+        }
 
         #endregion
 

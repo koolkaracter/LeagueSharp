@@ -99,7 +99,10 @@ namespace UnderratedAIO.Champions
                 ItemHandler.UseItems(target, config, combodamage);
             }
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("useIgnite").GetValue<bool>() && combodamage > target.Health && hasIgnite)
+            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            if (config.Item("useIgnite").GetValue<bool>() && hasIgnite &&
+                ((R.IsReady() && ignitedmg + R.GetDamage(target) > target.Health) || ignitedmg > target.Health) &&
+                (target.Distance(player) > E.Range || player.HealthPercent < 20))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
@@ -125,20 +128,41 @@ namespace UnderratedAIO.Champions
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("user", true).GetValue<bool>() && R.IsReady() &&
-                (!config.Item("ult" + target.SkinName, true).GetValue<bool>() || player.CountEnemiesInRange(1500) == 1) &&
-                Damage.GetSpellDamage(player, target, SpellSlot.R) > target.Health + 20)
+            var targHP = target.Health + 20 - CombatHelper.IgniteDamage(target);
+            var rLogic = config.Item("user", true).GetValue<bool>() && R.IsReady() &&
+                         (!config.Item("ult" + target.SkinName, true).GetValue<bool>() ||
+                          player.CountEnemiesInRange(1500) == 1) &&
+                         Damage.GetSpellDamage(player, target, SpellSlot.R) > targHP && targHP > 0;
+            if (rLogic && target.Distance(player) < R.Range)
             {
                 if (GarenE)
                 {
                     E.Cast(config.Item("packets").GetValue<bool>());
                 }
-                Utility.DelayAction.Add(100, () => R.Cast(target, config.Item("packets").GetValue<bool>()));
+                else
+                {
+                    R.Cast(target, config.Item("packets").GetValue<bool>());
+                }
             }
             if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && player.CountEnemiesInRange(E.Range) > 0 &&
                 target.IsFacing(player))
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
+            }
+            bool hasFlash = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready;
+            if (config.Item("useFlash", true).GetValue<bool>() && hasFlash && rLogic &&
+                target.Distance(player) < R.Range + 425 && target.Distance(player) > R.Range && !Q.IsReady() &&
+                !CombatHelper.IsFacing(target, player.Position) && !GarenQ)
+            {
+                if (GarenE)
+                {
+                    E.Cast(config.Item("packets").GetValue<bool>());
+                }
+                else if (!player.Position.Extend(target.Position, 425f).IsWall()) {}
+                {
+                    player.Spellbook.CastSpell(
+                        player.GetSpellSlot("SummonerFlash"), player.Position.Extend(target.Position, 425f));
+                }
             }
         }
 
@@ -220,6 +244,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useFlash", "   Use Flash", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
