@@ -76,12 +76,12 @@ namespace UnderratedAIO.Champions
 
             if (E.IsCharging || eActive)
             {
-                Orbwalking.Attack = false;
+                orbwalker.SetAttack(false);
                 orbwalker.SetMovement(false);
             }
             else
             {
-                Orbwalking.Attack = true;
+                orbwalker.SetAttack(true);
                 orbwalker.SetMovement(true);
             }   
             switch (orbwalker.ActiveMode)

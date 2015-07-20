@@ -76,40 +76,11 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            if (rActive || justR)
-            {
-                Orbwalking.Attack = false;
-                orbwalker.SetMovement(false);
-            }
-            else
-            {
-                Orbwalking.Attack = true;
-                orbwalker.SetMovement(true);
-            }
-            if (config.Item("manualRflash", true).GetValue<KeyBind>().Active)
-            {
-                FlashCombo();
-            }
             if (System.Environment.TickCount - DamageTakenTime > 1200)
             {
                 resetData();
             }
-            switch (orbwalker.ActiveMode)
-            {
-                case Orbwalking.OrbwalkingMode.Combo:
-                    Combo();
-                    break;
-                case Orbwalking.OrbwalkingMode.Mixed:
-                    Harass();
-                    break;
-                case Orbwalking.OrbwalkingMode.LaneClear:
-                    Clear();
-                    break;
-                case Orbwalking.OrbwalkingMode.LastHit:
-                    break;
-                default:
-                    break;
-            }
+
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             if (config.Item("QSSEnabled").GetValue<bool>() && !rActive)
             {
@@ -135,6 +106,38 @@ namespace UnderratedAIO.Champions
                         return;
                     }
                 }
+            }
+            if (rActive || justR)
+            {
+                orbwalker.SetAttack(false);
+                orbwalker.SetMovement(false);
+                return;
+            }
+            else
+            {
+                orbwalker.SetAttack(true);
+                orbwalker.SetMovement(true);
+            }
+            if (config.Item("manualRflash", true).GetValue<KeyBind>().Active)
+            {
+                FlashCombo();
+            }
+
+            switch (orbwalker.ActiveMode)
+            {
+                case Orbwalking.OrbwalkingMode.Combo:
+                    Combo();
+                    break;
+                case Orbwalking.OrbwalkingMode.Mixed:
+                    Harass();
+                    break;
+                case Orbwalking.OrbwalkingMode.LaneClear:
+                    Clear();
+                    break;
+                case Orbwalking.OrbwalkingMode.LastHit:
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -172,30 +175,30 @@ namespace UnderratedAIO.Champions
                     CombatHelper.CheckInterrupt(best, R.Range))
                 {
                     player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), best);
-                    Utility.DelayAction.Add(
-                        50, () =>
-                        {
-                            R.Cast(config.Item("packets").GetValue<bool>());
-                        });
+                    Utility.DelayAction.Add(50, () => { R.Cast(config.Item("packets").GetValue<bool>()); });
                     justR = true;
                     Utility.DelayAction.Add(200, () => justR = false);
-                    Orbwalking.Attack = false;
+                    orbwalker.SetAttack(false);
                     orbwalker.SetMovement(false);
                     return;
                 }
+            }
+            else
+            {
+                Combo();
             }
             if (!rActive && Orbwalking.CanMove(100))
             {
                 if (!justR)
                 {
-                    Orbwalking.MoveTo(Game.CursorPos,80f);
+                    Orbwalking.MoveTo(Game.CursorPos, 80f);
                 }
             }
         }
 
         private void Harass()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+            Obj_AI_Hero target = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Magical);
             float perc = config.Item("minmanaH", true).GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc || target == null)
             {
@@ -285,9 +288,10 @@ namespace UnderratedAIO.Champions
             var hitC = HitChance.High;
             if (config.Item("useHigherHit", true).GetValue<bool>())
             {
-               hitC=HitChance.VeryHigh; 
+                hitC = HitChance.VeryHigh;
             }
-            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target))
+            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) &&
+                player.Distance(target) < config.Item("useqRange", true).GetValue<Slider>().Value)
             {
                 Q.CastIfHitchanceEquals(target, hitC, config.Item("packets").GetValue<bool>());
             }
@@ -470,6 +474,8 @@ namespace UnderratedAIO.Champions
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useqRange", "   Max range", true))
+                .SetValue(new Slider((int) Q.Range, 0, (int) Q.Range));
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(false);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
