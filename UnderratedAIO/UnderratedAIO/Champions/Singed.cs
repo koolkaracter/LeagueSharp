@@ -204,10 +204,6 @@ namespace UnderratedAIO.Champions
             }
             Throw();
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
             if (config.Item("autoW", true).GetValue<bool>() && W.IsReady() && !player.IsRecalling())
             {
                 var targ =
@@ -522,7 +518,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("GapCloser", "Throw back gapclosers", true)).SetValue(true);
             menuM.AddItem(new MenuItem("OnDash", "Cast E on escape dash", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

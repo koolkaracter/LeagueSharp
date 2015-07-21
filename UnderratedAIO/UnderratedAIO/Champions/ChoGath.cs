@@ -81,10 +81,6 @@ namespace UnderratedAIO.Champions
             {
                 Jungle();
             }
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
         }
 
         private static bool VorpalSpikes
@@ -443,7 +439,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useWint", "Use W to interrupt", true)).SetValue(true);
             menuM.AddItem(new MenuItem("useWgc", "Use W on gapclosers", true)).SetValue(false);
             menuM = Helpers.Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
             menuM.AddItem(new MenuItem("useRJ", "Use R in jungle", true)).SetValue(false);
             menuM.AddItem(new MenuItem("useRSJ", "Use R+Smite", true)).SetValue(false);
             menuM.AddItem(new MenuItem("priorizeSmite", "Use smite if possible", true)).SetValue(false);

@@ -96,10 +96,6 @@ namespace UnderratedAIO.Champions
             {
                 CastR();
             }
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
         }
 
         private static void CastR()
@@ -373,7 +369,7 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("usergc", "Use R to anti gap closer", true)).SetValue(false);
             menuU.AddItem(new MenuItem("userint", "Use R to interrupt", true)).SetValue(false);
             menuU = Jungle.addJungleOptions(menuU);
-            menuU = ItemHandler.addCleanseOptions(menuU);
+            
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

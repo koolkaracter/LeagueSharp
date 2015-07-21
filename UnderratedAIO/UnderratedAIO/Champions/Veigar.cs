@@ -182,10 +182,6 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
             if (config.Item("autoQ", true).GetValue<bool>() && Q.IsReady() && !player.IsRecalling() &&
                 orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo)
             {
@@ -633,7 +629,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("GapCloser", "Cast E on gapclosers", true)).SetValue(true);
             menuM.AddItem(new MenuItem("OnDash", "Cast E on dash", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

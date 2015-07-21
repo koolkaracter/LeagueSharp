@@ -111,10 +111,6 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
             if (config.Item("EzAutoQ", true).GetValue<KeyBind>().Active && Q.IsReady() &&
                 config.Item("EzminmanaaQ", true).GetValue<Slider>().Value < player.ManaPercent &&
                 orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo && Orbwalking.CanMove(100))
@@ -211,21 +207,23 @@ namespace UnderratedAIO.Champions
                 ItemHandler.UseItems(target, config);
             }
             var cmbDmg = GetComboDamage(target);
-            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && target.IsValidTarget() && !justJumped)
+            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Orbwalking.CanMove(100) && target.IsValidTarget() && !justJumped)
             {
                 var targQ = Q.GetPrediction(target);
                 if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && targQ.Hitchance >= HitChance.High)
                 {
                     Q.Cast(targQ.CastPosition, config.Item("packets").GetValue<bool>());
+                    return;
                 }
             }
-            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && !justJumped &&
+            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && Orbwalking.CanMove(100) && !justJumped &&
                 (cmbDmg + player.GetAutoAttackDamage(target) > target.Health || player.Mana > Q.Instance.ManaCost * 2))
             {
                 var tarPered = W.GetPrediction(target);
                 if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position))
                 {
                     W.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                    return;
                 }
             }
             if (R.IsReady() && !justJumped)
@@ -486,7 +484,7 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLH);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
             menuM.AddItem(new MenuItem("DmgType", "Damage Type", true))
                 .SetValue(new StringList(new[] { "AP", "AD" }, 0));
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");

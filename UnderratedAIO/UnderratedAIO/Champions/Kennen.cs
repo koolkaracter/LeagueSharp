@@ -65,10 +65,6 @@ namespace UnderratedAIO.Champions
                 default:
                     break;
             }
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
             if (target == null)
             {
                 return;
@@ -245,7 +241,8 @@ namespace UnderratedAIO.Champions
             }
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             var combodamage = ComboDamage(target);
-            if (config.Item("useIgnite").GetValue<bool>() && combodamage > target.Health && hasIgnite &&
+            var ignitedmg = (float)player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
                 !Q.CanCast(target) && !W.IsReady())
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
@@ -399,7 +396,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("Minhelath", "Use Zhonya under x health", true)).SetValue(new Slider(35, 0, 100));
             menuM.AddItem(new MenuItem("autoq", "Auto Q to prepare stun", true)).SetValue(true);
             menuM.AddItem(new MenuItem("autow", "Auto W to stun", true)).SetValue(true);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

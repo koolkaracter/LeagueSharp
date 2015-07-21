@@ -53,10 +53,6 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
         }
 
         private static void AfterAttack(AttackableUnit unit, AttackableUnit target)
@@ -342,7 +338,7 @@ namespace UnderratedAIO.Champions
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

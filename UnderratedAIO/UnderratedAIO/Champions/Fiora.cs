@@ -37,10 +37,6 @@ namespace UnderratedAIO.Champions
         private void Game_OnGameUpdate(EventArgs args)
         {
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -370,7 +366,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("autoW", "Auto W AA", true)).SetValue(true);
             menuM.AddItem(new MenuItem("minmanaP", "Min mana percent", true)).SetValue(new Slider(1, 1, 100));
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

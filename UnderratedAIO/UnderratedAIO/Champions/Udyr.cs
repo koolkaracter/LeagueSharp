@@ -157,10 +157,6 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
             if (System.Environment.TickCount - DamageTakenTime > 3000)
             {
                 DamageTakenTime = System.Environment.TickCount;
@@ -515,7 +511,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("Interrupt", "Use E to interupt", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

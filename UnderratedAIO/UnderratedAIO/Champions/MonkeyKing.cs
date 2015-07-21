@@ -23,9 +23,10 @@ namespace UnderratedAIO.Champions
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public bool justQ, justE, Aggro, justW;
-        public static float DamageTaken, DamageTakenTime;
+        public static float DamageTaken, DamageTakenTime, UltiCheck;
         public static int DamageCount, DamageTakenLastId;
         public List<int> aggroList = new List<int>();
+        public static Vector3 point;
 
         public MonkeyKing()
         {
@@ -114,44 +115,7 @@ namespace UnderratedAIO.Champions
             {
                 Orbwalking.Attack = true;
             }
-            if (rActive && Game.CursorPos.CountEnemiesInRange(300) > 1)
-            {
-                Obj_AI_Hero target = TargetSelector.GetTarget(
-                    E.Range, TargetSelector.DamageType.Physical, true, HeroManager.Enemies.Where(h => h.IsInvulnerable));
-                if (target != null && target.CountEnemiesInRange(R.Range) > 1)
-                {
-                    orbwalker.SetMovement(false);
-                    Vector3 point = Vector3.Zero;
-                    switch (config.Item("rType", true).GetValue<StringList>().SelectedIndex)
-                    {
-                        case 0:
-                            point =
-                                CombatHelper.PointsAroundTheTarget(player, R.Range)
-                                    .Where(p => p.Distance(player.Position) < R.Range)
-                                    .OrderByDescending(p => p.CountEnemiesInRange(R.Range))
-                                    .ThenBy(p => p.Distance(Game.CursorPos))
-                                    .FirstOrDefault();
-                            break;
-                        case 1:
-                            point =
-                                CombatHelper.PointsAroundTheTarget(target, R.Range)
-                                    .Where(p => p.Distance(player.Position) < R.Range)
-                                    .OrderByDescending(p => p.CountEnemiesInRange(R.Range))
-                                    .ThenBy(p => p.Distance(Game.CursorPos))
-                                    .FirstOrDefault();
-                            break;
-                    }
-                    if (player.Distance(point) > 10 &&
-                        point.CountEnemiesInRange(R.Range) > player.CountEnemiesInRange(R.Range))
-                    {
-                        player.IssueOrder(GameObjectOrder.MoveTo, point);
-                    }
-                }
-            }
-            else
-            {
-                orbwalker.SetMovement(true);
-            }
+            Rmovement();
             if (W.IsReady() && !Aggro && ((DamageTaken > 60 && DamageCount >= 3) || aggroList.Count >= 3))
             {
                 Aggro = true;
@@ -184,6 +148,60 @@ namespace UnderratedAIO.Champions
             if (config.Item("QSSEnabled").GetValue<bool>() && !rActive)
             {
                 ItemHandler.UseCleanse(config);
+            }
+        }
+
+        private void Rmovement()
+        {
+            if (rActive && Game.CursorPos.CountEnemiesInRange(300) > 1)
+            {
+                Obj_AI_Hero target = TargetSelector.GetTarget(
+                    E.Range, TargetSelector.DamageType.Physical, true, HeroManager.Enemies.Where(h => h.IsInvulnerable));
+                if (target != null && target.CountEnemiesInRange(R.Range) > 1)
+                {
+                    if (System.Environment.TickCount - UltiCheck > 250 || UltiCheck==0f)
+                    {
+                        var enemies =
+                            HeroManager.Enemies.Where(e => e.IsValidTarget() && e.Distance(player) < 1000)
+                                .Select(e => Prediction.GetPrediction(e, 0.35f));
+                        switch (config.Item("rType", true).GetValue<StringList>().SelectedIndex)
+                        {
+                            case 0:
+                                point =
+                                    CombatHelper.PointsAroundTheTarget(player, R.Range)
+                                        .Where(p => p.CountEnemiesInRange(R.Range + 100) > 0)
+                                        .OrderByDescending(
+                                            p => enemies.Count(e => e.UnitPosition.Distance(p) <= R.Range))
+                                        .ThenBy(p => p.Distance(Game.CursorPos))
+                                        .FirstOrDefault();
+                                break;
+                            case 1:
+                                point =
+                                    CombatHelper.PointsAroundTheTarget(target, R.Range)
+                                        .Where(p => p.CountEnemiesInRange(R.Range + 100) > 0)
+                                        .OrderByDescending(
+                                            p => enemies.Count(e => e.UnitPosition.Distance(p) <= R.Range))
+                                        .ThenBy(p => p.Distance(Game.CursorPos))
+                                        .FirstOrDefault();
+                                break;
+                            case 2:
+                                point = Game.CursorPos;
+                                break;
+                        }
+                    }
+
+                    if (point.IsValid() && player.Distance(point) > 10 &&
+                        point.CountEnemiesInRange(R.Range) > player.CountEnemiesInRange(R.Range))
+                    {
+                        orbwalker.SetMovement(false);
+                        player.IssueOrder(GameObjectOrder.MoveTo, point);
+                        UltiCheck = System.Environment.TickCount;
+                    }
+                }
+            }
+            else
+            {
+                orbwalker.SetMovement(true);
             }
         }
 
@@ -256,7 +274,8 @@ namespace UnderratedAIO.Champions
                 Q.Cast(config.Item("packets").GetValue<bool>());
                 player.IssueOrder(GameObjectOrder.AutoAttack, target);
             }
-            if (config.Item("usew", true).GetValue<bool>() && !player.UnderTurret(true) && W.IsReady() && !canKill &&
+            if (config.Item("usew", true).GetValue<bool>() && !Q.IsReady() && !qActive && !player.UnderTurret(true) &&
+                W.IsReady() && !canKill &&
                 ((!Q.IsReady() && !E.IsReady() && !justE && target.HealthPercent > 20 &&
                   config.Item("wHealth", true).GetValue<Slider>().Value > player.HealthPercent &&
                   Orbwalking.GetRealAutoAttackRange(target) > player.Distance(target) &&
@@ -278,9 +297,9 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config);
             }
-            if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target) &&
+            if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target) && Orbwalking.CanMove(100) &&
                 (config.Item("eMinRange", true).GetValue<Slider>().Value < player.Distance(target) ||
-                 player.HealthPercent < 20))
+                 player.HealthPercent < 20 || (player.CountEnemiesInRange(800) == 1 && target.HealthPercent < 20)))
             {
                 E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
@@ -299,6 +318,11 @@ namespace UnderratedAIO.Champions
         private static bool eActive
         {
             get { return player.Buffs.Any(buff => buff.Name == "monkeykingnimbusas"); }
+        }
+
+        private static bool qActive
+        {
+            get { return player.Buffs.Any(buff => buff.Name == "MonkeyKingDoubleAttack"); }
         }
 
         private void Game_OnDraw(EventArgs args)
@@ -404,7 +428,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("userone", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "R min", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("rType", "R type", true))
-                .SetValue(new StringList(new[] { "Most enemy", "Focus selected" }, 1));
+                .SetValue(new StringList(new[] { "Most enemy", "Focus selected", "To Cursor" }, 1));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
@@ -424,7 +448,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("Interrupt", "Cast R to interrupt spells", true)).SetValue(false);
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

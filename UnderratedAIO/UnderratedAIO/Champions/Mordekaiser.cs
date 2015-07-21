@@ -53,10 +53,6 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
         }
 
         private void BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
@@ -317,7 +313,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("ghostTarget", "Ghost target priority", true))
                 .SetValue(new StringList(new[] { "Targetselector", "Lowest health", "Closest to you" }, 0));
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

@@ -56,15 +56,10 @@ namespace UnderratedAIO.Champions
                         break;
                 }
                 Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-                if (config.Item("QSSEnabled").GetValue<bool>())
-                {
-                    ItemHandler.UseCleanse(config);
-                }
             }
             else
             {
-                autoLeveler.enabled = false;
-                
+                autoLeveler.enabled = false; 
             }
         }
         private void Combo()
@@ -77,6 +72,12 @@ namespace UnderratedAIO.Champions
             if (config.Item("useItems").GetValue<bool>())
             {
                 ItemHandler.UseItems(target, config);
+            }
+            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
+            var ignitedmg = (float)player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite)
+            {
+                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
         }
 
@@ -103,11 +104,10 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuOrb);
             Menu menuC = new Menu("Combo ", "csettings");
             menuC = ItemHandler.addItemOptons(menuC);
+            menuC.AddItem(new MenuItem("useIgnite", "Ignite")).SetValue(true);
             config.AddSubMenu(menuC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
-
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

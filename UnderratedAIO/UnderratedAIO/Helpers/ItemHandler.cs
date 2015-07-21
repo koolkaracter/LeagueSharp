@@ -208,6 +208,10 @@ namespace UnderratedAIO.Helpers
                     }
                 }
             }
+            if (config.Item("QSSEnabled").GetValue<bool>())
+            {
+                UseCleanse(config); 
+            }
         }
 
         public static bool IsHeRunAway(Obj_AI_Hero target)
@@ -236,6 +240,7 @@ namespace UnderratedAIO.Helpers
         {
             var mConfig = config;
             Menu menuI = new Menu("Items ", "Itemsettings");
+            menuI = ItemHandler.addCleanseOptions(menuI);
             menuI.AddItem(new MenuItem("hyd", "Hydra/Tiamat")).SetValue(true);
             Menu menuRan = new Menu("Randuin's Omen", "Rands ");
             menuRan.AddItem(new MenuItem("ran", "Enabled")).SetValue(true);

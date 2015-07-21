@@ -89,10 +89,6 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
         }
 
         private void Combo(Obj_AI_Hero target)
@@ -333,7 +329,7 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
             menuM.AddItem(new MenuItem("autoQ", "Auto Q")).SetValue(true);
             menuM.AddItem(new MenuItem("Rdamage", "Combo damage with R")).SetValue(true);
             menuM.AddItem(new MenuItem("Qdamage", "Combo damage with Q")).SetValue(true);

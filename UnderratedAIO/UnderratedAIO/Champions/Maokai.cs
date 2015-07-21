@@ -85,10 +85,6 @@ namespace UnderratedAIO.Champions
             }
             AutoE();
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
         }
 
         private void AutoE()
@@ -378,7 +374,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useQgc", "Use Q on gapclosers", true)).SetValue(false);
             menuM.AddItem(new MenuItem("useQint", "Use W to interrupt", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

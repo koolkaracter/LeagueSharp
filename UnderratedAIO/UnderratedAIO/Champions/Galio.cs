@@ -82,10 +82,6 @@ namespace UnderratedAIO.Champions
             }
 
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>() && !rActive)
-            {
-                ItemHandler.UseCleanse(config);
-            }
             if (config.Item("AutoW", true).GetValue<bool>() && W.IsReady())
             {
                 CastW(false);
@@ -510,7 +506,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("AutoWmana", "   Min mana", true)).SetValue(new Slider(50, 1, 100));
             menuM.AddItem(new MenuItem("AutoWhealth", "   Under health", true)).SetValue(new Slider(70, 1, 100));
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

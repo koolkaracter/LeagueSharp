@@ -53,10 +53,6 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>())
-            {
-                ItemHandler.UseCleanse(config);
-            }
         }
 
         private void Combo()
@@ -78,7 +74,7 @@ namespace UnderratedAIO.Champions
                 lastR = 0f;
             }
             if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) &&
-                dist < config.Item("useqMaxRange", true).GetValue<Slider>().Value)
+                dist < config.Item("useqMaxRange", true).GetValue<Slider>().Value && !player.IsDashing())
             {
                 if (dist < 550)
                 {
@@ -216,13 +212,14 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+
             if (config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
                 W.IsReady())
             {
                 SpellData spell = args.SData;
                 string spellName = spell.Name;
-                Obj_AI_Base target = (Obj_AI_Base)args.Target;
-                if (target.IsMe)
+                Obj_AI_Hero target = args.Target as Obj_AI_Hero;
+                if (target != null && target.IsMe)
                 {
                     if (CombatHelper.isTargetedCC(spellName))
                     {
@@ -359,7 +356,7 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            menuM = ItemHandler.addCleanseOptions(menuM);
+            
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
