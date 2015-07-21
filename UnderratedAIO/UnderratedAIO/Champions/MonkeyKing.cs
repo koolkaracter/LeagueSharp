@@ -109,11 +109,11 @@ namespace UnderratedAIO.Champions
         {
             if ((wActive && (!Q.IsReady() || Aggro || justW)) || rActive)
             {
-                Orbwalking.Attack = false;
+                orbwalker.SetAttack(false);
             }
             else
             {
-                Orbwalking.Attack = true;
+                orbwalker.SetAttack(true);
             }
             Rmovement();
             if (W.IsReady() && !Aggro && ((DamageTaken > 60 && DamageCount >= 3) || aggroList.Count >= 3))
@@ -162,7 +162,7 @@ namespace UnderratedAIO.Champions
                     if (System.Environment.TickCount - UltiCheck > 250 || UltiCheck==0f)
                     {
                         var enemies =
-                            HeroManager.Enemies.Where(e => e.IsValidTarget() && e.Distance(player) < 1000)
+                            HeroManager.Enemies.Where(e => e.IsValidTarget() && e.Distance(player) < 600)
                                 .Select(e => Prediction.GetPrediction(e, 0.35f));
                         switch (config.Item("rType", true).GetValue<StringList>().SelectedIndex)
                         {
@@ -266,7 +266,7 @@ namespace UnderratedAIO.Champions
             }
             if (canKill)
             {
-                Orbwalking.Attack = true;
+                orbwalker.SetAttack(true);
             }
             if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) &&
                 target.Health < player.GetAutoAttackDamage(target) + Q.GetDamage(target))
