@@ -41,7 +41,8 @@ namespace UnderratedAIO.Helpers
         public static bool QssUsed = false;
         public static float MuramanaTime;
 
-        public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg = 0f)
+        public static Spell Q, W, E, R;
+        public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg = 0f, bool cleanseSpell=false)
         {
             if (config.Item("hyd").GetValue<bool>() && player.BaseSkinName != "Renekton")
             {
@@ -210,7 +211,7 @@ namespace UnderratedAIO.Helpers
             }
             if (config.Item("QSSEnabled").GetValue<bool>())
             {
-                UseCleanse(config); 
+                UseCleanse(config, cleanseSpell); 
             }
         }
 
@@ -238,6 +239,10 @@ namespace UnderratedAIO.Helpers
 
         public static Menu addItemOptons(Menu config)
         {
+            Q = new Spell(SpellSlot.Q);
+            W = new Spell(SpellSlot.W);
+            E = new Spell(SpellSlot.E);
+            R = new Spell(SpellSlot.R);
             var mConfig = config;
             Menu menuI = new Menu("Items ", "Itemsettings");
             menuI = ItemHandler.addCleanseOptions(menuI);
@@ -418,139 +423,83 @@ namespace UnderratedAIO.Helpers
             return mConfig;
         }
 
-        public static void UseCleanse(Menu config)
+        public static void UseCleanse(Menu config, bool cleanseSpell)
         {
             if (QssUsed)
             {
                 return;
             }
+            if (player.ChampionName == "Gangplank" && W.IsReady() && cleanseSpell)
+            {
+                Cleanse(null, config, cleanseSpell);
+            }
             if (Items.CanUseItem(Qss.Id) && Items.HasItem(Qss.Id))
             {
-                Cleanse(Qss, config);
+                Cleanse(Qss, config, cleanseSpell);
             }
             if (Items.CanUseItem(Mercurial.Id) && Items.HasItem(Mercurial.Id))
             {
-                Cleanse(Mercurial, config);
+                Cleanse(Mercurial, config, cleanseSpell);
             }
             if (Items.CanUseItem(Dervish.Id) && Items.HasItem(Dervish.Id))
             {
-                Cleanse(Dervish, config);
+                Cleanse(Dervish, config, cleanseSpell);
             }
         }
 
-        private static void Cleanse(Items.Item Item, Menu config)
+        private static void Cleanse(Items.Item Item, Menu config, bool useSpell=false)
         {
             var delay = config.Item("QSSdelay").GetValue<Slider>().Value;
             foreach (var buff in player.Buffs)
             {
                 if (config.Item("slow").GetValue<bool>() && buff.Type == BuffType.Slow)
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("blind").GetValue<bool>() && buff.Type == BuffType.Blind)
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("silence").GetValue<bool>() && buff.Type == BuffType.Silence)
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("snare").GetValue<bool>() && buff.Type == BuffType.Snare)
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("stun").GetValue<bool>() && buff.Type == BuffType.Stun)
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("charm").GetValue<bool>() && buff.Type == BuffType.Charm)
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("taunt").GetValue<bool>() && buff.Type == BuffType.Taunt)
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("fear").GetValue<bool>() && (buff.Type == BuffType.Fear || buff.Type == BuffType.Flee))
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("suppression").GetValue<bool>() && buff.Type == BuffType.Suppression)
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("polymorph").GetValue<bool>() && buff.Type == BuffType.Polymorph)
                 {
-                    QssUsed = true;
-                    Utility.DelayAction.Add(
-                        delay, () =>
-                        {
-                            Items.UseItem(Item.Id, player);
-                            QssUsed = false;
-                        });
+                    CastQSS(delay, Item);
                     return;
                 }
                 if (config.Item("damager").GetValue<bool>())
@@ -558,63 +507,52 @@ namespace UnderratedAIO.Helpers
                     switch (buff.Name)
                     {
                         case "zedulttargetmark":
-                            QssUsed = true;
-                            Utility.DelayAction.Add(
-                                2900, () =>
-                                {
-                                    Items.UseItem(Item.Id, player);
-                                    QssUsed = false;
-                                });
+                            CastQSS(2900, Item);
                             break;
                         case "VladimirHemoplague":
-                            QssUsed = true;
-                            Utility.DelayAction.Add(
-                                4900, () =>
-                                {
-                                    Items.UseItem(Item.Id, player);
-                                    QssUsed = false;
-                                });
+                            CastQSS(4900, Item);
                             break;
                         case "MordekaiserChildrenOfTheGrave":
-                            QssUsed = true;
-                            Utility.DelayAction.Add(
-                                delay, () =>
-                                {
-                                    Items.UseItem(Item.Id, player);
-                                    QssUsed = false;
-                                });
+                            CastQSS(delay, Item);
                             break;
                         case "urgotswap2":
-                            QssUsed = true;
-                            Utility.DelayAction.Add(
-                                900, () =>
-                                {
-                                    Items.UseItem(Item.Id, player);
-                                    QssUsed = false;
-                                });
+                            CastQSS(delay, Item);
                             break;
                         case "skarnerimpale":
-                            QssUsed = true;
-                            Utility.DelayAction.Add(
-                                delay, () =>
-                                {
-                                    Items.UseItem(Item.Id, player);
-                                    QssUsed = false;
-                                });
+                            CastQSS(delay, Item);
                             break;
                         case "poppydiplomaticimmunity":
-                            QssUsed = true;
-                            Utility.DelayAction.Add(
-                                delay, () =>
-                                {
-                                    Items.UseItem(Item.Id, player);
-                                    QssUsed = false;
-                                });
+                            CastQSS(delay, Item);
                             break;
                     }
                 }
             }
         }
+
+        private static void CastQSS(int delay, Items.Item item)
+        {
+            QssUsed = true;
+            if (player.ChampionName == "Gangplank" && W.IsReady())
+            {
+                Utility.DelayAction.Add(delay, () =>
+                {
+                    W.Cast();
+                    QssUsed = false;
+                });
+                return;
+            }
+            else
+            {
+                Utility.DelayAction.Add(
+                    delay, () =>
+                    {
+                        Items.UseItem(item.Id, player);
+                        QssUsed = false;
+                    });
+                return;
+            }
+        }
+
 
         private static void Game_OnGameUpdate(EventArgs args)
         {
