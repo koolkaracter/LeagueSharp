@@ -81,12 +81,7 @@ namespace UnderratedAIO.Champions
                             a => enemy.Distance(a) < 700 && CombatHelper.IsFacing(a, enemy.Position));
                     if (allies != null)
                     {
-                        var pred = R.GetPrediction(enemy);
-                        if (pred.Hitchance>=HitChance.High)
-                        {
-                            R.Cast(pred.CastPosition);
-                            return;
-                        }
+                        R.CastIfHitchanceEquals(enemy, HitChance.High);
                     }
                 }
             }
@@ -207,7 +202,8 @@ namespace UnderratedAIO.Champions
             }
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > HealthPrediction.GetHealthPrediction(target,700) && hasIgnite &&
+            if (config.Item("useIgnite", true).GetValue<bool>() &&
+                ignitedmg > HealthPrediction.GetHealthPrediction(target, 700) && hasIgnite &&
                 !CombatHelper.CheckCriticalBuffs(target) && !Q.IsReady() && !justQ)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
