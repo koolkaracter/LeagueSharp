@@ -145,10 +145,6 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
-            if (config.Item("QSSEnabled").GetValue<bool>() && !rActive)
-            {
-                ItemHandler.UseCleanse(config);
-            }
         }
 
         private void Rmovement()
