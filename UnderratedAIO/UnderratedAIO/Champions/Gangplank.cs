@@ -47,7 +47,7 @@ namespace UnderratedAIO.Champions
             E = new Spell(SpellSlot.E, 1000);
             E.SetSkillshot(0.8f, 50, float.MaxValue, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R);
-            R.SetSkillshot(0.7f, 150, float.MaxValue, false, SkillshotType.SkillshotCircle);
+            R.SetSkillshot(1.5f, 150, float.MaxValue, false, SkillshotType.SkillshotCircle);
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -77,7 +77,7 @@ namespace UnderratedAIO.Champions
                         e => e.HealthPercent < 35 && e.IsValidTarget() && e.Distance(player) > 1500))
                 {
                     var allies =
-                        HeroManager.Allies.Where(
+                        HeroManager.Allies.FirstOrDefault(
                             a => enemy.Distance(a) < 700 && CombatHelper.IsFacing(a, enemy.Position));
                     if (allies != null)
                     {
@@ -118,14 +118,23 @@ namespace UnderratedAIO.Champions
             {
                 var mini =
                     MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
-                        .Where(
-                            m =>
-                                m.Health < Q.GetDamage(m) &&
-                                (m.SkinName != "GangplankBarrel" ||
-                                 (target != null && target.Distance(m) < BarrelExplosionRange &&
-                                  m.SkinName != "GangplankBarrel" && m.Health < 2)))
-                        .OrderByDescending(m => m.Distance(player))
+                        .Where(m => m.Health < Q.GetDamage(m) && m.SkinName != "GangplankBarrel")
+                        .OrderByDescending(m => m.MaxHealth)
+                        .ThenByDescending(m => m.Distance(player))
                         .FirstOrDefault();
+                var barrel =
+                    ObjectManager.Get<Obj_AI_Base>()
+                        .FirstOrDefault(
+                            o =>
+                                target != null && o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
+                                o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
+                                o.Health < 2 && o.Distance(target) < BarrelExplosionRange);
+
+                if (barrel != null)
+                {
+                    Q.CastOnUnit(barrel, config.Item("packets").GetValue<bool>());
+                    return;
+                }
                 if (mini != null)
                 {
                     Q.CastOnUnit(mini, config.Item("packets").GetValue<bool>());
@@ -356,18 +365,23 @@ namespace UnderratedAIO.Champions
             if (!barrels.Any())
             {
                 CastEtarget(target);
-
                 return;
             }
-
             var enemies =
-                HeroManager.Enemies.Where(e => e.IsValidTarget() && e.Distance(player) < 600)
+                HeroManager.Enemies.Where(e => e.IsValidTarget() && e.Distance(player) < E.Range)
                     .Select(e => Prediction.GetPrediction(e, 0.35f));
             List<Vector3> points = new List<Vector3>();
             foreach (var barrel in
                 barrels.Where(b => b.Distance(player) < Q.Range && b.Health < 2))
             {
-                points.AddRange(GetBarrelPoints(barrel.Position).Where(p => p.Distance(player.Position) < E.Range));
+                if (barrel != null)
+                {
+                    var newP = GetBarrelPoints(barrel.Position).Where(p => !p.IsWall());
+                    if (newP.Any())
+                    {
+                        points.AddRange(newP.Where(p => p.Distance(player.Position) < E.Range));
+                    }
+                }
             }
             var bestPoint =
                 points.Where(b => enemies.Count(e => e.UnitPosition.Distance(b) < BarrelExplosionRange) > 0)
@@ -388,7 +402,7 @@ namespace UnderratedAIO.Champions
             var ePred = E.GetPrediction(target);
             if (ePred.CastPosition.Distance(ePos) > 400 && !justE)
             {
-                E.Cast(ePred.CastPosition, config.Item("packets").GetValue<bool>());
+                E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
             }
         }
 
