@@ -60,6 +60,7 @@
     <Compile Include="Champions\ChoGath.cs" />
     <Compile Include="Champions\Ezreal.cs" />
     <Compile Include="Champions\Galio.cs" />
+    <Compile Include="Champions\Gangplank.cs" />
     <Compile Include="Champions\Kennen.cs" />
     <Compile Include="Champions\Evelynn.cs" />
     <Compile Include="Champions\Fiora.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="Champions\Udyr.cs" />
     <Compile Include="Champions\Veigar.cs" />
     <Compile Include="Champions\Volibear.cs" />
+    <Compile Include="Champions\MonkeyKing.cs" />
     <Compile Include="Champions\Yorick.cs" />
     <Compile Include="Champions\Zac.cs" />
     <Compile Include="Helpers\AutoLeveler.cs" />
