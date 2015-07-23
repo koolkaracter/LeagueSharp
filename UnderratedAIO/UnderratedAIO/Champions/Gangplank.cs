@@ -47,7 +47,7 @@ namespace UnderratedAIO.Champions
             E = new Spell(SpellSlot.E, 1000);
             E.SetSkillshot(0.8f, 50, float.MaxValue, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R);
-            R.SetSkillshot(0.7f, 250, float.MaxValue, false, SkillshotType.SkillshotCircle);
+            R.SetSkillshot(0.7f, 150, float.MaxValue, false, SkillshotType.SkillshotCircle);
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -74,14 +74,19 @@ namespace UnderratedAIO.Champions
             {
                 foreach (var enemy in
                     HeroManager.Enemies.Where(
-                        e => e.HealthPercent < 25 && e.IsValidTarget() && e.Distance(player) > 1500))
+                        e => e.HealthPercent < 35 && e.IsValidTarget() && e.Distance(player) > 1500))
                 {
                     var allies =
                         HeroManager.Allies.Where(
                             a => enemy.Distance(a) < 700 && CombatHelper.IsFacing(a, enemy.Position));
                     if (allies != null)
                     {
-                        R.Cast(R.GetPrediction(enemy).CastPosition);
+                        var pred = R.GetPrediction(enemy);
+                        if (pred.Hitchance>=HitChance.High)
+                        {
+                            R.Cast(pred.CastPosition);
+                            return;
+                        }
                     }
                 }
             }
