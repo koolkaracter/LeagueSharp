@@ -72,10 +72,9 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("AutoR", true).GetValue<bool>() && R.IsReady())
             {
-                foreach (
-                    var enemy in
-                        HeroManager.Enemies.Where(
-                            e => e.HealthPercent < 25 && e.IsValidTarget() && e.Distance(player) > 1500))
+                foreach (var enemy in
+                    HeroManager.Enemies.Where(
+                        e => e.HealthPercent < 25 && e.IsValidTarget() && e.Distance(player) > 1500))
                 {
                     var allies =
                         HeroManager.Allies.Where(
@@ -95,7 +94,7 @@ namespace UnderratedAIO.Champions
                 var mini =
                     MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
                         .Where(m => m.Health < Q.GetDamage(m) && m.SkinName != "GangplankBarrel")
-                        .OrderByDescending(m=>m.MaxHealth)
+                        .OrderByDescending(m => m.MaxHealth)
                         .ThenByDescending(m => m.Distance(player))
                         .FirstOrDefault();
 
@@ -202,11 +201,15 @@ namespace UnderratedAIO.Champions
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-
+            if (config.Item("usew", true).GetValue<Slider>().Value > player.HealthPercent &&
+                player.CountEnemiesInRange(500) > 0)
+            {
+                W.Cast();
+            }
             if (R.IsReady() && config.Item("user", true).GetValue<bool>())
             {
                 var Rtarget =
-                    HeroManager.Enemies.FirstOrDefault(e => e.HealthPercent < 25 && e.CountAlliesInRange(660) > 0);
+                    HeroManager.Enemies.FirstOrDefault(e => e.HealthPercent < 50 && e.CountAlliesInRange(660) > 0);
                 if (Rtarget != null)
                 {
                     R.CastIfWillHit(Rtarget, config.Item("Rmin", true).GetValue<Slider>().Value);
@@ -485,7 +488,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("detoneateTarget", "   Blow up target with E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("detoneateTargets", "   Blow up enemies with E", true))
                 .SetValue(new Slider(2, 1, 5));
-            menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(false);
+            menuC.AddItem(new MenuItem("usew", "Use W under health", true)).SetValue(new Slider(20, 0, 100));
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("eStacksC", "   Keep stacks", true)).SetValue(new Slider(0, 0, 5));
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
