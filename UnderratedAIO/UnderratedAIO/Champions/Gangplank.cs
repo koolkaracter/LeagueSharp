@@ -113,11 +113,17 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
             if (config.Item("useqLHH", true).GetValue<bool>())
             {
                 var mini =
                     MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
-                        .Where(m => m.Health < Q.GetDamage(m) && m.SkinName != "GangplankBarrel")
+                        .Where(
+                            m =>
+                                m.Health < Q.GetDamage(m) &&
+                                (m.SkinName != "GangplankBarrel" ||
+                                 (target != null && target.Distance(m) < BarrelExplosionRange &&
+                                  m.SkinName != "GangplankBarrel" && m.Health < 2)))
                         .OrderByDescending(m => m.Distance(player))
                         .FirstOrDefault();
                 if (mini != null)
@@ -126,7 +132,7 @@ namespace UnderratedAIO.Champions
                     return;
                 }
             }
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
+
             if (target == null)
             {
                 return;
@@ -196,7 +202,7 @@ namespace UnderratedAIO.Champions
             }
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
+            if (config.Item("useIgnite", true).GetValue<bool>() && ignitedmg > HealthPrediction.GetHealthPrediction(target,700) && hasIgnite &&
                 !CombatHelper.CheckCriticalBuffs(target) && !Q.IsReady() && !justQ)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
