@@ -330,30 +330,40 @@ namespace UnderratedAIO.Champions
                 R.Instance.ManaCost < player.Mana && !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) &&
                 !CombatHelper.CheckCriticalBuffs(target))
             {
-                var targetHP = HealthPrediction.GetHealthPrediction(target, 400);
-
-                var killWithIgnite = hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
-                                     R.GetDamage(target) + ignitedmg > targetHP && target.Health > R.GetDamage(target);
-
-                var killWithW = wPos != null && wPos.IsValid() && System.Environment.TickCount - wTime > 700 &&
-                                Prediction.GetPrediction(target, 0.55f).UnitPosition.Distance(wPos) < W.Width &&
-                                R.GetDamage(target) + W.GetDamage(target) > targetHP &&
-                                target.Health > R.GetDamage(target);
-
-                var killWithIgniteAndW = killWithW && hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
+                if (config.Item("userPred", true).GetValue<bool>())
+                {
+                    var targetHP = HealthPrediction.GetHealthPrediction(target, 400);
+                    var killWithIgnite = hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
                                          R.GetDamage(target) + ignitedmg > targetHP &&
-                                         target.Health > R.GetDamage(target) && target.Health > R.GetDamage(target);
+                                         target.Health > R.GetDamage(target);
 
-                if (killWithW || (targetHP < R.GetDamage(target) && !justQ && CheckW(target)))
-                {
-                    R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                    var killWithW = wPos != null && wPos.IsValid() && System.Environment.TickCount - wTime > 700 &&
+                                    Prediction.GetPrediction(target, 0.55f).UnitPosition.Distance(wPos) < W.Width &&
+                                    R.GetDamage(target) + W.GetDamage(target) > targetHP &&
+                                    target.Health > R.GetDamage(target);
+
+                    var killWithIgniteAndW = killWithW && hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
+                                             R.GetDamage(target) + ignitedmg > targetHP &&
+                                             target.Health > R.GetDamage(target) && target.Health > R.GetDamage(target);
+
+                    if (killWithW || (targetHP < R.GetDamage(target) && !justQ && CheckW(target)))
+                    {
+                        R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                    }
+
+                    if ((killWithIgnite || killWithIgniteAndW) && CheckW(target))
+                    {
+                        R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                        IgniteTarget = target;
+                        Utility.DelayAction.Add(500, () => IgniteTarget = null);
+                    }
                 }
-
-                if ((killWithIgnite || killWithIgniteAndW) && CheckW(target))
+                else
                 {
-                    R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
-                    IgniteTarget = target;
-                    Utility.DelayAction.Add(500, () => IgniteTarget = null);
+                    if (target.Health < R.GetDamage(target))
+                    {
+                        R.CastOnUnit(target, config.Item("packets").GetValue<bool>());  
+                    }
                 }
             }
         }
@@ -595,6 +605,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useEkey", "   Manual cast", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("userPred", "   Calc ignite+W to damage", true)).SetValue(true);
             menuC.AddItem(new MenuItem("startWithE", "Start combo with E", true)).SetValue(false);
             menuC.AddItem(new MenuItem("checkmana", "   Check mana", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
@@ -629,7 +640,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("GapCloser", "Cast E on gapclosers", true)).SetValue(true);
             menuM.AddItem(new MenuItem("OnDash", "Cast E on dash", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-            
+
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);
