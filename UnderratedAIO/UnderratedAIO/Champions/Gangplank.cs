@@ -42,7 +42,7 @@ namespace UnderratedAIO.Champions
 
         private void InitGangPlank()
         {
-            Q = new Spell(SpellSlot.Q, 625f);
+            Q = new Spell(SpellSlot.Q, 625f);//2600f
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E, 1000);
             E.SetSkillshot(0.8f, 50, float.MaxValue, false, SkillshotType.SkillshotCircle);

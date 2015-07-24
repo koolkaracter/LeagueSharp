@@ -209,7 +209,43 @@ namespace UnderratedAIO.Champions
                 if (target != null)
                 {
                     player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
-                    CastE(target);
+                    switch (config.Item("eType", true).GetValue<StringList>().SelectedIndex)
+                    {
+                        case 0:
+                            CastE(target);
+                            break;
+                        case 1:
+                            CastE(target, false);
+                            break;
+                    }
+                }
+            }
+            if (Q.IsReady() && config.Item("ksQ", true).GetValue<bool>())
+            {
+                var enemyQ =
+                    HeroManager.Enemies.Where(e => e.Health < Q.GetDamage(e) && e.IsValidTarget() && Q.CanCast(e))
+                        .OrderByDescending(e => TargetSelector.GetPriority(e))
+                        .FirstOrDefault();
+                if (enemyQ != null)
+                {
+                    CastQHero(enemyQ);
+                }
+            }
+            if (R.IsReady() && config.Item("ksR", true).GetValue<bool>())
+            {
+                var enemyR =
+                    HeroManager.Enemies.Where(
+                        e =>
+                            R.CanCast(e) && e.Health < R.GetDamage(e) && e.IsValidTarget() &&
+                            (!e.HasBuff("summonerdot") ||
+                             (e.HasBuff("summonerdot") &&
+                              (!e.GetBuff("summonerdot").Caster.IsMe ||
+                               (e.GetBuff("summonerdot").Caster.IsMe && e.CountAlliesInRange(600) > 0)))))
+                        .OrderByDescending(e => TargetSelector.GetPriority(e))
+                        .FirstOrDefault();
+                if (enemyR != null)
+                {
+                    R.CastOnUnit(enemyR, config.Item("packets").GetValue<bool>());
                 }
             }
         }
@@ -311,7 +347,15 @@ namespace UnderratedAIO.Champions
                   (!config.Item("useekill", true).GetValue<bool>() && CheckMana())) ||
                  config.Item("startWithE", true).GetValue<bool>()))
             {
-                CastE(target);
+                switch (config.Item("eType", true).GetValue<StringList>().SelectedIndex)
+                {
+                    case 0:
+                        CastE(target);
+                        break;
+                    case 1:
+                        CastE(target, false);
+                        break;
+                }
             }
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
@@ -362,7 +406,7 @@ namespace UnderratedAIO.Champions
                 {
                     if (target.Health < R.GetDamage(target))
                     {
-                        R.CastOnUnit(target, config.Item("packets").GetValue<bool>());  
+                        R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                     }
                 }
             }
@@ -390,14 +434,17 @@ namespace UnderratedAIO.Champions
             return mana < player.Mana;
         }
 
-        private void CastE(Obj_AI_Hero target)
+        private void CastE(Obj_AI_Hero target, bool edge = true)
         {
             if (player.CountEnemiesInRange(E.Range) <= 1)
             {
                 var targE = E.GetPrediction(target);
-                if (targE.CastPosition.Distance(player.Position) < E.Range && targE.Hitchance >= HitChance.High)
+                var pos = edge ? targE.CastPosition : target.ServerPosition;
+                if (pos.Distance(player.Position) < E.Range && targE.Hitchance >= HitChance.High)
                 {
-                    E.Cast(targE.CastPosition.Extend(player.Position, 375), config.Item("packets").GetValue<bool>());
+                    E.Cast(
+                        edge ? pos.Extend(player.Position, 375) : target.ServerPosition,
+                        config.Item("packets").GetValue<bool>());
                 }
             }
             else
@@ -604,6 +651,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useekill", "   Only for kill", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useEkey", "   Manual cast", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+            menuC.AddItem(new MenuItem("eType", "   E type", true))
+                .SetValue(new StringList(new[] { "Cast on Edge", "Trap the enemy" }, 0));
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("userPred", "   Calc ignite+W to damage", true)).SetValue(true);
             menuC.AddItem(new MenuItem("startWithE", "Start combo with E", true)).SetValue(false);
@@ -639,6 +688,10 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("Interrupt", "Cast E to interrupt spells", true)).SetValue(true);
             menuM.AddItem(new MenuItem("GapCloser", "Cast E on gapclosers", true)).SetValue(true);
             menuM.AddItem(new MenuItem("OnDash", "Cast E on dash", true)).SetValue(true);
+            Menu menuKS = new Menu("KS ", "Kill steal");
+            menuKS.AddItem(new MenuItem("ksQ", "Use Q", true)).SetValue(false);
+            menuKS.AddItem(new MenuItem("ksR", "Use R", true)).SetValue(false);
+            menuM.AddSubMenu(menuKS);
             menuM = Jungle.addJungleOptions(menuM);
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
