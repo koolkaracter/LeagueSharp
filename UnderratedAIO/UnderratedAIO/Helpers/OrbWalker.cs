@@ -322,7 +322,7 @@ namespace UnderratedAIO.Helpers
                             _minDistance * (position.To2D() - Player.ServerPosition.To2D()).Normalized().To3D();
                 }
             }
-            if (point.Distance(LastMoveCommandPosition) < 80 && deltaT < 1000)
+            if (point.Distance(LastMoveCommandPosition) < 80 && deltaT < 250)
             {
                 return;
             }
@@ -385,17 +385,23 @@ namespace UnderratedAIO.Helpers
                         target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) &&
                         target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 450)
                     {
-                        var prediction = AutoAttack.GetPrediction((Obj_AI_Base) target);
-                        var pos = player.CountEnemiesInRange(1500) == 1
-                            ? target.Position.Extend(prediction.UnitPosition, GetRealAutoAttackRange(player))
-                            : prediction.CastPosition;
                         Obj_AI_Hero tar = (Obj_AI_Hero) target;
+                        var nocturne = player.ChampionName != "Nocturne" ||
+                                       (player.ChampionName == "Nocturne" && !tar.HasBuffOfType(BuffType.Flee));
+                        var prediction = AutoAttack.GetPrediction((Obj_AI_Base) target);
+                        var pos = player.CountEnemiesInRange(1500) == 1 && !nocturne
+                            ? target.Position.Extend(prediction.UnitPosition, GetRealAutoAttackRange(player))
+                            : prediction.UnitPosition;
+                        if (!nocturne)
+                        {
+                            pos = player.ServerPosition;
+                        }
                         if (player.Distance(target) > target.BoundingRadius &&
                             !CombatHelper.IsFacing((Obj_AI_Base) target, player.Position, 120f) && tar.IsMoving)
                         {
                             AutoAttack.Delay = player.BasicAttack.SpellCastTime;
                             AutoAttack.Speed = player.BasicAttack.MissileSpeed;
-                            MoveTo(pos);
+                            MoveTo(pos, holdAreaRadius, false, useFixedDistance, randomizeMinDistance);
                         }
                     }
                     else
@@ -576,10 +582,12 @@ namespace UnderratedAIO.Helpers
             {
                 get { return _config.Item("MissileCheck").GetValue<bool>(); }
             }
+
             public static bool PriorizeFarm
             {
                 get { return _config.Item("PriorizeFarm").GetValue<bool>(); }
             }
+
             public OrbwalkingMode ActiveMode
             {
                 get
@@ -735,8 +743,12 @@ namespace UnderratedAIO.Helpers
                     var target = TargetSelector.GetTarget(-1, TargetSelector.DamageType.Physical);
                     var miniPred =
                         MinionManager.GetMinions(GetRealAutoAttackRange(player), MinionTypes.All, MinionTeam.NotAlly)
-                            .FirstOrDefault(minion => HealthPrediction.GetHealthPrediction(minion, (int)(Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2 +
-                                1000 * (int)Player.Distance(minion) / (int)GetMyProjectileSpeed()) < 0);
+                            .FirstOrDefault(
+                                minion =>
+                                    HealthPrediction.GetHealthPrediction(
+                                        minion,
+                                        (int) (Player.AttackCastDelay * 1000) - 100 + Game.Ping / 2 +
+                                        1000 * (int) Player.Distance(minion) / (int) GetMyProjectileSpeed()) < 0);
                     if (target.IsValidTarget() &&
                         (!_config.Item("PriorizeFarm").GetValue<bool>() ||
                          (_config.Item("PriorizeFarm").GetValue<bool>() && miniPred == null)))
@@ -773,16 +785,35 @@ namespace UnderratedAIO.Helpers
                                 return _prevMinion;
                             }
                         }
-                        result = (from minion in
-                            ObjectManager.Get<Obj_AI_Minion>()
-                                .Where(minion => minion.IsValidTarget() && InAutoAttackRange(minion))
-                            let predHealth =
-                                HealthPrediction.LaneClearHealthPrediction(
-                                    minion, (int) ((Player.AttackDelay * 1000) * LaneClearWaitTimeMod), FarmDelay)
-                            where
-                                predHealth >= 2 * Player.GetAutoAttackDamage(minion) ||
-                                Math.Abs(predHealth - minion.Health) < float.Epsilon
-                            select minion).MaxOrDefault(m => m.Health);
+                        var closestTurret =
+                            ObjectManager.Get<Obj_AI_Turret>()
+                                .FirstOrDefault(t => t.IsValidTarget() && t.Distance(player) < 1500);
+                        if (closestTurret != null)
+                        {
+                            result = (from minion in
+                                ObjectManager.Get<Obj_AI_Minion>()
+                                    .Where(minion => minion.IsValidTarget() && InAutoAttackRange(minion))
+                                let predHealth =
+                                    HealthPrediction.LaneClearHealthPrediction(
+                                        minion, (int) ((Player.AttackDelay * 1000) * LaneClearWaitTimeMod), FarmDelay)
+                                where
+                                    predHealth >= 2 * Player.GetAutoAttackDamage(minion) ||
+                                    Math.Abs(predHealth - minion.Health) < float.Epsilon
+                                select minion).MaxOrDefault(m => m.Health);
+                        }
+                        else
+                        {
+                            result = (from minion in
+                                ObjectManager.Get<Obj_AI_Minion>()
+                                    .Where(minion => minion.IsValidTarget() && InAutoAttackRange(minion))
+                                let predHealth =
+                                    HealthPrediction.LaneClearHealthPrediction(
+                                        minion, (int) ((Player.AttackDelay * 1000) * LaneClearWaitTimeMod), FarmDelay)
+                                where
+                                    predHealth >= 2 * Player.GetAutoAttackDamage(minion) ||
+                                    Math.Abs(predHealth - minion.Health) < float.Epsilon
+                                select minion).MaxOrDefault(m => m.Health);
+                        }
                         if (result != null)
                         {
                             _prevMinion = (Obj_AI_Minion) result;
