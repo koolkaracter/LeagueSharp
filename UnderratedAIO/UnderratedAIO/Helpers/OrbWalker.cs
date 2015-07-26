@@ -549,7 +549,7 @@ namespace UnderratedAIO.Helpers
                 misc.AddItem(new MenuItem("MissileCheck", "Use Missile Check").SetShared().SetValue(true));
                 var comboOpt = new Menu("Combo Options", "comboOpt");
                 comboOpt.AddItem(new MenuItem("ComboMovement", "   Movement").SetShared().SetValue(true));
-                comboOpt.AddItem(new MenuItem("ComboMelee", "   Melee prediction").SetShared().SetValue(true));
+                comboOpt.AddItem(new MenuItem("ComboMelee", "   Melee Magnet").SetShared().SetValue(true));
                 misc.AddSubMenu(comboOpt);
                 _config.AddSubMenu(misc);
                 /* Delay sliders */
