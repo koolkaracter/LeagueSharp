@@ -42,12 +42,12 @@ namespace UnderratedAIO.Champions
 
         private void InitGangPlank()
         {
-            Q = new Spell(SpellSlot.Q, 625f);//2600f
+            Q = new Spell(SpellSlot.Q, 590f); //2600f
             W = new Spell(SpellSlot.W);
-            E = new Spell(SpellSlot.E, 1000);
+            E = new Spell(SpellSlot.E, 950);
             E.SetSkillshot(0.8f, 50, float.MaxValue, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R);
-            R.SetSkillshot(1.5f, 150, float.MaxValue, false, SkillshotType.SkillshotCircle);
+            R.SetSkillshot(1f, 100, float.MaxValue, false, SkillshotType.SkillshotCircle);
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -74,14 +74,18 @@ namespace UnderratedAIO.Champions
             {
                 foreach (var enemy in
                     HeroManager.Enemies.Where(
-                        e => e.HealthPercent < 35 && e.IsValidTarget() && e.Distance(player) > 1500))
+                        e =>
+                            ((e.UnderTurret(true) && e.HealthPercent < 25) ||
+                             (!e.UnderTurret(true) && e.HealthPercent < 35)) && e.IsValidTarget() &&
+                            e.Distance(player) > 1500))
                 {
                     var allies =
                         HeroManager.Allies.FirstOrDefault(
                             a => enemy.Distance(a) < 700 && CombatHelper.IsFacing(a, enemy.Position));
                     if (allies != null)
                     {
-                        R.CastIfHitchanceEquals(enemy, HitChance.High);
+                        var pred = Prediction.GetPrediction(enemy, 0.75f);
+                        R.Cast(pred.CastPosition);
                     }
                 }
             }
@@ -148,7 +152,14 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target) && !justE)
             {
-                Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                var barrels =
+                    ObjectManager.Get<Obj_AI_Base>()
+                        .Where(
+                            o =>
+                                o.IsValid && !o.IsDead && o.Distance(player) < 1600 && o.SkinName == "GangplankBarrel" &&
+                                o.GetBuff("gangplankebarrellife").Caster.IsMe)
+                        .ToList();
+                CastQonHero(target, barrels);
             }
             if (config.Item("useeH", true).GetValue<bool>() && Q.CanCast(target) &&
                 config.Item("eStacksH", true).GetValue<Slider>().Value < E.Instance.Ammo)
@@ -243,7 +254,8 @@ namespace UnderratedAIO.Champions
                             o.GetBuff("gangplankebarrellife").Caster.IsMe)
                     .ToList();
             if (config.Item("usee", true).GetValue<bool>() && E.IsReady() && player.Distance(target) < E.Range &&
-                Orbwalking.CanMove(100) && config.Item("eStacksC", true).GetValue<Slider>().Value < E.Instance.Ammo)
+                target.Health > Q.GetDamage(target) + player.GetAutoAttackDamage(target) && Orbwalking.CanMove(100) &&
+                config.Item("eStacksC", true).GetValue<Slider>().Value < E.Instance.Ammo)
             {
                 CastE(target, barrels);
             }
@@ -355,9 +367,23 @@ namespace UnderratedAIO.Champions
                 }
                 if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && Orbwalking.CanMove(100) && !justE)
                 {
-                    Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                    CastQonHero(target, barrels);
                 }
             }
+        }
+
+        private void CastQonHero(Obj_AI_Hero target, List<Obj_AI_Base> barrels)
+        {
+            if (
+                barrels.FirstOrDefault(
+                    b =>
+                        b.Health == 2 &&
+                        Prediction.GetPrediction(target, getEActivationDelay()).UnitPosition.Distance(b.Position) <
+                        BarrelExplosionRange) != null)
+            {
+                return;
+            }
+            Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
         }
 
         private void CastE(Obj_AI_Hero target, IEnumerable<Obj_AI_Base> barrels)
@@ -399,10 +425,10 @@ namespace UnderratedAIO.Champions
 
         private void CastEtarget(Obj_AI_Hero target)
         {
-            var ePred = E.GetPrediction(target);
+            var ePred = Prediction.GetPrediction(target, 1);
             if (ePred.CastPosition.Distance(ePos) > 400 && !justE)
             {
-                E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                E.Cast(target.Position.Extend(ePred.CastPosition, 150f), config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -474,13 +500,13 @@ namespace UnderratedAIO.Champions
         {
             if (player.Level >= 13)
             {
-                return 0.5f * 2;
+                return 0.5f;
             }
             if (player.Level >= 7)
             {
-                return 1f * 2;
+                return 1f;
             }
-            return 2f * 2;
+            return 2f;
         }
 
 
