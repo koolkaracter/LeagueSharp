@@ -299,10 +299,11 @@ namespace UnderratedAIO.Champions
                     player.GetSpellSlot("SummonerFlash"), player.Position.Extend(target.Position, 400));
                 Utility.DelayAction.Add(50, () => R.Cast(target, config.Item("packets").GetValue<bool>()));
             }
-            if (config.Item("user", true).GetValue<bool>() && R.CanCast(target) &&
-                player.GetSpellDamage(target, SpellSlot.R) > target.Health)
+            var rtarget = HeroManager.Enemies.Where(e => e.IsValidTarget() && R.CanCast(e)).OrderByDescending(e => TargetSelector.GetPriority(e)).FirstOrDefault();
+            if (config.Item("user", true).GetValue<bool>() && rtarget!=null &&
+                player.GetSpellDamage(target, SpellSlot.R) > rtarget.Health)
             {
-                R.Cast(target, config.Item("packets").GetValue<bool>());
+                R.Cast(rtarget, config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -330,7 +331,7 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), Q.Range);
             DrawHelper.DrawCircle(config.Item("drawww", true).GetValue<Circle>(), W.Range);
             DrawHelper.DrawCircle(config.Item("drawee", true).GetValue<Circle>(), E.Range);
-            DrawHelper.DrawCircle(config.Item("drawrrflash").GetValue<Circle>(), RFlash.Range);
+            DrawHelper.DrawCircle(config.Item("drawrrflash", true).GetValue<Circle>(), RFlash.Range);
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
