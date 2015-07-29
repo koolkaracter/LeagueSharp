@@ -133,7 +133,7 @@ namespace UnderratedAIO.Champions
             W.SetSkillshot(1.25f, 225f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             E = new Spell(SpellSlot.E, 1050);
             E.SetSkillshot(0.85f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
-            R = new Spell(SpellSlot.R, 650);
+            R = new Spell(SpellSlot.R, 615);
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -522,7 +522,7 @@ namespace UnderratedAIO.Champions
                                 {
                                     qMiniForWait = other;
                                     qMiniTarget = minion;
-                                    if (Orbwalking.CanAttack())
+                                    if (Orbwalking.CanAttack() && other.Distance(player) < Orbwalking.GetRealAutoAttackRange(other))
                                     {
                                         player.IssueOrder(GameObjectOrder.AutoAttack, other);
                                     }
