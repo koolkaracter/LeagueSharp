@@ -32,10 +32,12 @@ namespace UnderratedAIO.Champions
             Orbwalking.AfterAttack += Orbwalking_AfterAttack;
         }
 
-        void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target)
+        private void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target)
         {
             var tar = target as Obj_AI_Base;
-            if (Q.IsReady() && unit.IsMe && tar is Obj_AI_Hero && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && tar.HasBuffOfType(BuffType.Slow) && target.Health > Q.GetDamage(tar) + player.GetAutoAttackDamage(tar) + 50)
+            if (Q.IsReady() && unit.IsMe && tar is Obj_AI_Hero &&
+                orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && tar.HasBuffOfType(BuffType.Slow) &&
+                target.Health > Q.GetDamage(tar) + player.GetAutoAttackDamage(tar) + 50)
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
                 Orbwalking.ResetAutoAttackTimer();
@@ -56,10 +58,10 @@ namespace UnderratedAIO.Champions
         private void Orbwalking_BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
         {
             var target = args.Target as Obj_AI_Base;
-            if (Q.IsReady() && target!=null &&
-                ((target is Obj_AI_Hero && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && !target.HasBuffOfType(BuffType.Slow)) ||
-                 target.Health <
-                 Q.GetDamage(target) + player.GetAutoAttackDamage(target)))
+            if (Q.IsReady() && target != null &&
+                ((target is Obj_AI_Hero && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
+                  !target.HasBuffOfType(BuffType.Slow)) ||
+                 target.Health < Q.GetDamage(target) + player.GetAutoAttackDamage(target)))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -130,13 +132,15 @@ namespace UnderratedAIO.Champions
                      !config.Item("useeslow").GetValue<bool>()))
                 {
                     var ePred = E.GetPrediction(target);
-                    if (E.Range > ePred.CastPosition.Distance(player.Position) && target.Distance(ePred.CastPosition) < 400)
+                    if (E.Range > ePred.CastPosition.Distance(player.Position) &&
+                        target.Distance(ePred.CastPosition) < 400)
                     {
                         E.Cast(ePred.CastPosition, config.Item("packets").GetValue<bool>());
                     }
                     else
                     {
-                        if (ePred.CastPosition.Distance(player.Position) < 925 && target.Distance(ePred.CastPosition)<400)
+                        if (ePred.CastPosition.Distance(player.Position) < 925 &&
+                            target.Distance(ePred.CastPosition) < 400)
                         {
                             E.Cast(
                                 player.Position.Extend(target.Position, E.Range),
@@ -166,7 +170,7 @@ namespace UnderratedAIO.Champions
                 var minion =
                     MinionManager.GetMinions(
                         Orbwalking.GetRealAutoAttackRange(player), MinionTypes.All, MinionTeam.NotAlly)
-                        .FirstOrDefault(m => m.Health < Q.GetDamage(m) + player.GetAutoAttackDamage(m));
+                        .FirstOrDefault(m => m.Health > 5 && m.Health < Q.GetDamage(m) + player.GetAutoAttackDamage(m));
                 orbwalker.ForceTarget(minion);
             }
             float perc = config.Item("minmana").GetValue<Slider>().Value / 100f;
@@ -187,7 +191,7 @@ namespace UnderratedAIO.Champions
         {
             var minions =
                 MinionManager.GetMinions(Orbwalking.GetRealAutoAttackRange(player), MinionTypes.All, MinionTeam.NotAlly)
-                    .FirstOrDefault(m => m.Health < Q.GetDamage(m) + player.GetAutoAttackDamage(m));
+                    .FirstOrDefault(m => m.Health > 5 && m.Health < Q.GetDamage(m) + player.GetAutoAttackDamage(m));
             if (minions != null)
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
@@ -329,7 +333,7 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            
+
             menuM.AddItem(new MenuItem("autoQ", "Auto Q")).SetValue(true);
             menuM.AddItem(new MenuItem("Rdamage", "Combo damage with R")).SetValue(true);
             menuM.AddItem(new MenuItem("Qdamage", "Combo damage with Q")).SetValue(true);

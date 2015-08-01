@@ -491,7 +491,7 @@ namespace UnderratedAIO.Champions
                 var minions =
                     MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
                         .Where(
-                            m =>
+                            m => m.Health > 5 &&
                                 m.Distance(player) < Q.Range &&
                                 m.Health <
                                 Q.GetDamage(m) * config.Item("qLHDamage", true).GetValue<Slider>().Value / 100);

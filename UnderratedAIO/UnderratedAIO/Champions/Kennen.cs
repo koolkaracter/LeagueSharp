@@ -135,7 +135,7 @@ namespace UnderratedAIO.Champions
             var targetE =
                 ObjectManager.Get<Obj_AI_Base>()
                     .Where(
-                        m =>
+                        m => m.Health > 5 &&
                             m.IsEnemy && player.Distance(m) < W.Range &&
                             Environment.Hero.countChampsAtrange(m.Position, 1000f) < 1 && !m.IsDead &&
                             !(m is Obj_AI_Turret) && !m.HasBuff("kennenmarkofstorm") && !m.UnderTurret(true))
@@ -169,11 +169,10 @@ namespace UnderratedAIO.Champions
         {
             var targetQ =
                 MinionManager.GetMinions(Q.Range)
-                    .Where(
-                        m =>
-                            m.IsEnemy && m.Health < Q.GetDamage(m) && Q.CanCast(m) &&
-                            HealthPrediction.GetHealthPrediction(m, (int) (player.Distance(m) / Q.Speed * 1000)) > 0);
-            if (targetQ != null && LastAttackedminiMinion != null)
+                    .Where(m => m.Health > 5 &&
+                        m.IsEnemy && m.Health < Q.GetDamage(m) && Q.CanCast(m) &&
+                            HealthPrediction.GetHealthPrediction(m, (int)((player.Distance(m) / Q.Speed * 1000) + Q.Delay)) > 0);
+            if (targetQ.Any() && LastAttackedminiMinion != null)
             {
                 foreach (var target in
                     targetQ.Where(
@@ -182,12 +181,12 @@ namespace UnderratedAIO.Champions
                             (m.NetworkId == LastAttackedminiMinion.NetworkId &&
                              Utils.GameTimeTickCount - LastAttackedminiMinionTime > 700)))
                 {
-                    if (target.Distance(player) < Orbwalking.GetRealAutoAttackRange(player) && !Orbwalking.CanAttack() &&
+                    if (target.Distance(player) < Orbwalking.GetRealAutoAttackRange(target) && !Orbwalking.CanAttack() &&
                         Orbwalking.CanMove(100))
                     {
                         Q.Cast(target, config.Item("packets").GetValue<bool>());
                     }
-                    else if (target.Distance(player) > Orbwalking.GetRealAutoAttackRange(player))
+                    else if (target.Distance(player) > Orbwalking.GetRealAutoAttackRange(target))
                     {
                         Q.Cast(target, config.Item("packets").GetValue<bool>());
                     }

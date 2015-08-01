@@ -143,7 +143,7 @@ namespace UnderratedAIO.Champions
                     MinionManager.GetMinions(
                         Orbwalking.GetRealAutoAttackRange(player), MinionTypes.All, MinionTeam.NotAlly)
                         .FirstOrDefault(
-                            minion =>
+                            minion => minion.Health > 5 &&
                                 HealthPrediction.GetHealthPrediction(
                                     minion,
                                     (int) (player.AttackCastDelay * 1000) - 100 + Game.Ping / 2 +
@@ -316,7 +316,7 @@ namespace UnderratedAIO.Champions
                 var minions =
                     MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
                         .Where(
-                            m =>
+                            m =>m.Health > 5 &&
                                 m.Health <
                                 (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LastHit
                                     ? Q.GetDamage(m)
