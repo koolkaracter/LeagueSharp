@@ -35,12 +35,12 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
         }
 
-        void Orbwalking_BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
+        private void Orbwalking_BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
         {
             if (args.Unit.IsMe && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
             {
                 var mob = Jungle.GetNearest(player.Position);
-                if (mob != null  && config.Item("useqLCSteal").GetValue<bool>() && Q.IsReady() &&
+                if (mob != null && config.Item("useqLCSteal").GetValue<bool>() && Q.IsReady() &&
                     Q.GetDamage(mob) > mob.Health)
                 {
                     Q.Cast(config.Item("packets").GetValue<bool>());
@@ -65,10 +65,13 @@ namespace UnderratedAIO.Champions
         private static void AfterAttack(AttackableUnit unit, AttackableUnit target)
         {
             if (unit.IsMe && Q.IsReady() &&
-                (((orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || config.Item("useeflashforced").GetValue<KeyBind>().Active) && config.Item("useq").GetValue<bool>() &&
-                  target.IsEnemy && target is Obj_AI_Hero) ||
-                 (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear && player.ManaPercent > config.Item("minmana").GetValue<Slider>().Value && config.Item("useqLC").GetValue<bool>() &&
-                  target is Obj_AI_Minion && target.Health>Q.GetDamage((Obj_AI_Base)target)*2)))
+                (((orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo ||
+                   config.Item("useeflashforced").GetValue<KeyBind>().Active) && config.Item("useq").GetValue<bool>() &&
+                  target.IsEnemy && target is Obj_AI_Hero && target.Health-player.GetAutoAttackDamage(target as Obj_AI_Hero)>0) ||
+                 (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear &&
+                  player.ManaPercent > config.Item("minmana").GetValue<Slider>().Value &&
+                  config.Item("useqLC").GetValue<bool>() && target is Obj_AI_Minion &&
+                  target.Health > Q.GetDamage((Obj_AI_Base) target) * 2)))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
                 Orbwalking.ResetAutoAttackTimer();
@@ -84,19 +87,21 @@ namespace UnderratedAIO.Champions
                 {
                     player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
                 }
-                else {
-                var bestpos = CombatHelper.bestVectorToPoppyFlash2(targetf);
-                bool hasFlash = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready;
-                if (E.IsReady() && hasFlash && !CheckWalls(player, targetf) && bestpos.IsValid())
+                else
                 {
-                    player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), bestpos);
-                    player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
-                }
-                else if (!hasFlash)
-                {
-                    Combo();
-                    Orbwalking.Orbwalk(targetf, Game.CursorPos,90,90);
-                }
+                    var bestpos = CombatHelper.bestVectorToPoppyFlash2(targetf);
+                    bool hasFlash = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) ==
+                                    SpellState.Ready;
+                    if (E.IsReady() && hasFlash && !CheckWalls(player, targetf) && bestpos.IsValid())
+                    {
+                        player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), bestpos);
+                        player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                    }
+                    else if (!hasFlash)
+                    {
+                        Combo();
+                        Orbwalking.Orbwalk(targetf, Game.CursorPos, 90, 90);
+                    }
                 }
             }
             switch (orbwalker.ActiveMode)
@@ -157,14 +162,21 @@ namespace UnderratedAIO.Champions
                         damage > target.Health && target.Health > damageno &&
                         CombatHelper.bestVectorToPoppyFlash(target).IsValid())
                     {
-                            player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), bestpos);
-                            Utility.DelayAction.Add(
-                                100, () => E.CastOnUnit(target, config.Item("packets").GetValue<bool>()));
+                        player.Spellbook.CastSpell(player.GetSpellSlot("SummonerFlash"), bestpos);
+                        Utility.DelayAction.Add(
+                            100, () => E.CastOnUnit(target, config.Item("packets").GetValue<bool>()));
                     }
                     if (E.CanCast(target) &&
                         (CheckWalls(player, target) ||
-                         target.Health < ComboDamage(target) + 2 * player.GetAutoAttackDamage(target, true)))
+                         target.Health < E.GetDamage(target) + player.GetAutoAttackDamage(target, true)))
                     {
+                        E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                    }
+                    if (E.CanCast(target) && Q.IsReady() && Q.Instance.ManaCost + E.Instance.ManaCost > player.Mana &&
+                        target.Health <
+                        E.GetDamage(target) + Q.GetDamage(target) + player.GetAutoAttackDamage(target, true))
+                    {
+                        Q.Cast(config.Item("packets").GetValue<bool>());
                         E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                     }
                 }
@@ -174,7 +186,6 @@ namespace UnderratedAIO.Champions
                     {
                         E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                     }
-
                 }
             }
             if (config.Item("user").GetValue<bool>())
@@ -220,7 +231,7 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (config.Item("useeLC").GetValue<bool>() && E.CanCast(mob) && CheckWalls(player,mob))
+            if (config.Item("useeLC").GetValue<bool>() && E.CanCast(mob) && CheckWalls(player, mob))
             {
                 E.CastOnUnit(mob, config.Item("packets").GetValue<bool>());
             }
@@ -339,7 +350,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useEint", "Use E interrupt")).SetValue(true);
             menuM.AddItem(new MenuItem("useEgap", "Use E on gapcloser near walls")).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
