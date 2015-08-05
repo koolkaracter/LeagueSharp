@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using Color = System.Drawing.Color;
 using LeagueSharp;
 using LeagueSharp.Common;
@@ -127,9 +128,11 @@ namespace UnderratedAIO.Champions
                 foreach (var enemy in
                     HeroManager.Enemies.Where(
                         e =>
-                            ((e.UnderTurret(true) && e.HealthPercent < 25) ||
-                             (!e.UnderTurret(true) && e.HealthPercent < 35)) && e.IsValidTarget() &&
-                            e.Distance(player) > 1500))
+                            ((e.UnderTurret(true) &&
+                              e.HealthPercent < config.Item("Rhealt", true).GetValue<Slider>().Value * 0.75) ||
+                             (!e.UnderTurret(true) &&
+                              e.HealthPercent < config.Item("Rhealt", true).GetValue<Slider>().Value)) &&
+                            e.IsValidTarget() && e.Distance(player) > 1500))
                 {
                     var ally =
                         HeroManager.Allies.OrderBy(a => a.Health)
@@ -140,16 +143,16 @@ namespace UnderratedAIO.Champions
                     if (ally != null)
                     {
                         var pos = Prediction.GetPrediction(enemy, 0.75f).CastPosition;
-                        if (!(CombatHelper.IsFacing(ally, enemy.Position) && CombatHelper.IsFacing(enemy, ally.Position)) &&
+                        if (
+                            !(CombatHelper.IsFacing(ally, enemy.Position) && CombatHelper.IsFacing(enemy, ally.Position)) &&
                             pos.Distance(enemy.Position) < 450 && enemy.IsMoving)
                         {
                             pos = enemy.Position.Extend(pos, 450);
                         }
                         if (pos.IsValid())
                         {
-                          R.Cast(pos);  
+                            R.Cast(pos);
                         }
-                        
                     }
                 }
             }
@@ -242,10 +245,10 @@ namespace UnderratedAIO.Champions
             if (Q.IsReady())
             {
                 var barrel =
-                    ObjectManager.Get<Obj_AI_Base>()
+                    GetBarrels()
                         .FirstOrDefault(
                             o =>
-                                o.IsValid && !o.IsDead && o.Distance(player) < 1600 && o.SkinName == "GangplankBarrel" &&
+                                o.IsValid && !o.IsDead && o.Distance(player) < Q.Range && o.SkinName == "GangplankBarrel" &&
                                 o.GetBuff("gangplankebarrellife").Caster.IsMe && KillableBarrel(o) &&
                                 Environment.Minion.countMinionsInrange(o.Position, BarrelExplosionRange) >=
                                 config.Item("eMinHit", true).GetValue<Slider>().Value);
@@ -504,6 +507,19 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
+            if (config.Item("drawW", true).GetValue<bool>())
+            {
+                if (W.IsReady() && player.HealthPercent < 100)
+                {
+                    float Heal = new int[] { 50, 75, 100, 125, 150 }[W.Level - 1] +
+                                 (player.MaxHealth - player.Health) * 0.15f + player.FlatMagicDamageMod * 0.9f;
+                    float mod = Math.Max(100f, player.Health + Heal) / player.MaxHealth;
+                    float xPos = (float) ((double) player.HPBarPosition.X + 36 + 103.0 * mod);
+                    Drawing.DrawLine(
+                        xPos, player.HPBarPosition.Y + 8, xPos, (float) ((double) player.HPBarPosition.Y + 17), 2f,
+                        Color.Coral);
+                }
+            }
         }
 
         private static float ComboDamage(Obj_AI_Hero hero)
@@ -593,6 +609,7 @@ namespace UnderratedAIO.Champions
             menuD.AddItem(new MenuItem("drawee", "Draw E range", true))
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage", true)).SetValue(true);
+            menuD.AddItem(new MenuItem("drawW", "Draw W", true)).SetValue(true);
             config.AddSubMenu(menuD);
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
@@ -626,6 +643,7 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("AutoR", "Cast R to get assists", true)).SetValue(false);
+            menuM.AddItem(new MenuItem("Rhealt", "   Enemy health %", true)).SetValue(new Slider(35, 0, 100));
             menuM.AddItem(new MenuItem("AutoW", "W with QSS options", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
 
