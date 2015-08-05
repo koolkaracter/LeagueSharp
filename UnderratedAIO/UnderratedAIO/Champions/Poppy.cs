@@ -52,6 +52,11 @@ namespace UnderratedAIO.Champions
                     Q.Cast(config.Item("packets").GetValue<bool>());
                 }
             }
+            if (args.Unit.IsMe && Q.IsReady() && config.Item("useq").GetValue<bool>() && args.Target is Obj_AI_Hero &&
+                Q.GetDamage((Obj_AI_Base) args.Target) > args.Target.Health)
+            {
+                Q.Cast(config.Item("packets").GetValue<bool>());
+            }
         }
 
         private void OnInterruptableTarget(Obj_AI_Hero sender, Interrupter2.InterruptableTargetEventArgs args)
@@ -67,7 +72,8 @@ namespace UnderratedAIO.Champions
             if (unit.IsMe && Q.IsReady() &&
                 (((orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo ||
                    config.Item("useeflashforced").GetValue<KeyBind>().Active) && config.Item("useq").GetValue<bool>() &&
-                  target.IsEnemy && target is Obj_AI_Hero && target.Health-player.GetAutoAttackDamage(target as Obj_AI_Hero)>0) ||
+                  target.IsEnemy && target is Obj_AI_Hero &&
+                  target.Health - player.GetAutoAttackDamage(target as Obj_AI_Hero) > 0) ||
                  (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear &&
                   player.ManaPercent > config.Item("minmana").GetValue<Slider>().Value &&
                   config.Item("useqLC").GetValue<bool>() && target is Obj_AI_Minion &&
