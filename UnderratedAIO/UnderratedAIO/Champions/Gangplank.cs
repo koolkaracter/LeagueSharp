@@ -5,6 +5,7 @@ using System.Diagnostics.Eventing.Reader;
 using System.Drawing.Text;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using Color = System.Drawing.Color;
 using LeagueSharp;
@@ -27,6 +28,7 @@ namespace UnderratedAIO.Champions
         public Vector3 ePos;
         public const int BarrelExplosionRange = 375;
         public const int BarrelConnectionRange = 660;
+        public List<Barrel> savedBarrels = new List<Barrel>();
 
         public Gangplank()
         {
@@ -38,6 +40,56 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
+            GameObject.OnCreate += GameObjectOnOnCreate;
+            GameObject.OnDelete += GameObject_OnDelete;
+        }
+
+        private void GameObject_OnDelete(GameObject sender, EventArgs args)
+        {
+            for (int i = 0; i < savedBarrels.Count; i++)
+            {
+                if (savedBarrels[i].barrel.NetworkId == sender.NetworkId)
+                {
+                    savedBarrels.RemoveAt(i);
+                    return;
+                }
+            }
+        }
+
+        private void GameObjectOnOnCreate(GameObject sender, EventArgs args)
+        {
+            if (sender.Name == "Barrel")
+            {
+                savedBarrels.Add(new Barrel(sender as Obj_AI_Minion, System.Environment.TickCount));
+            }
+        }
+
+        private IEnumerable<Obj_AI_Minion> GetBarrels()
+        {
+            return savedBarrels.Select(b => b.barrel).Where(b => b.IsValid);
+        }
+
+        private bool KillableBarrel(Obj_AI_Base targetB)
+        {
+            if (targetB.Health < 2)
+            {
+                return true;
+            }
+            var barrel = savedBarrels.FirstOrDefault(b => b.barrel.NetworkId == targetB.NetworkId);
+            if (barrel != null)
+            {
+                var time = targetB.Health * getEActivationDelay();
+                if (System.Environment.TickCount - barrel.time - time - GetQTime(targetB) < 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private float GetQTime(Obj_AI_Base targetB)
+        {
+            return player.Distance(targetB) / 2800f + 0.25f;
         }
 
         private void InitGangPlank()
@@ -79,13 +131,25 @@ namespace UnderratedAIO.Champions
                              (!e.UnderTurret(true) && e.HealthPercent < 35)) && e.IsValidTarget() &&
                             e.Distance(player) > 1500))
                 {
-                    var allies =
-                        HeroManager.Allies.FirstOrDefault(
-                            a => enemy.Distance(a) < 700 && CombatHelper.IsFacing(a, enemy.Position));
-                    if (allies != null)
+                    var ally =
+                        HeroManager.Allies.OrderBy(a => a.Health)
+                            .FirstOrDefault(
+                                a =>
+                                    enemy.Distance(a) < 700 && CombatHelper.IsFacing(a, enemy.Position) ||
+                                    CombatHelper.IsFacing(enemy, a.Position));
+                    if (ally != null)
                     {
-                        var pred = Prediction.GetPrediction(enemy, 0.75f);
-                        R.Cast(pred.CastPosition);
+                        var pos = Prediction.GetPrediction(enemy, 0.75f).CastPosition;
+                        if (!(CombatHelper.IsFacing(ally, enemy.Position) && CombatHelper.IsFacing(enemy, ally.Position)) &&
+                            pos.Distance(enemy.Position) < 450 && enemy.IsMoving)
+                        {
+                            pos = enemy.Position.Extend(pos, 450);
+                        }
+                        if (pos.IsValid())
+                        {
+                          R.Cast(pos);  
+                        }
+                        
                     }
                 }
             }
@@ -127,12 +191,12 @@ namespace UnderratedAIO.Champions
                         .ThenByDescending(m => m.Distance(player))
                         .FirstOrDefault();
                 var barrel =
-                    ObjectManager.Get<Obj_AI_Base>()
+                    GetBarrels()
                         .FirstOrDefault(
                             o =>
                                 target != null && o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
                                 o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
-                                o.Health < 2 && o.Distance(target) < BarrelExplosionRange);
+                                KillableBarrel(o) && o.Distance(target) < BarrelExplosionRange);
 
                 if (barrel != null)
                 {
@@ -153,7 +217,7 @@ namespace UnderratedAIO.Champions
             if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target) && !justE)
             {
                 var barrels =
-                    ObjectManager.Get<Obj_AI_Base>()
+                    GetBarrels()
                         .Where(
                             o =>
                                 o.IsValid && !o.IsDead && o.Distance(player) < 1600 && o.SkinName == "GangplankBarrel" &&
@@ -182,7 +246,7 @@ namespace UnderratedAIO.Champions
                         .FirstOrDefault(
                             o =>
                                 o.IsValid && !o.IsDead && o.Distance(player) < 1600 && o.SkinName == "GangplankBarrel" &&
-                                o.GetBuff("gangplankebarrellife").Caster.IsMe && o.Health < 2 &&
+                                o.GetBuff("gangplankebarrellife").Caster.IsMe && KillableBarrel(o) &&
                                 Environment.Minion.countMinionsInrange(o.Position, BarrelExplosionRange) >=
                                 config.Item("eMinHit", true).GetValue<Slider>().Value);
                 if (barrel != null)
@@ -191,7 +255,7 @@ namespace UnderratedAIO.Champions
                     return;
                 }
             }
-            if (config.Item("useqLC", true).GetValue<bool>())
+            if (config.Item("useqLC", true).GetValue<bool>() && !justE)
             {
                 Lasthit();
             }
@@ -247,13 +311,13 @@ namespace UnderratedAIO.Champions
                 ItemHandler.UseItems(target, config, ComboDamage(target), config.Item("AutoW", true).GetValue<bool>());
             }
             var barrels =
-                ObjectManager.Get<Obj_AI_Base>()
+                GetBarrels()
                     .Where(
                         o =>
                             o.IsValid && !o.IsDead && o.Distance(player) < 1600 && o.SkinName == "GangplankBarrel" &&
                             o.GetBuff("gangplankebarrellife").Caster.IsMe)
                     .ToList();
-            if (config.Item("usee", true).GetValue<bool>() && E.IsReady() && player.Distance(target) < E.Range &&
+            if (config.Item("usee", true).GetValue<bool>() && E.IsReady() && player.Distance(target) < E.Range && !justE &&
                 target.Health > Q.GetDamage(target) + player.GetAutoAttackDamage(target) && Orbwalking.CanMove(100) &&
                 config.Item("eStacksC", true).GetValue<Slider>().Value < E.Instance.Ammo)
             {
@@ -268,7 +332,7 @@ namespace UnderratedAIO.Champions
             {
                 orbwalker.ForceTarget(meleeRangeBarrel);
             }
-            if (Q.IsReady() && !justE)
+            if (Q.IsReady())
             {
                 if (barrels.Any())
                 {
@@ -279,12 +343,13 @@ namespace UnderratedAIO.Champions
                         {
                             foreach (var detoneateTargetBarrel in detoneateTargetBarrels)
                             {
-                                if (detoneateTargetBarrel.Health > 1)
+                                if (!KillableBarrel(detoneateTargetBarrel))
                                 {
                                     continue;
                                 }
                                 if (
-                                    detoneateTargetBarrel.Distance(Prediction.GetPrediction(target, 0.25f).UnitPosition) <
+                                    detoneateTargetBarrel.Distance(
+                                        Prediction.GetPrediction(target, GetQTime(detoneateTargetBarrel)).UnitPosition) <
                                     BarrelExplosionRange &&
                                     target.Distance(detoneateTargetBarrel.Position) < BarrelExplosionRange)
                                 {
@@ -299,7 +364,8 @@ namespace UnderratedAIO.Champions
                                     {
                                         if (
                                             detoneateTargetBarrelSecond.Distance(
-                                                Prediction.GetPrediction(target, 0.9f).UnitPosition) <
+                                                Prediction.GetPrediction(
+                                                    target, GetQTime(detoneateTargetBarrel) + 0.15f).UnitPosition) <
                                             BarrelExplosionRange &&
                                             target.Distance(detoneateTargetBarrelSecond.Position) < BarrelExplosionRange)
                                         {
@@ -315,15 +381,15 @@ namespace UnderratedAIO.Champions
                         {
                             var enemies =
                                 HeroManager.Enemies.Where(e => e.IsValidTarget() && e.Distance(player) < 600)
-                                    .Select(e => Prediction.GetPrediction(e, 0.35f));
+                                    .Select(e => Prediction.GetPrediction(e, 0.25f));
                             var enemies2 =
                                 HeroManager.Enemies.Where(e => e.IsValidTarget() && e.Distance(player) < 600)
-                                    .Select(e => Prediction.GetPrediction(e, 0.95f));
+                                    .Select(e => Prediction.GetPrediction(e, 0.35f));
                             if (detoneateTargetBarrels.Any())
                             {
                                 foreach (var detoneateTargetBarrel in detoneateTargetBarrels)
                                 {
-                                    if (detoneateTargetBarrel.Health > 1)
+                                    if (!KillableBarrel(detoneateTargetBarrel))
                                     {
                                         continue;
                                     }
@@ -372,23 +438,23 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private void CastQonHero(Obj_AI_Hero target, List<Obj_AI_Base> barrels)
+        private void CastQonHero(Obj_AI_Hero target, List<Obj_AI_Minion> barrels)
         {
             if (
                 barrels.FirstOrDefault(
                     b =>
                         b.Health == 2 &&
-                        Prediction.GetPrediction(target, getEActivationDelay()).UnitPosition.Distance(b.Position) <
-                        BarrelExplosionRange) != null)
+                        Prediction.GetPrediction(target, GetQTime(b)).UnitPosition.Distance(b.Position) <
+                        BarrelExplosionRange) != null && target.Health > Q.GetDamage(target))
             {
                 return;
             }
             Q.CastOnUnit(target, config.Item("packets").GetValue<bool>());
         }
 
-        private void CastE(Obj_AI_Hero target, IEnumerable<Obj_AI_Base> barrels)
+        private void CastE(Obj_AI_Hero target, List<Obj_AI_Minion> barrels)
         {
-            if (!barrels.Any())
+            if (barrels.Count < 1)
             {
                 CastEtarget(target);
                 return;
@@ -398,7 +464,7 @@ namespace UnderratedAIO.Champions
                     .Select(e => Prediction.GetPrediction(e, 0.35f));
             List<Vector3> points = new List<Vector3>();
             foreach (var barrel in
-                barrels.Where(b => b.Distance(player) < Q.Range && b.Health < 2))
+                barrels.Where(b => b.Distance(player) < Q.Range && KillableBarrel(b)))
             {
                 if (barrel != null)
                 {
@@ -413,13 +479,10 @@ namespace UnderratedAIO.Champions
                 points.Where(b => enemies.Count(e => e.UnitPosition.Distance(b) < BarrelExplosionRange) > 0)
                     .OrderByDescending(b => enemies.Count(e => e.UnitPosition.Distance(b) < BarrelExplosionRange))
                     .FirstOrDefault();
-            if (bestPoint.IsValid() && bestPoint.Distance(ePos) > 400)
+            if (bestPoint.IsValid() &&
+                !savedBarrels.Any(b => b.barrel.Position.Distance(bestPoint) < BarrelConnectionRange))
             {
                 E.Cast(bestPoint, config.Item("packets").GetValue<bool>());
-            }
-            else
-            {
-                CastEtarget(target);
             }
         }
 
@@ -428,7 +491,9 @@ namespace UnderratedAIO.Champions
             var ePred = Prediction.GetPrediction(target, 1);
             if (ePred.CastPosition.Distance(ePos) > 400 && !justE)
             {
-                E.Cast(target.Position.Extend(ePred.CastPosition, 150f), config.Item("packets").GetValue<bool>());
+                E.Cast(
+                    target.Position.Extend(ePred.CastPosition, BarrelExplosionRange),
+                    config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -484,7 +549,7 @@ namespace UnderratedAIO.Champions
                     if (!justE)
                     {
                         justE = true;
-                        Utility.DelayAction.Add(350, () => justE = false);
+                        Utility.DelayAction.Add(500, () => justE = false);
                     }
                 }
             }
@@ -571,6 +636,18 @@ namespace UnderratedAIO.Champions
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
+        }
+    }
+
+    internal class Barrel
+    {
+        public Obj_AI_Minion barrel;
+        public float time;
+
+        public Barrel(Obj_AI_Minion objAiBase, int tickCount)
+        {
+            barrel = objAiBase;
+            time = tickCount;
         }
     }
 }
