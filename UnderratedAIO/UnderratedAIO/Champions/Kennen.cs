@@ -286,6 +286,14 @@ namespace UnderratedAIO.Champions
             DrawHelper.DrawCircle(
                 config.Item("drawrrr", true).GetValue<Circle>(), config.Item("userrange", true).GetValue<Slider>().Value);
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
+            if (config.Item("ShowState", true).GetValue<bool>())
+            {
+                config.Item("KenAutoQ", true).Permashow(true, "Auto Q");
+            }
+            else
+            {
+                config.Item("KenAutoQ", true).Permashow(false, "Auto Q");
+            }
         }
 
         private float ComboDamage(Obj_AI_Hero hero)
