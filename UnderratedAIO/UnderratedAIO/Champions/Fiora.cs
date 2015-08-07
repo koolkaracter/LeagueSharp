@@ -32,7 +32,6 @@ namespace UnderratedAIO.Champions
             Game.OnUpdate += Game_OnGameUpdate;
             Drawing.OnDraw += Game_OnDraw;
             Orbwalking.AfterAttack += AfterAttack;
-            Orbwalking.OnAttack += Orbwalking_OnAttack;
             Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
             Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
@@ -132,10 +131,10 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private void AfterAttack(AttackableUnit unit, AttackableUnit target)
+        private void AfterAttack(AttackableUnit unit, AttackableUnit targetO)
         {
-            Obj_AI_Hero targ = (Obj_AI_Hero) target;
-            List<Vector3> passivePositions = GetPassivePositions(target);
+            Obj_AI_Hero targ = (Obj_AI_Hero) targetO;
+            List<Vector3> passivePositions = GetPassivePositions(targetO);
             bool rapid = player.GetAutoAttackDamage(targ) * 3 + ComboDamage(targ) > targ.Health ||
                          (player.Health < targ.Health && player.Health < player.MaxHealth / 2);
             if (unit.IsMe && E.IsReady() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
@@ -166,28 +165,25 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
-        }
-
-        private void Orbwalking_OnAttack(AttackableUnit unit, AttackableUnit targetO)
-        {
-            if (!unit.IsMe)
+            if (unit.IsMe)
             {
-                return;
-            }
-            var pos = GetClosestPassivePosition(targetO);
-            Obj_AI_Hero target = TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical);
-            if (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && targetO.NetworkId == target.NetworkId &&
-                R.IsReady() && R.CanCast(target) &&
-                ComboDamage(target) + player.GetAutoAttackDamage(target) * 5 > target.Health &&
-                ((config.Item("userally", true).GetValue<Slider>().Value <= target.CountAlliesInRange(600) &&
-                  config.Item("usertf", true).GetValue<bool>()) ||
-                 (player.HealthPercent < 75 && pos.IsValid() && pos.Distance(player.Position) < player.AttackRange) &&
-                 config.Item("user", true).GetValue<bool>()))
-            {
-                R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                var pos = GetClosestPassivePosition(targetO);
+                Obj_AI_Hero target = TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical);
+                if (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && targetO.NetworkId == target.NetworkId &&
+                    R.IsReady() && R.CanCast(target) &&
+                    ComboDamage(target) + player.GetAutoAttackDamage(target) * 5 > target.Health &&
+                    ((config.Item("userally", true).GetValue<Slider>().Value <=
+                      HeroManager.Allies.Count(
+                          a => a.IsValid && !a.IsDead && a.Distance(target) < 600 && a.HealthPercent < 75) &&
+                      config.Item("usertf", true).GetValue<bool>()) ||
+                     (player.HealthPercent < 75 && pos.IsValid() && pos.Distance(player.Position) < player.AttackRange) &&
+                     config.Item("user", true).GetValue<bool>()))
+                {
+                    R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                    Orbwalking.ResetAutoAttackTimer();
+                }
             }
         }
-
 
         private bool CheckQusage(Vector3 pos, Obj_AI_Hero target)
         {
@@ -222,7 +218,8 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var closestPassive = GetClosestPassivePosition(target);
-            if (closestPassive.IsValid() && Orbwalking.CanMove(100) && Game.CursorPos.Distance(target.Position) < 350)
+            if (closestPassive.IsValid() && config.Item("MoveToVitals", true).GetValue<bool>() &&
+                Orbwalking.CanMove(100) && Game.CursorPos.Distance(target.Position) < 350)
             {
                 //orbwalker.SetMovement(false);
                 player.IssueOrder(
@@ -245,11 +242,15 @@ namespace UnderratedAIO.Champions
                 }
                 else if (target.HealthPercent < 30)
                 {
-                    if (CheckQusage(
-                        target.Position.Extend(Prediction.GetPrediction(target, player.Distance(target) / 1600).UnitPosition, Qradius), target))
+                    if (
+                        CheckQusage(
+                            target.Position.Extend(
+                                Prediction.GetPrediction(target, player.Distance(target) / 1600).UnitPosition, Qradius),
+                            target))
                     {
                         Q.Cast(
-                            target.Position.Extend(Prediction.GetPrediction(target, player.Distance(target) / 1600).UnitPosition, Qradius),
+                            target.Position.Extend(
+                                Prediction.GetPrediction(target, player.Distance(target) / 1600).UnitPosition, Qradius),
                             config.Item("packets").GetValue<bool>());
                     }
                 }
@@ -284,8 +285,8 @@ namespace UnderratedAIO.Champions
             if (target != null &&
                 (W.IsReady() && target.IsMe &&
                  (Orbwalking.IsAutoAttack(spellName) || CombatHelper.IsAutoattack(spellName)) &&
-                 ((config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) ||
-                  config.Item("autoW", true).GetValue<bool>()) &&
+                 ((config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
+                   hero is Obj_AI_Hero) || config.Item("autoW", true).GetValue<bool>()) &&
                  !(hero is Obj_AI_Turret || hero.Name == "OdinNeutralGuardian") && player.Distance(hero) < 700))
             {
                 var perc = config.Item("minmanaP", true).GetValue<Slider>().Value / 100f;
@@ -296,58 +297,59 @@ namespace UnderratedAIO.Champions
                     W.Cast(hero, config.Item("packets").GetValue<bool>());
                 }
             }
-            if (!config.Item("usewCC", true).GetValue<bool>())
+            if (config.Item("usewCC", true).GetValue<bool>())
             {
-                return;
-            }
-            if (spellName == "CurseofTheSadMummy")
-            {
-                if (player.Distance(hero.Position) <= 600f)
+                if (spellName == "CurseofTheSadMummy")
                 {
-                    W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    if (player.Distance(hero.Position) <= 600f)
+                    {
+                        W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    }
                 }
-            }
-            if (spellName == "EnchantedCrystalArrow")
-            {
-                if (player.Distance(hero.Position) <= 400f)
+                if (CombatHelper.IsFacing(target, player.Position) &&
+                    (spellName == "EnchantedCrystalArrow" || spellName == "EzrealTrueshotBarrage" ||
+                     spellName == "JinxR" || spellName == "sejuaniglacialprison"))
                 {
-                    W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    if (player.Distance(hero.Position) <= W.Range-60)
+                    {
+                        W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    }
                 }
-            }
-            if (spellName == "EnchantedCrystalArrow" || spellName == "EzrealTrueshotBarrage" || spellName == "JinxR" ||
-                spellName == "sejuaniglacialprison")
-            {
-                if (player.Distance(hero.Position) <= 400f)
+                if (spellName == "InfernalGuardian" || spellName == "UFSlash")
                 {
-                    W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    if (player.Distance(args.End) <= 270f)
+                    {
+                        W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    }
                 }
-            }
-            if (spellName == "InfernalGuardian" || spellName == "UFSlash")
-            {
-                if (player.Distance(args.End) <= 270f)
+                if (spellName == "BlindMonkRKick" || spellName == "SyndraR" || spellName == "VeigarPrimordialBurst" ||
+                    spellName == "AlZaharNetherGrasp" || spellName == "LissandraR")
                 {
-                    W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    if (args.Target.IsMe)
+                    {
+                        W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    }
                 }
-            }
-            if (spellName == "BlindMonkRKick" || spellName == "AlZaharNetherGrasp" || spellName == "LissandraR")
-            {
-                if (args.Target.IsMe)
+                if (spellName == "TristanaR" || spellName == "ViR")
                 {
-                    W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    if (args.Target.IsMe || player.Distance(args.Target.Position) <= 100f)
+                    {
+                        W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    }
                 }
-            }
-            if (spellName == "TristanaR" || spellName == "ViR")
-            {
-                if (args.Target.IsMe || player.Distance(args.Target.Position) <= 100f)
+                if (spellName == "GalioIdolOfDurand")
                 {
-                    W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    if (player.Distance(hero.Position) <= 600f)
+                    {
+                        W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    }
                 }
-            }
-            if (spellName == "GalioIdolOfDurand")
-            {
-                if (player.Distance(hero.Position) <= 600f)
+                if (target != null && target.IsMe)
                 {
-                    W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    if (CombatHelper.isTargetedCC(spellName) && spellName != "NasusW" && spellName != "ZedUlt")
+                    {
+                        W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
+                    }
                 }
             }
         }
@@ -472,7 +474,7 @@ namespace UnderratedAIO.Champions
                 ponts.Add(predEnemy.To2D().Extend(passive.To2D(), i * 25).To3D());
             }
 
-            return ponts.OrderByDescending(p => p.Distance(target.Position)).FirstOrDefault(p => CheckQusage(p, target));
+            return ponts.Where(p => CheckQusage(p, target)).OrderByDescending(p => p.Distance(target.Position)).FirstOrDefault();
         }
 
         private void InitMenu()
@@ -510,6 +512,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("userally", "  Min allies", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("RapidAttack", "Fast AA Combo", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Toggle));
+            menuC.AddItem(new MenuItem("MoveToVitals", "Move to vitals", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
