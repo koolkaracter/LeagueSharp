@@ -338,7 +338,7 @@ namespace UnderratedAIO.Champions
                             .Where(
                                 p =>
                                     p.IsValid() && !p.IsWall() && p.Distance(player.Position) < E.Range &&
-                                    p.Distance(Prediction.GetPrediction(target, GetQTime(Qbarrel)).CastPosition) <
+                                    p.Distance(Prediction.GetPrediction(target, GetQTime(Qbarrel)).UnitPosition) <
                                     BarrelExplosionRange && savedBarrels.Count(b=>b.barrel.Position.Distance(p)<BarrelExplosionRange)<1)
                              .OrderBy(p=>p.Distance(target.Position))
                              .FirstOrDefault();
