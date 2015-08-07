@@ -179,15 +179,12 @@ namespace UnderratedAIO.Champions
                     return;
                 }
             }
-            else
-            {
-                Combo();
-            }
             if (!rActive && Orbwalking.CanMove(100))
             {
                 if (!justR)
                 {
                     Orbwalking.MoveTo(Game.CursorPos, 80f);
+                    Combo();
                 }
             }
         }
