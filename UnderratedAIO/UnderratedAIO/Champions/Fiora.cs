@@ -187,10 +187,9 @@ namespace UnderratedAIO.Champions
 
         private bool CheckQusage(Vector3 pos, Obj_AI_Hero target)
         {
-            var position = player.Position.Extend(pos, Q.Range);
-            return pos.IsValid() && position.Distance(player.Position) < Q.Range &&
+            return pos.IsValid() && pos.Distance(player.Position) < Q.Range &&
                    (target.HasBuff("fiorapassivemanager") || target.HasBuff("fiorarmark")) && !pos.IsWall() &&
-                   Qradius > position.Distance(target.Position);
+                   Qradius > pos.Distance(target.Position);
         }
 
         private List<Vector3> GetPassivePositions(AttackableUnit target)
@@ -286,7 +285,11 @@ namespace UnderratedAIO.Champions
                 (W.IsReady() && target.IsMe &&
                  (Orbwalking.IsAutoAttack(spellName) || CombatHelper.IsAutoattack(spellName)) &&
                  ((config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
-                   hero is Obj_AI_Hero) || config.Item("autoW", true).GetValue<bool>()) &&
+                   hero is Obj_AI_Hero &&
+                   ((config.Item("usewDangerous", true).GetValue<bool>() &&
+                     target.GetAutoAttackDamage(player, true) > player.Health * 0.1f) ||
+                    !config.Item("usewDangerous", true).GetValue<bool>())) ||
+                  config.Item("autoW", true).GetValue<bool>()) &&
                  !(hero is Obj_AI_Turret || hero.Name == "OdinNeutralGuardian") && player.Distance(hero) < 700))
             {
                 var perc = config.Item("minmanaP", true).GetValue<Slider>().Value / 100f;
@@ -310,7 +313,7 @@ namespace UnderratedAIO.Champions
                     (spellName == "EnchantedCrystalArrow" || spellName == "EzrealTrueshotBarrage" ||
                      spellName == "JinxR" || spellName == "sejuaniglacialprison"))
                 {
-                    if (player.Distance(hero.Position) <= W.Range-60)
+                    if (player.Distance(hero.Position) <= W.Range - 60)
                     {
                         W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
                     }
@@ -469,12 +472,15 @@ namespace UnderratedAIO.Champions
         {
             var ponts = new List<Vector3>();
             var predEnemy = Prediction.GetPrediction(target, ObjectManager.Player.Distance(target) / 1600).UnitPosition;
-            for (int i = 2; i < 7; i++)
+            for (int i = 2; i < 8; i++)
             {
                 ponts.Add(predEnemy.To2D().Extend(passive.To2D(), i * 25).To3D());
             }
 
-            return ponts.Where(p => CheckQusage(p, target)).OrderByDescending(p => p.Distance(target.Position)).FirstOrDefault();
+            return
+                ponts.Where(p => CheckQusage(p, target))
+                    .OrderByDescending(p => p.Distance(target.Position))
+                    .FirstOrDefault();
         }
 
         private void InitMenu()
@@ -504,7 +510,8 @@ namespace UnderratedAIO.Champions
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useqMin", "  Min distance", true)).SetValue(new Slider(250, 0, 400));
-            menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usew", "Use W AA", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usewDangerous", "   Only on low health", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usewCC", "W to CC", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "R 1v1", true)).SetValue(true);
