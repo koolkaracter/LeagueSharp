@@ -174,7 +174,7 @@ namespace UnderratedAIO.Champions
                     ComboDamage(target) + player.GetAutoAttackDamage(target) * 5 > target.Health &&
                     ((config.Item("userally", true).GetValue<Slider>().Value <=
                       HeroManager.Allies.Count(
-                          a => a.IsValid && !a.IsDead && a.Distance(target) < 600 && a.HealthPercent < 75) &&
+                          a => a.IsValid && !a.IsDead && a.Distance(target) < 600 && a.HealthPercent < 90) &&
                       config.Item("usertf", true).GetValue<bool>()) ||
                      (player.HealthPercent < 75 && pos.IsValid() && pos.Distance(player.Position) < player.AttackRange) &&
                      config.Item("user", true).GetValue<bool>()))
