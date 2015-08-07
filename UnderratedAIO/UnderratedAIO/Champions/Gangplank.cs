@@ -79,8 +79,8 @@ namespace UnderratedAIO.Champions
             var barrel = savedBarrels.FirstOrDefault(b => b.barrel.NetworkId == targetB.NetworkId);
             if (barrel != null)
             {
-                var time = targetB.Health * getEActivationDelay();
-                if (System.Environment.TickCount - barrel.time - time - GetQTime(targetB) < 0)
+                var time = targetB.Health * getEActivationDelay()*1000;
+                if (System.Environment.TickCount - barrel.time + GetQTime(targetB)*1000> time)
                 {
                     return true;
                 }
@@ -90,12 +90,13 @@ namespace UnderratedAIO.Champions
 
         private float GetQTime(Obj_AI_Base targetB)
         {
-            return player.Distance(targetB) / 2800f + 0.25f;
+            return player.Distance(targetB) / 2800f + Q.Delay;
         }
 
         private void InitGangPlank()
         {
             Q = new Spell(SpellSlot.Q, 590f); //2600f
+            Q.SetTargetted(0.25f,2200f);
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E, 950);
             E.SetSkillshot(0.8f, 50, float.MaxValue, false, SkillshotType.SkillshotCircle);
@@ -248,8 +249,9 @@ namespace UnderratedAIO.Champions
                     GetBarrels()
                         .FirstOrDefault(
                             o =>
-                                o.IsValid && !o.IsDead && o.Distance(player) < Q.Range && o.SkinName == "GangplankBarrel" &&
-                                o.GetBuff("gangplankebarrellife").Caster.IsMe && KillableBarrel(o) &&
+                                o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
+                                o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
+                                KillableBarrel(o) &&
                                 Environment.Minion.countMinionsInrange(o.Position, BarrelExplosionRange) >=
                                 config.Item("eMinHit", true).GetValue<Slider>().Value);
                 if (barrel != null)
@@ -320,6 +322,35 @@ namespace UnderratedAIO.Champions
                             o.IsValid && !o.IsDead && o.Distance(player) < 1600 && o.SkinName == "GangplankBarrel" &&
                             o.GetBuff("gangplankebarrellife").Caster.IsMe)
                     .ToList();
+
+            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && config.Item("usee", true).GetValue<bool>() &&
+                E.IsReady() && Orbwalking.CanMove(100) && !justE)
+            {
+                var Qbarrels = GetBarrels().Where(o => o.Distance(player) < Q.Range && KillableBarrel(o));
+                foreach (var Qbarrel in Qbarrels)
+                {
+                    if (Qbarrel.Distance(target)<BarrelExplosionRange)
+                    {
+                        continue;
+                    }
+                    var point =
+                        GetBarrelPoints(Qbarrel.Position)
+                            .Where(
+                                p =>
+                                    p.IsValid() && !p.IsWall() && p.Distance(player.Position) < E.Range &&
+                                    p.Distance(Prediction.GetPrediction(target, GetQTime(Qbarrel)).CastPosition) <
+                                    BarrelExplosionRange && savedBarrels.Count(b=>b.barrel.Position.Distance(p)<BarrelExplosionRange)<1)
+                             .OrderByDescending(p=>p.CountEnemiesInRange(BarrelExplosionRange))
+                             .FirstOrDefault();
+                    if (point!=null)
+                    {
+                        E.Cast(point);
+                        Utility.DelayAction.Add(1, () => Q.CastOnUnit(Qbarrel));
+                        return;
+                    }
+                }
+            }
+
             if (config.Item("usee", true).GetValue<bool>() && E.IsReady() && player.Distance(target) < E.Range && !justE &&
                 target.Health > Q.GetDamage(target) + player.GetAutoAttackDamage(target) && Orbwalking.CanMove(100) &&
                 config.Item("eStacksC", true).GetValue<Slider>().Value < E.Instance.Ammo)
