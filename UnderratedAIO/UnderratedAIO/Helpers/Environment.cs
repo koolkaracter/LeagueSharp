@@ -21,7 +21,7 @@ namespace UnderratedAIO.Helpers
 
             public static int countMinionsInrange(Vector3 l, float p)
             {
-                return ObjectManager.Get<Obj_AI_Minion>().Count(i => !i.IsDead && i.IsEnemy && i.Distance(l) < p);
+                return ObjectManager.Get<Obj_AI_Base>().Count(i => !i.IsDead && i.IsEnemy && i.Distance(l) < p);
             }
 
             public static Vector3 bestVectorToAoeFarm(Vector3 center, float spellrange, float spellWidth, int hit = 0)
