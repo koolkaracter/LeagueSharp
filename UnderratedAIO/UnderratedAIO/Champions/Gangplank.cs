@@ -243,7 +243,7 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (Q.IsReady())
+            if (Q.IsReady() && Q.IsReady() && config.Item("useqLC", true).GetValue<bool>())
             {
                 var barrel =
                     GetBarrels()
@@ -340,7 +340,7 @@ namespace UnderratedAIO.Champions
                                     p.IsValid() && !p.IsWall() && p.Distance(player.Position) < E.Range &&
                                     p.Distance(Prediction.GetPrediction(target, GetQTime(Qbarrel)).CastPosition) <
                                     BarrelExplosionRange && savedBarrels.Count(b=>b.barrel.Position.Distance(p)<BarrelExplosionRange)<1)
-                             .OrderByDescending(p=>p.CountEnemiesInRange(BarrelExplosionRange))
+                             .OrderBy(p=>p.Distance(target.Position))
                              .FirstOrDefault();
                     if (point!=null)
                     {
