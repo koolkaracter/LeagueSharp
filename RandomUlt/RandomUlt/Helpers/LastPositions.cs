@@ -555,7 +555,7 @@ namespace RandomUlt.Helpers
                 var difference = dist - 1500f;
                 return (dist /
                         ((1350f * 1700f + acceldifference * (1700f + accelerationrate * acceldifference) +
-                          difference * 2200f) / dist)) * 1000 + 250;
+                          difference * 1700f) / dist)) * 1000 + 250;
             }
             if (player.ChampionName == "Ashe")
             {
