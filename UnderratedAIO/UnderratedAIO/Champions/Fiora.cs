@@ -176,8 +176,7 @@ namespace UnderratedAIO.Champions
                       HeroManager.Allies.Count(
                           a => a.IsValid && !a.IsDead && a.Distance(target) < 600 && a.HealthPercent < 90) &&
                       config.Item("usertf", true).GetValue<bool>()) ||
-                     (player.HealthPercent < 75 && pos.IsValid() && pos.Distance(player.Position) < player.AttackRange) &&
-                     config.Item("user", true).GetValue<bool>()))
+                     (player.HealthPercent < 75 && config.Item("user", true).GetValue<bool>())))
                 {
                     R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                     Orbwalking.ResetAutoAttackTimer();
@@ -281,7 +280,7 @@ namespace UnderratedAIO.Champions
             {
                 hero = targetW;
             }
-            if (target != null &&
+            if (target != null && (!hero.HasBuff("fiorarmark") || (hero.HasBuff("fiorarmark") && player.HealthPercent < 50)) &&
                 (W.IsReady() && target.IsMe &&
                  (Orbwalking.IsAutoAttack(spellName) || CombatHelper.IsAutoattack(spellName)) &&
                  ((config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
@@ -310,15 +309,16 @@ namespace UnderratedAIO.Champions
                     }
                 }
                 if (CombatHelper.IsFacing(target, player.Position) &&
-                    (spellName == "EnchantedCrystalArrow" || spellName == "EzrealTrueshotBarrage" ||
-                     spellName == "JinxR" || spellName == "sejuaniglacialprison"))
+                    (spellName == "EnchantedCrystalArrow" || spellName == "rivenizunablade" ||
+                     spellName == "EzrealTrueshotBarrage" || spellName == "JinxR" || spellName == "sejuaniglacialprison"))
                 {
                     if (player.Distance(hero.Position) <= W.Range - 60)
                     {
                         W.Cast(TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical));
                     }
                 }
-                if (spellName == "InfernalGuardian" || spellName == "UFSlash")
+                if (spellName == "InfernalGuardian" || spellName == "UFSlash" ||
+                    (spellName == "RivenW" && player.HealthPercent < 25))
                 {
                     if (player.Distance(args.End) <= 270f)
                     {
@@ -407,7 +407,7 @@ namespace UnderratedAIO.Champions
             double damage = 0;
             if (Q.IsReady())
             {
-                damage += Damage.GetSpellDamage(player, hero, SpellSlot.Q) * 2;
+                damage += Damage.GetSpellDamage(player, hero, SpellSlot.Q);
             }
             if (W.IsReady())
             {
@@ -415,7 +415,7 @@ namespace UnderratedAIO.Champions
             }
             if (R.IsReady())
             {
-                damage += Damage.GetSpellDamage(player, hero, SpellSlot.R);
+                damage += GetPassiveDamage(hero, 4);
             }
             damage += ItemHandler.GetItemsDamage(hero);
             var ignitedmg = player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
@@ -481,6 +481,12 @@ namespace UnderratedAIO.Champions
                 ponts.Where(p => CheckQusage(p, target))
                     .OrderByDescending(p => p.Distance(target.Position))
                     .FirstOrDefault();
+        }
+
+        public static double GetPassiveDamage(Obj_AI_Base target, int passives)
+        {
+            return passives * (0.03f + 0.027 + 0.001f * player.Level * player.FlatPhysicalDamageMod / 100f) *
+                   target.MaxHealth;
         }
 
         private void InitMenu()
