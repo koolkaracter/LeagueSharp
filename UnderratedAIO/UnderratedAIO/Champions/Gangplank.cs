@@ -360,9 +360,9 @@ namespace UnderratedAIO.Champions
             var meleeRangeBarrel =
                 barrels.FirstOrDefault(
                     b =>
-                        b.Health < 2 && b.Distance(player) < Orbwalking.GetAutoAttackRange(player, b) &&
+                        (b.Health < 2 || (b.Health==2 && Q.IsReady())) && b.Distance(player) < Orbwalking.GetAutoAttackRange(player, b) &&
                         b.CountEnemiesInRange(BarrelExplosionRange) > 0);
-            if (meleeRangeBarrel != null)
+            if (meleeRangeBarrel != null && Orbwalking.CanAttack())
             {
                 orbwalker.ForceTarget(meleeRangeBarrel);
             }
