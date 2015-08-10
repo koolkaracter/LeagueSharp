@@ -79,8 +79,8 @@ namespace UnderratedAIO.Champions
             var barrel = savedBarrels.FirstOrDefault(b => b.barrel.NetworkId == targetB.NetworkId);
             if (barrel != null)
             {
-                var time = targetB.Health * getEActivationDelay()*1000;
-                if (System.Environment.TickCount - barrel.time + GetQTime(targetB)*1000> time)
+                var time = targetB.Health * getEActivationDelay() * 1000;
+                if (System.Environment.TickCount - barrel.time + GetQTime(targetB) * 1000 > time)
                 {
                     return true;
                 }
@@ -96,7 +96,7 @@ namespace UnderratedAIO.Champions
         private void InitGangPlank()
         {
             Q = new Spell(SpellSlot.Q, 590f); //2600f
-            Q.SetTargetted(0.25f,2200f);
+            Q.SetTargetted(0.25f, 2200f);
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E, 950);
             E.SetSkillshot(0.8f, 50, float.MaxValue, false, SkillshotType.SkillshotCircle);
@@ -133,6 +133,7 @@ namespace UnderratedAIO.Champions
                               e.HealthPercent < config.Item("Rhealt", true).GetValue<Slider>().Value * 0.75) ||
                              (!e.UnderTurret(true) &&
                               e.HealthPercent < config.Item("Rhealt", true).GetValue<Slider>().Value)) &&
+                            e.HealthPercent > config.Item("RhealtMin", true).GetValue<Slider>().Value &&
                             e.IsValidTarget() && e.Distance(player) > 1500))
                 {
                     var ally =
@@ -329,7 +330,7 @@ namespace UnderratedAIO.Champions
                 var Qbarrels = GetBarrels().Where(o => o.Distance(player) < Q.Range && KillableBarrel(o));
                 foreach (var Qbarrel in Qbarrels)
                 {
-                    if (Qbarrel.Distance(target)<BarrelExplosionRange)
+                    if (Qbarrel.Distance(target) < BarrelExplosionRange)
                     {
                         continue;
                     }
@@ -339,10 +340,11 @@ namespace UnderratedAIO.Champions
                                 p =>
                                     p.IsValid() && !p.IsWall() && p.Distance(player.Position) < E.Range &&
                                     p.Distance(Prediction.GetPrediction(target, GetQTime(Qbarrel)).UnitPosition) <
-                                    BarrelExplosionRange && savedBarrels.Count(b=>b.barrel.Position.Distance(p)<BarrelExplosionRange)<1)
-                             .OrderBy(p=>p.Distance(target.Position))
-                             .FirstOrDefault();
-                    if (point!=null)
+                                    BarrelExplosionRange &&
+                                    savedBarrels.Count(b => b.barrel.Position.Distance(p) < BarrelExplosionRange) < 1)
+                            .OrderBy(p => p.Distance(target.Position))
+                            .FirstOrDefault();
+                    if (point != null)
                     {
                         E.Cast(point);
                         Utility.DelayAction.Add(1, () => Q.CastOnUnit(Qbarrel));
@@ -360,11 +362,12 @@ namespace UnderratedAIO.Champions
             var meleeRangeBarrel =
                 barrels.FirstOrDefault(
                     b =>
-                        (b.Health < 2 || (b.Health==2 && Q.IsReady())) && b.Distance(player) < Orbwalking.GetAutoAttackRange(player, b) &&
+                        (b.Health < 2 || (b.Health == 2 && Q.IsReady())) &&
+                        b.Distance(player) < Orbwalking.GetAutoAttackRange(player, b) &&
                         b.CountEnemiesInRange(BarrelExplosionRange) > 0);
-            if (meleeRangeBarrel != null && Orbwalking.CanAttack())
+            if (meleeRangeBarrel != null && Orbwalking.CanMove(100))
             {
-                orbwalker.ForceTarget(meleeRangeBarrel);
+                player.IssueOrder(GameObjectOrder.AutoAttack, meleeRangeBarrel);
             }
             if (Q.IsReady())
             {
@@ -603,9 +606,11 @@ namespace UnderratedAIO.Champions
         }
 
 
-        private List<Vector3> GetBarrelPoints(Vector3 point)
+        private IEnumerable<Vector3> GetBarrelPoints(Vector3 point)
         {
-            return CombatHelper.PointsAroundTheTargetOuterRing(point, BarrelConnectionRange, 20f);
+            return
+                CombatHelper.PointsAroundTheTarget(point, BarrelConnectionRange, 20f)
+                    .Where(p => p.Distance(point) > BarrelExplosionRange);
         }
 
         private float getEActivationDelay()
@@ -675,6 +680,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("AutoR", "Cast R to get assists", true)).SetValue(false);
             menuM.AddItem(new MenuItem("Rhealt", "   Enemy health %", true)).SetValue(new Slider(35, 0, 100));
+            menuM.AddItem(new MenuItem("RhealtMin", "   Enemy min health %", true)).SetValue(new Slider(10, 0, 100));
             menuM.AddItem(new MenuItem("AutoW", "W with QSS options", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
 
