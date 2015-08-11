@@ -132,7 +132,7 @@ namespace UnderratedAIO.Champions
             W = new Spell(SpellSlot.W, 900);
             W.SetSkillshot(1.25f, 225f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             E = new Spell(SpellSlot.E, 1050);
-            E.SetSkillshot(0.85f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
+            E.SetSkillshot(1.2f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
             R = new Spell(SpellSlot.R, 615);
         }
 
@@ -439,11 +439,11 @@ namespace UnderratedAIO.Champions
             if (player.CountEnemiesInRange(E.Range) <= 1)
             {
                 var targE = E.GetPrediction(target);
-                var pos = edge ? targE.CastPosition : target.ServerPosition;
-                if (pos.Distance(player.Position) < E.Range && targE.Hitchance >= HitChance.High)
+                var pos = targE.CastPosition;
+                if (pos.IsValid() && pos.Distance(player.Position) < E.Range && targE.Hitchance >= HitChance.High)
                 {
                     E.Cast(
-                        edge ? pos.Extend(player.Position, 375) : target.ServerPosition,
+                        edge ? pos.Extend(player.Position, 375) : pos,
                         config.Item("packets").GetValue<bool>());
                 }
             }
