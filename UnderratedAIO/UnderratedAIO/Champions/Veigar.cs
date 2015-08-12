@@ -80,7 +80,8 @@ namespace UnderratedAIO.Champions
                     if (!justQ)
                     {
                         justQ = true;
-                        Utility.DelayAction.Add(300, () => justQ = false);
+                        Utility.DelayAction.Add(
+                            (int) (player.Position.Distance(args.End) / Q.Speed + Q.Delay), () => justQ = false);
                     }
                 }
                 if (args.SData.Name == "VeigarDarkMatter")
@@ -197,7 +198,8 @@ namespace UnderratedAIO.Champions
                              hero.HasBuffOfType(BuffType.Taunt) || hero.HasBuffOfType(BuffType.Suppression)))
                         .OrderBy(hero => hero.Health)
                         .FirstOrDefault();
-                if (targ != null)
+                if (targ != null &&
+                    (((justQ && targ.Health > Q.GetDamage(targ) || targ.CountEnemiesInRange(W.Width) > 1)) || !justQ))
                 {
                     W.Cast(targ, config.Item("packets").GetValue<bool>());
                 }
@@ -317,11 +319,6 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config);
             }
-            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Q.CanCast(target) && target.IsValidTarget() &&
-                !bush && !Estun)
-            {
-                CastQHero(target);
-            }
             if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && W.CanCast(target))
             {
                 var tarPered = W.GetPrediction(target);
@@ -351,11 +348,17 @@ namespace UnderratedAIO.Champions
                 {
                     case 0:
                         CastE(target);
-                        break;
+                        return;
                     case 1:
                         CastE(target, false);
+                        return;
                         break;
                 }
+            }
+            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Q.CanCast(target) && target.IsValidTarget() &&
+                !bush && !Estun)
+            {
+                CastQHero(target);
             }
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
@@ -376,19 +379,23 @@ namespace UnderratedAIO.Champions
             {
                 if (config.Item("userPred", true).GetValue<bool>())
                 {
+                    var Whit = wPos.IsValid() && System.Environment.TickCount - wTime > 700 &&
+                               Prediction.GetPrediction(target, 0.55f).UnitPosition.Distance(wPos) < W.Width;
                     var targetHP = HealthPrediction.GetHealthPrediction(target, 400);
+                    if (justQ)
+                    {
+                        targetHP -= Q.GetDamage(target);
+                    }
                     var killWithIgnite = hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
-                                         R.GetDamage(target) + ignitedmg > targetHP &&
-                                         target.Health > R.GetDamage(target);
+                                         R.GetDamage(target) + ignitedmg > targetHP && targetHP > R.GetDamage(target);
 
-                    var killWithW = wPos != null && wPos.IsValid() && System.Environment.TickCount - wTime > 700 &&
-                                    Prediction.GetPrediction(target, 0.55f).UnitPosition.Distance(wPos) < W.Width &&
-                                    R.GetDamage(target) + W.GetDamage(target) > targetHP &&
+                    var killWithW = wPos != null && Whit && R.GetDamage(target) + W.GetDamage(target) > targetHP &&
                                     target.Health > R.GetDamage(target);
 
-                    var killWithIgniteAndW = killWithW && hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
-                                             R.GetDamage(target) + ignitedmg > targetHP &&
-                                             target.Health > R.GetDamage(target) && target.Health > R.GetDamage(target);
+                    var killWithIgniteAndW = !killWithW && Whit && hasIgnite &&
+                                             config.Item("useIgnite", true).GetValue<bool>() &&
+                                             R.GetDamage(target) + W.GetDamage(target) + ignitedmg > targetHP &&
+                                             targetHP > R.GetDamage(target) + W.GetDamage(target);
 
                     if (killWithW || (targetHP < R.GetDamage(target) && !justQ && CheckW(target)))
                     {
@@ -442,9 +449,7 @@ namespace UnderratedAIO.Champions
                 var pos = targE.CastPosition;
                 if (pos.IsValid() && pos.Distance(player.Position) < E.Range && targE.Hitchance >= HitChance.High)
                 {
-                    E.Cast(
-                        edge ? pos.Extend(player.Position, 375) : pos,
-                        config.Item("packets").GetValue<bool>());
+                    E.Cast(edge ? pos.Extend(player.Position, 375) : pos, config.Item("packets").GetValue<bool>());
                 }
             }
             else
@@ -491,8 +496,8 @@ namespace UnderratedAIO.Champions
                 var minions =
                     MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
                         .Where(
-                            m => m.Health > 5 &&
-                                m.Distance(player) < Q.Range &&
+                            m =>
+                                m.Health > 5 && m.Distance(player) < Q.Range &&
                                 m.Health <
                                 Q.GetDamage(m) * config.Item("qLHDamage", true).GetValue<Slider>().Value / 100);
                 var objAiBases = minions as Obj_AI_Base[] ?? minions.ToArray();
@@ -522,7 +527,8 @@ namespace UnderratedAIO.Champions
                                 {
                                     qMiniForWait = other;
                                     qMiniTarget = minion;
-                                    if (Orbwalking.CanAttack() && other.Distance(player) < Orbwalking.GetRealAutoAttackRange(other))
+                                    if (Orbwalking.CanAttack() &&
+                                        other.Distance(player) < Orbwalking.GetRealAutoAttackRange(other))
                                     {
                                         player.IssueOrder(GameObjectOrder.AutoAttack, other);
                                     }
