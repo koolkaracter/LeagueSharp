@@ -382,10 +382,7 @@ namespace UnderratedAIO.Champions
                     var Whit = wPos.IsValid() && System.Environment.TickCount - wTime > 700 &&
                                Prediction.GetPrediction(target, 0.55f).UnitPosition.Distance(wPos) < W.Width;
                     var targetHP = HealthPrediction.GetHealthPrediction(target, 400);
-                    if (justQ)
-                    {
-                        targetHP -= Q.GetDamage(target);
-                    }
+
                     var killWithIgnite = hasIgnite && config.Item("useIgnite", true).GetValue<bool>() &&
                                          R.GetDamage(target) + ignitedmg > targetHP && targetHP > R.GetDamage(target);
 
