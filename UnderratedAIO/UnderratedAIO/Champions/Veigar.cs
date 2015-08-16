@@ -247,7 +247,14 @@ namespace UnderratedAIO.Champions
                         .FirstOrDefault();
                 if (enemyR != null)
                 {
-                    R.CastOnUnit(enemyR, config.Item("packets").GetValue<bool>());
+                    if (enemyR.CountEnemiesInRange(2000)==1)
+                    {
+                        R.CastOnUnit(enemyR, config.Item("packets").GetValue<bool>());  
+                    }
+                    else if (!config.Item("ult" + enemyR.SkinName, true).GetValue<bool>())
+                    {
+                        R.CastOnUnit(enemyR, config.Item("packets").GetValue<bool>());  
+                    }  
                 }
             }
         }
@@ -373,7 +380,16 @@ namespace UnderratedAIO.Champions
                 }
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() &&
+            var castR = false;
+            if (target.CountEnemiesInRange(2000) == 1)
+            {
+                castR = true;
+            }
+            else if (!config.Item("ult" + target.SkinName, true).GetValue<bool>())
+            {
+                castR = true;
+            }  
+            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() &&  castR &&
                 R.Instance.ManaCost < player.Mana && !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) &&
                 !CombatHelper.CheckCriticalBuffs(target))
             {
@@ -661,6 +677,12 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("startWithE", "Start combo with E", true)).SetValue(false);
             menuC.AddItem(new MenuItem("checkmana", "   Check mana", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
+            var sulti = new Menu("TeamFight Ult block", "dontult");
+            foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))
+            {
+                sulti.AddItem(new MenuItem("ult" + hero.SkinName, hero.SkinName, true)).SetValue(false);
+            }
+            menuC.AddSubMenu(sulti);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // Harass Settings
