@@ -118,6 +118,7 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
+            var cmbDmg = ComboDamage(target);
             if (ShacoClone && !GhostDelay && config.Item("useClone", true).GetValue<bool>())
             {
                 var Gtarget = TargetSelector.GetTarget(GhostRange, TargetSelector.DamageType.Physical);
@@ -144,7 +145,7 @@ namespace UnderratedAIO.Champions
                         break;
                 }
                 var clone = ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(m => m.Name == player.Name && !m.IsMe);
-                if (clone != null && (System.Environment.TickCount - cloneTime > 16500f || clone.HealthPercent < 20) &&
+                if (clone != null && (System.Environment.TickCount - cloneTime > 16500f || clone.HealthPercent < 10) &&
                     !clone.IsWindingUp)
                 {
                     var pos =
@@ -176,16 +177,18 @@ namespace UnderratedAIO.Champions
                 }
             }
             if ((config.Item("WaitForStealth", true).GetValue<bool>() && ShacoStealth &&
-                 ComboDamage(target) < target.Health) || !Orbwalking.CanMove(100))
+                 cmbDmg < target.Health) || !Orbwalking.CanMove(100))
             {
                 return;
             }
             if (config.Item("useItems").GetValue<bool>())
             {
-                ItemHandler.UseItems(target, config, ComboDamage(target));
+                ItemHandler.UseItems(target, config, cmbDmg);
             }
             float dist = (float) (Q.Range + player.MoveSpeed * 2.5);
-            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && target.Distance(player) < dist)
+            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && target.Distance(player) < dist &&
+                (target.Distance(player) >= config.Item("useqMin", true).GetValue<Slider>().Value ||
+                 (cmbDmg > target.Health && player.CountEnemiesInRange(2000) == 1)))
             {
                 if (target.Distance(player) < Q.Range)
                 {
@@ -194,7 +197,7 @@ namespace UnderratedAIO.Champions
                 else
                 {
                     if (!CheckWalls(target) &&
-                        (ComboDamage(target) > target.Health ||
+                        (cmbDmg > target.Health ||
                          target.CountAlliesInRange(dist) > target.CountEnemiesInRange(dist) ||
                          Game.CursorPos.Distance(target.Position) < 250) ||
                         Environment.Map.GetPath(player, target.Position) < dist)
@@ -205,7 +208,7 @@ namespace UnderratedAIO.Champions
                 }
             }
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && !target.UnderTurret(true))
+            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && !target.UnderTurret(true) && target.Health>cmbDmg)
             {
                 HandleW(target);
             }
@@ -214,7 +217,7 @@ namespace UnderratedAIO.Champions
                 E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("user", true).GetValue<bool>() && R.IsReady() && !ShacoClone && target.HealthPercent < 75 &&
-                ComboDamage(target) < target.Health && target.HealthPercent > ComboDamage(target) &&
+                cmbDmg < target.Health && target.HealthPercent > cmbDmg &&
                 target.HealthPercent > 25)
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
@@ -242,7 +245,8 @@ namespace UnderratedAIO.Champions
         private void HandleW(Obj_AI_Hero target)
         {
             var turret =
-                ObjectManager.Get<Obj_AI_Turret>().OrderByDescending(t=>t.Distance(target))
+                ObjectManager.Get<Obj_AI_Turret>()
+                    .OrderByDescending(t => t.Distance(target))
                     .FirstOrDefault(t => t.IsEnemy && t.Distance(target) < 3000 && !t.IsDead);
             if (turret != null)
             {
@@ -402,6 +406,7 @@ namespace UnderratedAIO.Champions
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useqMin", "   Min range", true).SetValue(new Slider(200, 0, 400)));
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
