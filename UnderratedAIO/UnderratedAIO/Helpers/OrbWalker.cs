@@ -386,17 +386,8 @@ namespace UnderratedAIO.Helpers
                         target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 450)
                     {
                         Obj_AI_Hero tar = (Obj_AI_Hero) target;
-                        var nocturne = (player.ChampionName != "Nocturne" ||
-                                       (player.ChampionName == "Nocturne" && !tar.HasBuffOfType(BuffType.Flee)) 
-                                       || player.ChampionName == "Shaco");
                         var prediction = AutoAttack.GetPrediction((Obj_AI_Base) target);
-                        var pos = player.CountEnemiesInRange(1500) == 1 && !nocturne
-                            ? target.Position.Extend(prediction.UnitPosition, GetRealAutoAttackRange(player))
-                            : prediction.UnitPosition;
-                        if (!nocturne)
-                        {
-                            pos = player.ServerPosition;
-                        }
+                        var pos = prediction.UnitPosition;
                         if (player.Distance(target) > target.BoundingRadius &&
                             !CombatHelper.IsFacing((Obj_AI_Base) target, player.Position, 120f) && tar.IsMoving)
                         {

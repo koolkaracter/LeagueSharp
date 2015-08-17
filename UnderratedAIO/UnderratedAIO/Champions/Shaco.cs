@@ -22,6 +22,7 @@ namespace UnderratedAIO.Champions
         public static int GhostRange = 2200;
         public static AutoLeveler autoLeveler;
         public static int LastAATick;
+        public static float cloneTime;
 
         public Shaco()
         {
@@ -66,6 +67,10 @@ namespace UnderratedAIO.Champions
             {
                 orbwalker.SetAttack(true);
             }
+            if (!ShacoClone)
+            {
+                cloneTime = System.Environment.TickCount;
+            }
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -95,7 +100,8 @@ namespace UnderratedAIO.Champions
                     {
                         E.Cast(ksTarget);
                     }
-                    else if (Q.IsReady() && ksTarget.Distance(player) < Q.Range + E.Range && ksTarget.Distance(player) > E.Range &&
+                    else if (Q.IsReady() && ksTarget.Distance(player) < Q.Range + E.Range &&
+                             ksTarget.Distance(player) > E.Range &&
                              !player.Position.Extend(ksTarget.Position, Q.Range).IsWall() &&
                              player.Mana > Q.Instance.ManaCost + E.Instance.ManaCost)
                     {
@@ -138,7 +144,20 @@ namespace UnderratedAIO.Champions
                         break;
                 }
                 var clone = ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(m => m.Name == player.Name && !m.IsMe);
-                if (Gtarget.IsValid && !clone.IsWindingUp)
+                if (clone != null && (System.Environment.TickCount - cloneTime > 16500f || clone.HealthPercent < 20) &&
+                    !clone.IsWindingUp)
+                {
+                    var pos =
+                        CombatHelper.PointsAroundTheTarget(clone.Position, 600)
+                            .OrderByDescending(p => p.CountEnemiesInRange(250))
+                            .ThenBy(p => Environment.Minion.countMinionsInrange(p, 250))
+                            .FirstOrDefault();
+                    if (pos.IsValid())
+                    {
+                        R.Cast(pos, config.Item("packets").GetValue<bool>());
+                    }
+                }
+                if (clone != null && Gtarget.IsValid && !clone.IsWindingUp)
                 {
                     if (CanCloneAttack() || player.HealthPercent < 25)
                     {
@@ -165,8 +184,8 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target));
             }
-            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() &&
-                target.Distance(player) < Q.Range + player.MoveSpeed * 2.5)
+            float dist = (float) (Q.Range + player.MoveSpeed * 2.5);
+            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && target.Distance(player) < dist)
             {
                 if (target.Distance(player) < Q.Range)
                 {
@@ -176,9 +195,9 @@ namespace UnderratedAIO.Champions
                 {
                     if (!CheckWalls(target) &&
                         (ComboDamage(target) > target.Health ||
-                         target.CountAlliesInRange(Q.Range + player.MoveSpeed * 2.5f) >
-                         target.CountEnemiesInRange(Q.Range + player.MoveSpeed * 2.5f) ||
-                         Game.CursorPos.Distance(target.Position) < 250))
+                         target.CountAlliesInRange(dist) > target.CountEnemiesInRange(dist) ||
+                         Game.CursorPos.Distance(target.Position) < 250) ||
+                        Environment.Map.GetPath(player, target.Position) < dist)
                     {
                         Q.Cast(
                             player.Position.Extend(target.Position, Q.Range), config.Item("packets").GetValue<bool>());
@@ -195,7 +214,8 @@ namespace UnderratedAIO.Champions
                 E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("user", true).GetValue<bool>() && R.IsReady() && !ShacoClone && target.HealthPercent < 75 &&
-                ComboDamage(target) < target.Health)
+                ComboDamage(target) < target.Health && target.HealthPercent > ComboDamage(target) &&
+                target.HealthPercent > 25)
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -222,7 +242,7 @@ namespace UnderratedAIO.Champions
         private void HandleW(Obj_AI_Hero target)
         {
             var turret =
-                ObjectManager.Get<Obj_AI_Turret>()
+                ObjectManager.Get<Obj_AI_Turret>().OrderByDescending(t=>t.Distance(target))
                     .FirstOrDefault(t => t.IsEnemy && t.Distance(target) < 3000 && !t.IsDead);
             if (turret != null)
             {
@@ -230,10 +250,17 @@ namespace UnderratedAIO.Champions
             }
             else
             {
-                var pred = Prediction.GetPrediction(target, 2);
-                if (pred.Hitchance >= HitChance.VeryHigh)
+                if (target.IsMoving)
                 {
-                    CastW(target, target.Position, pred.UnitPosition);
+                    var pred = Prediction.GetPrediction(target, 2);
+                    if (pred.Hitchance >= HitChance.VeryHigh)
+                    {
+                        CastW(target, target.Position, pred.UnitPosition);
+                    }
+                }
+                else
+                {
+                    W.Cast(player.Position.Extend(target.Position, W.Range - player.Distance(target)));
                 }
             }
         }
