@@ -119,9 +119,10 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var cmbDmg = ComboDamage(target);
+            float dist = (float)(Q.Range + player.MoveSpeed * 2.5);
             if (ShacoClone && !GhostDelay && config.Item("useClone", true).GetValue<bool>())
             {
-                var Gtarget = TargetSelector.GetTarget(GhostRange, TargetSelector.DamageType.Physical);
+                var Gtarget = TargetSelector.GetTarget(dist, TargetSelector.DamageType.Physical);
                 switch (config.Item("ghostTarget", true).GetValue<StringList>().SelectedIndex)
                 {
                     case 0:
@@ -176,8 +177,8 @@ namespace UnderratedAIO.Champions
                     Utility.DelayAction.Add(200, () => GhostDelay = false);
                 }
             }
-            if ((config.Item("WaitForStealth", true).GetValue<bool>() && ShacoStealth &&
-                 cmbDmg < target.Health) || !Orbwalking.CanMove(100))
+            if ((config.Item("WaitForStealth", true).GetValue<bool>() && ShacoStealth && cmbDmg < target.Health) ||
+                !Orbwalking.CanMove(100))
             {
                 return;
             }
@@ -185,8 +186,8 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config, cmbDmg);
             }
-            float dist = (float) (Q.Range + player.MoveSpeed * 2.5);
-            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && target.Distance(player) < dist &&
+            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() &&
+                Game.CursorPos.Distance(target.Position) < 250 && target.Distance(player) < dist &&
                 (target.Distance(player) >= config.Item("useqMin", true).GetValue<Slider>().Value ||
                  (cmbDmg > target.Health && player.CountEnemiesInRange(2000) == 1)))
             {
@@ -196,11 +197,7 @@ namespace UnderratedAIO.Champions
                 }
                 else
                 {
-                    if (!CheckWalls(target) &&
-                        (cmbDmg > target.Health ||
-                         target.CountAlliesInRange(dist) > target.CountEnemiesInRange(dist) ||
-                         Game.CursorPos.Distance(target.Position) < 250) ||
-                        Environment.Map.GetPath(player, target.Position) < dist)
+                    if (!CheckWalls(target) || Environment.Map.GetPath(player, target.Position) < dist)
                     {
                         Q.Cast(
                             player.Position.Extend(target.Position, Q.Range), config.Item("packets").GetValue<bool>());
@@ -208,7 +205,8 @@ namespace UnderratedAIO.Champions
                 }
             }
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && !target.UnderTurret(true) && target.Health>cmbDmg)
+            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && !target.UnderTurret(true) &&
+                target.Health > cmbDmg && player.Distance(target) < W.Range)
             {
                 HandleW(target);
             }
@@ -217,8 +215,7 @@ namespace UnderratedAIO.Champions
                 E.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("user", true).GetValue<bool>() && R.IsReady() && !ShacoClone && target.HealthPercent < 75 &&
-                cmbDmg < target.Health && target.HealthPercent > cmbDmg &&
-                target.HealthPercent > 25)
+                cmbDmg < target.Health && target.HealthPercent > cmbDmg && target.HealthPercent > 25)
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
