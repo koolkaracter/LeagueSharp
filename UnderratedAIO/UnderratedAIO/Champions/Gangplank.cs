@@ -340,7 +340,7 @@ namespace UnderratedAIO.Champions
                                 p =>
                                     p.IsValid() && !p.IsWall() && p.Distance(player.Position) < E.Range &&
                                     p.Distance(Prediction.GetPrediction(target, GetQTime(Qbarrel)).UnitPosition) <
-                                    BarrelExplosionRange &&
+                                    BarrelExplosionRange && Qbarrel.Distance(p)<BarrelConnectionRange &&
                                     savedBarrels.Count(b => b.barrel.Position.Distance(p) < BarrelExplosionRange) < 1)
                             .OrderBy(p => p.Distance(target.Position))
                             .FirstOrDefault();
@@ -351,13 +351,6 @@ namespace UnderratedAIO.Champions
                         return;
                     }
                 }
-            }
-
-            if (config.Item("usee", true).GetValue<bool>() && E.IsReady() && player.Distance(target) < E.Range && !justE &&
-                target.Health > Q.GetDamage(target) + player.GetAutoAttackDamage(target) && Orbwalking.CanMove(100) &&
-                config.Item("eStacksC", true).GetValue<Slider>().Value < E.Instance.Ammo)
-            {
-                CastE(target, barrels);
             }
             var meleeRangeBarrel =
                 barrels.FirstOrDefault(
@@ -493,7 +486,6 @@ namespace UnderratedAIO.Champions
         {
             if (barrels.Count < 1)
             {
-                CastEtarget(target);
                 return;
             }
             var enemies =
@@ -654,7 +646,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("detoneateTargets", "   Blow up enemies with E", true))
                 .SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("usew", "Use W under health", true)).SetValue(new Slider(20, 0, 100));
-            menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usee", "Use E to extend range", true)).SetValue(true);
             menuC.AddItem(new MenuItem("eStacksC", "   Keep stacks", true)).SetValue(new Slider(0, 0, 5));
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "   R min", true)).SetValue(new Slider(2, 1, 5));
