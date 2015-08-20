@@ -161,7 +161,7 @@ namespace UnderratedAIO.Champions
                 }
                 if (clone != null && Gtarget.IsValid && !clone.IsWindingUp)
                 {
-                    if (CanCloneAttack() || player.HealthPercent < 25)
+                    if (CanCloneAttack(clone) || player.HealthPercent < 25)
                     {
                         R.CastOnUnit(Gtarget, config.Item("packets").GetValue<bool>());
                     }
@@ -266,12 +266,11 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        public static bool CanCloneAttack()
+        public static bool CanCloneAttack(Obj_AI_Minion clone)
         {
-            var ghost = ObjectManager.Get<Obj_AI_Base>().FirstOrDefault();
-            if (ghost != null)
+            if (clone != null)
             {
-                return Utils.GameTimeTickCount >= LastAATick + (ghost.AttackDelay - ghost.AttackCastDelay) * 1000;
+                return Utils.GameTimeTickCount >= LastAATick + (clone.AttackDelay - clone.AttackCastDelay) * 1000;
             }
             return false;
         }
