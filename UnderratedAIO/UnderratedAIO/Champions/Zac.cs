@@ -21,7 +21,7 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static int[] eRanges = new int[] { 1150, 1250, 1350, 1450, 1550 };
+        public static int[] eRanges = new int[] { 1150, 1250, 1350, 1450, 1700 };
         public static float[] eChannelTimes = new float[] { 0.9f, 1.0f, 1.1f, 1.2f, 1.3f };
         public static Vector3 farmPos, pos;
         public static float zacETime;
@@ -66,7 +66,7 @@ namespace UnderratedAIO.Champions
             Q.SetSkillshot(0.55f, 120, float.MaxValue, false, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W, 320);
             E = new Spell(SpellSlot.E);
-            E.SetSkillshot(0, 250, 1500, false, SkillshotType.SkillshotCircle);
+            E.SetSkillshot(0, 230, 1500, false, SkillshotType.SkillshotCircle);
             E.SetCharged("ZacE", "ZacE", 295, eRanges[0], eChannelTimes[0]);
             R = new Spell(SpellSlot.R, 300);
         }
@@ -431,7 +431,6 @@ namespace UnderratedAIO.Champions
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawrr", "Draw R range", true))
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
-            menuD.AddItem(new MenuItem("drawW", "Draw W Area", true)).SetValue(true);
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage", true)).SetValue(true);
             config.AddSubMenu(menuD);
             // Combo Settings
