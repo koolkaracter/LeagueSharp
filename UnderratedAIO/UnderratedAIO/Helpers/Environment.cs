@@ -83,8 +83,8 @@ namespace UnderratedAIO.Helpers
                 return
                     ObjectManager.Get<Obj_AI_Hero>()
                         .Where(
-                            i =>
-                                !i.IsDead && i.IsAlly && i.CountEnemiesInRange(spellWidth) > min &&
+                            i => !i.IsMe &&
+                                !i.IsDead && i.IsAlly && i.CountEnemiesInRange(spellWidth) >= min &&
                                 i.Distance(player) < spellRange)
                         .OrderByDescending(i => i.CountEnemiesInRange(spellWidth))
                         .FirstOrDefault();
