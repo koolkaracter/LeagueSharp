@@ -105,7 +105,7 @@ namespace UnderratedAIO.Champions
             if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() &&
                 player.Distance(target) > player.AttackRange && !GarenE && !GarenQ &&
                 CombatHelper.IsPossibleToReachHim(
-                    target, 0.35f, new float[5] { 1.5f, 2.25f, 3f, 3.75f, 4.5f }[Q.Level - 1]))
+                    target, 0.35f, new float[5] { 1.5f, 2f, 2.5f, 3f, 3.5f }[Q.Level - 1]))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }
