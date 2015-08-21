@@ -128,7 +128,7 @@ namespace UnderratedAIO.Champions
             var rLogic = config.Item("user", true).GetValue<bool>() && R.IsReady() &&
                          (!config.Item("ult" + target.SkinName, true).GetValue<bool>() ||
                           player.CountEnemiesInRange(1500) == 1) &&
-                         Damage.GetSpellDamage(player, target, SpellSlot.R) > targHP && targHP > 0;
+                         getRDamage(target) > targHP && targHP > 0;
             if (rLogic && target.Distance(player) < R.Range)
             {
                 if (GarenE)
@@ -177,7 +177,7 @@ namespace UnderratedAIO.Champions
             double damage = 0;
             if (R.IsReady())
             {
-                damage += Damage.GetSpellDamage(player, hero, SpellSlot.R);
+                damage += getRDamage(hero);
             }
             damage += ItemHandler.GetItemsDamage(hero);
 
@@ -202,6 +202,22 @@ namespace UnderratedAIO.Champions
             }
             return (float) damage;
         }
+
+        private double getRDamage(Obj_AI_Hero hero)
+        {
+            var dmg = new double[] { 175, 350, 525 }[R.Level - 1] +
+                      new[] { 28.57, 33.33, 40 }[R.Level - 1] / 100 * (hero.MaxHealth - hero.Health);
+            if (hero.HasBuff("garenpassiveenemytarget"))
+            {
+                return Damage.CalcDamage(player, hero, Damage.DamageType.True, dmg);
+            }
+            else
+            {
+                return Damage.CalcDamage(player, hero, Damage.DamageType.Magical, dmg);
+            }
+        }
+
+        
 
         private void InitGaren()
         {
