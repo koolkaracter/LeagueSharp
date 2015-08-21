@@ -110,11 +110,6 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (config.Item("selected", true).GetValue<bool>())
-            {
-                target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
-                orbwalker.ForceTarget(target);
-            }
             if (config.Item("useItems").GetValue<bool>())
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target));
@@ -160,12 +155,12 @@ namespace UnderratedAIO.Champions
                 (player.Distance(target.Position) <= 400f ||
                  (R.CanCast(target) && target.Health < 250f &&
                   Environment.Hero.countChampsAtrangeA(target.Position, 600f) >= 1)) &&
-                R.GetDamage(target) * 0.7f > target.Health)
+                R.GetDamage(target) * 0.8f > target.Health)
             {
                 R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
-            if (canUlt && hasIgnite &&
-                R.GetDamage(target) * 0.7f + ignitedmg > HealthPrediction.GetHealthPrediction(target, 400))
+            if (canUlt && hasIgnite && player.Distance(target)<600 &&
+                R.GetDamage(target) * 0.8f + ignitedmg > HealthPrediction.GetHealthPrediction(target, 400))
             {
                 IgniteTarget = target;
                 Utility.DelayAction.Add(500, () => IgniteTarget = null);
@@ -183,23 +178,23 @@ namespace UnderratedAIO.Champions
             if (MordeGhost && !GhostDelay && config.Item("moveGhost", true).GetValue<bool>())
             {
                 var ghost = ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(m => m.HasBuff("mordekaisercotgpetbuff2"));
-                var Gtarget = TargetSelector.GetTarget(GhostRange, TargetSelector.DamageType.Magical);
+                var Gtarget = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
                 switch (config.Item("ghostTarget", true).GetValue<StringList>().SelectedIndex)
                 {
                     case 0:
-                        Gtarget = TargetSelector.GetTarget(GhostRange, TargetSelector.DamageType.Magical);
+                        Gtarget = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
                         break;
                     case 1:
                         Gtarget =
                             ObjectManager.Get<Obj_AI_Hero>()
-                                .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) <= GhostRange)
+                                .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) <= R.Range)
                                 .OrderBy(i => i.Health)
                                 .FirstOrDefault();
                         break;
                     case 2:
                         Gtarget =
                             ObjectManager.Get<Obj_AI_Hero>()
-                                .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) <= GhostRange)
+                                .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) <= R.Range)
                                 .OrderBy(i => player.Distance(i))
                                 .FirstOrDefault();
                         break;
