@@ -87,8 +87,7 @@ namespace UnderratedAIO.Champions
                 E.Cast(target, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("user").GetValue<bool>() && R.CanCast(target) &&
-                (!config.Item("ult" + target.SkinName).GetValue<bool>() || player.CountEnemiesInRange(1500) == 1) &&
-                CountPassive(target) >= config.Item("userstacks").GetValue<Slider>().Value)
+                (!config.Item("ult" + target.SkinName).GetValue<bool>() || player.CountEnemiesInRange(1500) == 1))
             {
                 R.Cast(target, config.Item("packets").GetValue<bool>());
             }
@@ -253,7 +252,6 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useeMinRange", "   E min Range")).SetValue(new Slider(150, 0, (int) E.Range));
             menuC.AddItem(new MenuItem("useeMaxRange", "   E max Range")).SetValue(new Slider(800, 0, (int) E.Range));
             menuC.AddItem(new MenuItem("user", "Use R")).SetValue(true);
-            menuC.AddItem(new MenuItem("userstacks", "   R min stack")).SetValue(new Slider(3, 0, 3));
             menuC.AddItem(new MenuItem("useragainstpush", "Use R to counter spells")).SetValue(true);
             var sulti = new Menu("TeamFight Ult block", "dontult");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))
