@@ -22,7 +22,7 @@ namespace UnderratedAIO.Champions
         public static int GhostRange = 2200;
         public static AutoLeveler autoLeveler;
         public static int LastAATick;
-        public static float cloneTime;
+        public static float cloneTime, lastBox;
 
         public Shaco()
         {
@@ -51,6 +51,10 @@ namespace UnderratedAIO.Champions
                     return;
                 }
                 LastAATick = Utils.GameTimeTickCount;
+            }
+            if (hero.IsMe && args.SData.Name == "JackInTheBox")
+            {
+                lastBox = System.Environment.TickCount;
             }
         }
 
@@ -109,6 +113,30 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
+            if (config.Item("stackBox", true).GetValue<KeyBind>().Active && W.IsReady())
+            {
+                var box =
+                    ObjectManager.Get<Obj_AI_Minion>()
+                        .Where(m => m.Distance(player) < W.Range && m.Name == "Jack In The Box" && !m.IsDead)
+                        .OrderBy(m => m.Distance(Game.CursorPos))
+                        .FirstOrDefault();
+                
+                if (box != null)
+                {
+                       W.Cast(box.Position); 
+                }
+                else
+                {
+                    if (player.Distance(Game.CursorPos) < W.Range)
+                    {
+                        W.Cast(Game.CursorPos);
+                    }
+                    else
+                    {
+                        W.Cast(player.Position.Extend(Game.CursorPos, W.Range));
+                    }
+                }
+            }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
         }
 
@@ -119,7 +147,7 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var cmbDmg = ComboDamage(target);
-            float dist = (float)(Q.Range + player.MoveSpeed * 2.5);
+            float dist = (float) (Q.Range + player.MoveSpeed * 2.5);
             if (ShacoClone && !GhostDelay && config.Item("useClone", true).GetValue<bool>())
             {
                 var Gtarget = TargetSelector.GetTarget(dist, TargetSelector.DamageType.Physical);
@@ -426,6 +454,8 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("ghostTarget", "Ghost target priority", true))
                 .SetValue(new StringList(new[] { "Targetselector", "Lowest health", "Closest to you" }, 0));
             menuM.AddItem(new MenuItem("ks", "KS Q+E", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("stackBox", "Stack boxes", true))
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
             menuM = Jungle.addJungleOptions(menuM);
 
 
