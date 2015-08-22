@@ -105,7 +105,7 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
+            Obj_AI_Hero target = TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Magical);
             if (target == null)
             {
                 return;
@@ -117,34 +117,11 @@ namespace UnderratedAIO.Champions
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("usew", true).GetValue<bool>() && W.IsReady())
             {
-                var allyW =
-                    ObjectManager.Get<Obj_AI_Base>()
-                        .FirstOrDefault(o => o.HasBuff("MordekaiserCreepingDeathCast") && !o.IsMe);
-                if (allyW != null)
-                {
-                    if (allyW.HealthPercent < 20 || player.HealthPercent < 20)
-                    {
-                        if ((allyW.CountEnemiesInRange(250) +
-                             Environment.Minion.countMinionsInrange(allyW.Position, 250f) / 2f >= 1 ||
-                             player.CountEnemiesInRange(250f) +
-                             Environment.Minion.countMinionsInrange(player.Position, 250f) / 2f >= 1))
-                        {
-                            W.Cast(config.Item("packets").GetValue<bool>());
-                        }
-                    }
-                }
-                else
-                {
-                    var wTarget = Environment.Hero.mostEnemyAtFriend(player, W.Range, 250f);
-                    if (wTarget != null && (wTarget.CountEnemiesInRange(250) > 0 || player.CountEnemiesInRange(250) > 0))
-                    {
-                        W.Cast(wTarget, config.Item("packets").GetValue<bool>());
-                    }
-                }
+                CastW();
             }
-            if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target))
+            if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target) && player.Distance(target) < E.Range)
             {
-                E.Cast(target.Position, config.Item("packets").GetValue<bool>());
+                E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
             }
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             var canUlt = config.Item("user", true).GetValue<bool>() && !MordeGhost &&
@@ -159,7 +136,7 @@ namespace UnderratedAIO.Champions
             {
                 R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
-            if (canUlt && hasIgnite && player.Distance(target)<600 &&
+            if (canUlt && hasIgnite && player.Distance(target) < 600 &&
                 R.GetDamage(target) * 0.8f + ignitedmg > HealthPrediction.GetHealthPrediction(target, 400))
             {
                 IgniteTarget = target;
@@ -247,6 +224,44 @@ namespace UnderratedAIO.Champions
             }
         }
 
+        private void CastW()
+        {
+            var allyW =
+                    ObjectManager.Get<Obj_AI_Base>()
+                        .FirstOrDefault(o => o.HasBuff("mordekaisercreepingdeath") && !o.IsMe);
+            if (allyW != null)
+            {
+                if (allyW.HealthPercent < 20 || player.HealthPercent < 20 ||
+                    CombatHelper.GetBuffTime(allyW.GetBuff("mordekaisercreepingdeath")) < 0.5f)
+                {
+                    if ((allyW.CountEnemiesInRange(250) +
+                         Environment.Minion.countMinionsInrange(allyW.Position, 250f) / 2f >= 1 ||
+                         player.CountEnemiesInRange(250f) +
+                         Environment.Minion.countMinionsInrange(player.Position, 250f) / 2f >= 1))
+                    {
+                        W.Cast(config.Item("packets").GetValue<bool>());
+                    }
+                }
+            }
+            else
+            {
+                Obj_AI_Base wTarget = Environment.Hero.mostEnemyAtFriend(player, W.Range, 250f);
+                if (MordeGhost)
+                {
+                    var ghost =
+                        ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(m => m.HasBuff("mordekaisercotgpetbuff2"));
+                    if (wTarget == null || ghost.CountEnemiesInRange(250f) > wTarget.CountEnemiesInRange(250f))
+                    {
+                        wTarget = ghost;
+                    }
+                }
+                if (wTarget != null && (wTarget.CountEnemiesInRange(250) > 0 || player.CountEnemiesInRange(250) > 0))
+                {
+                    W.Cast(wTarget, config.Item("packets").GetValue<bool>());
+                }
+            }
+        }
+
         private static bool MordeGhost
         {
             get { return player.Spellbook.GetSpell(SpellSlot.R).Name == "mordekaisercotgguide"; }
@@ -278,17 +293,11 @@ namespace UnderratedAIO.Champions
         {
             MinionManager.FarmLocation bestPosition =
                 E.GetCircularFarmLocation(
-                    MinionManager.GetMinions(E.Range, MinionTypes.All, MinionTeam.NotAlly), E.Range);
+                    MinionManager.GetMinions(E.Range-100f, MinionTypes.All, MinionTeam.NotAlly), 200f);
             if (config.Item("useeLC", true).GetValue<bool>() && E.IsReady() &&
                 bestPosition.MinionsHit > config.Item("ehitLC", true).GetValue<Slider>().Value)
             {
                 E.Cast(bestPosition.Position, config.Item("packets").GetValue<bool>());
-            }
-            if (config.Item("usewLC", true).GetValue<bool>() && W.IsReady() &&
-                Environment.Minion.countMinionsInrange(player.Position, 250f) >
-                config.Item("whitLC", true).GetValue<Slider>().Value)
-            {
-                W.Cast(player, config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -345,8 +354,7 @@ namespace UnderratedAIO.Champions
             Q = new Spell(SpellSlot.Q, player.AttackRange);
             W = new Spell(SpellSlot.W, 750);
             E = new Spell(SpellSlot.E, 650);
-            E.SetSkillshot(
-                E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false, SkillshotType.SkillshotCone);
+            E.SetSkillshot(0.5f, 45, 1500, false, SkillshotType.SkillshotCone);
             R = new Spell(SpellSlot.R, 850);
         }
 
@@ -395,8 +403,6 @@ namespace UnderratedAIO.Champions
             Menu menuLC = new Menu("LaneClear ", "Lcsettings");
             menuLC.AddItem(new MenuItem("useqLC", "Use Q", true)).SetValue(true);
             menuLC.AddItem(new MenuItem("qhitLC", "   Min hit", true).SetValue(new Slider(2, 1, 3)));
-            menuLC.AddItem(new MenuItem("usewLC", "Use W", true)).SetValue(true);
-            menuLC.AddItem(new MenuItem("whitLC", "   Min hit", true).SetValue(new Slider(2, 1, 5)));
             menuLC.AddItem(new MenuItem("useeLC", "Use E", true)).SetValue(true);
             menuLC.AddItem(new MenuItem("ehitLC", "   Min hit", true).SetValue(new Slider(2, 1, 5)));
             config.AddSubMenu(menuLC);

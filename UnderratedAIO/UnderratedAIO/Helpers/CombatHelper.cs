@@ -309,7 +309,7 @@ namespace UnderratedAIO.Helpers
                 (double)
                     Geometry.AngleBetween(
                         Geometry.Perpendicular(Geometry.To2D(source.Direction)), Geometry.To2D(target - source.Position)) <
-                90.0;
+                angle;
         }
 
         public static double GetAngle(Obj_AI_Base source, Vector3 target)
@@ -691,7 +691,7 @@ namespace UnderratedAIO.Helpers
 
         public static float GetBuffTime(BuffInstance buff)
         {
-            return (float) Math.Floor(buff.EndTime - Game.ClockTime);
+            return (float) buff.EndTime - Game.ClockTime;
         }
 
         public static float IgniteDamage(Obj_AI_Hero target)
@@ -711,6 +711,7 @@ namespace UnderratedAIO.Helpers
                 return (float) igniteDamage;
             }
         }
+
 
         #endregion
 
