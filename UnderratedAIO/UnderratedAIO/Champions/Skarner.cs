@@ -58,11 +58,6 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (config.Item("selected").GetValue<bool>())
-            {
-                target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
-                orbwalker.ForceTarget(target);
-            }
             if (config.Item("useItems").GetValue<bool>())
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target));
@@ -204,7 +199,7 @@ namespace UnderratedAIO.Champions
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E, 985);
             E.SetSkillshot(
-                E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false, SkillshotType.SkillshotLine);
+                0.5f, 60, 1200, false, SkillshotType.SkillshotLine);
             R = new Spell(SpellSlot.R, 325);
         }
 
@@ -259,7 +254,6 @@ namespace UnderratedAIO.Champions
                 sulti.AddItem(new MenuItem("ult" + hero.SkinName, hero.SkinName)).SetValue(false);
             }
             menuC.AddSubMenu(sulti);
-            menuC.AddItem(new MenuItem("selected", "Focus Selected target")).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
