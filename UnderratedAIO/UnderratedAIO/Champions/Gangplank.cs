@@ -340,7 +340,7 @@ namespace UnderratedAIO.Champions
                                 p =>
                                     p.IsValid() && !p.IsWall() && p.Distance(player.Position) < E.Range &&
                                     p.Distance(Prediction.GetPrediction(target, GetQTime(Qbarrel)).UnitPosition) <
-                                    BarrelExplosionRange && Qbarrel.Distance(p)<BarrelConnectionRange &&
+                                    BarrelExplosionRange && Qbarrel.Distance(p) < BarrelConnectionRange &&
                                     savedBarrels.Count(b => b.barrel.Position.Distance(p) < BarrelExplosionRange) < 1)
                             .OrderBy(p => p.Distance(target.Position))
                             .FirstOrDefault();
@@ -360,7 +360,7 @@ namespace UnderratedAIO.Champions
                         b.CountEnemiesInRange(BarrelExplosionRange) > 0);
             if (meleeRangeBarrel != null && Orbwalking.CanMove(100))
             {
-                player.IssueOrder(GameObjectOrder.AutoAttack, meleeRangeBarrel);
+                player.IssueOrder(GameObjectOrder.AttackUnit, meleeRangeBarrel);
             }
             if (Q.IsReady())
             {
@@ -461,6 +461,13 @@ namespace UnderratedAIO.Champions
                         }
                     }
                 }
+                if (config.Item("usee", true).GetValue<bool>() && config.Item("useeAlways", true).GetValue<bool>() &&
+                    E.IsReady() && player.Distance(target) < E.Range && !justE &&
+                    target.Health > Q.GetDamage(target) + player.GetAutoAttackDamage(target) && Orbwalking.CanMove(100) &&
+                    config.Item("eStacksC", true).GetValue<Slider>().Value < E.Instance.Ammo)
+                {
+                    CastE(target, barrels);
+                }
                 if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && Orbwalking.CanMove(100) && !justE)
                 {
                     CastQonHero(target, barrels);
@@ -486,6 +493,10 @@ namespace UnderratedAIO.Champions
         {
             if (barrels.Count < 1)
             {
+                if (config.Item("useeAlways", true).GetValue<bool>())
+                {
+                    CastEtarget(target);
+                }
                 return;
             }
             var enemies =
@@ -646,6 +657,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("detoneateTargets", "   Blow up enemies with E", true))
                 .SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("usew", "Use W under health", true)).SetValue(new Slider(20, 0, 100));
+            menuC.AddItem(new MenuItem("useeAlways", "Use E always", true)).SetValue(false);
             menuC.AddItem(new MenuItem("usee", "Use E to extend range", true)).SetValue(true);
             menuC.AddItem(new MenuItem("eStacksC", "   Keep stacks", true)).SetValue(new Slider(0, 0, 5));
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
