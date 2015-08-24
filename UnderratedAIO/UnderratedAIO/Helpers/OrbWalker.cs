@@ -383,7 +383,7 @@ namespace UnderratedAIO.Helpers
                 {
                     if (player.IsMelee() && meleePrediction && target != null &&
                         target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) &&
-                        target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 450)
+                        target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 150)
                     {
                         Obj_AI_Hero tar = (Obj_AI_Hero) target;
                         var prediction = AutoAttack.GetPrediction((Obj_AI_Base) target);
