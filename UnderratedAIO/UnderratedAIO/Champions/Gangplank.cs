@@ -344,10 +344,10 @@ namespace UnderratedAIO.Champions
                                     savedBarrels.Count(b => b.barrel.Position.Distance(p) < BarrelExplosionRange) < 1)
                             .OrderBy(p => p.Distance(target.Position))
                             .FirstOrDefault();
-                    if (point != null)
+                    if (point.IsValid())
                     {
                         E.Cast(point);
-                        Utility.DelayAction.Add(1, () => Q.CastOnUnit(Qbarrel));
+                        Utility.DelayAction.Add(10, () => Q.CastOnUnit(Qbarrel));
                         return;
                     }
                 }
@@ -491,7 +491,7 @@ namespace UnderratedAIO.Champions
 
         private void CastE(Obj_AI_Hero target, List<Obj_AI_Minion> barrels)
         {
-            if (barrels.Count < 1)
+            if (barrels.Count(b=>b.CountEnemiesInRange(BarrelConnectionRange) > 0) < 1)
             {
                 if (config.Item("useeAlways", true).GetValue<bool>())
                 {
@@ -529,11 +529,10 @@ namespace UnderratedAIO.Champions
         private void CastEtarget(Obj_AI_Hero target)
         {
             var ePred = Prediction.GetPrediction(target, 1);
-            if (ePred.CastPosition.Distance(ePos) > 400 && !justE)
+            var pos = target.Position.Extend(ePred.CastPosition, BarrelExplosionRange);
+            if (pos.Distance(ePos) > 400 && !justE)
             {
-                E.Cast(
-                    target.Position.Extend(ePred.CastPosition, BarrelExplosionRange),
-                    config.Item("packets").GetValue<bool>());
+                E.Cast(pos, config.Item("packets").GetValue<bool>());
             }
         }
 
