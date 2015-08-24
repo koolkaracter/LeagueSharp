@@ -28,6 +28,16 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
+            Interrupter2.OnInterruptableTarget += Interrupter2_OnInterruptableTarget;
+        }
+
+        private void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender,
+            Interrupter2.InterruptableTargetEventArgs args)
+        {
+            if (config.Item("Interrupt").GetValue<bool>() && R.CanCast(sender))
+            {
+                R.CastOnUnit(sender);
+            }
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -82,7 +92,9 @@ namespace UnderratedAIO.Champions
                 E.Cast(target, config.Item("packets").GetValue<bool>());
             }
             if (config.Item("user").GetValue<bool>() && R.CanCast(target) &&
-                (!config.Item("ult" + target.SkinName).GetValue<bool>() || player.CountEnemiesInRange(1500) == 1))
+                (!config.Item("ult" + target.SkinName).GetValue<bool>() || player.CountEnemiesInRange(1500) == 1) &&
+                !target.HasBuffOfType(BuffType.Stun) && !target.HasBuffOfType(BuffType.Snare) && !E.IsReady() &&
+                ((player.HealthPercent < 50 && target.HealthPercent < 50) || player.CountAlliesInRange(1000) > 1))
             {
                 R.Cast(target, config.Item("packets").GetValue<bool>());
             }
@@ -198,8 +210,7 @@ namespace UnderratedAIO.Champions
             Q = new Spell(SpellSlot.Q, 325);
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E, 985);
-            E.SetSkillshot(
-                0.5f, 60, 1200, false, SkillshotType.SkillshotLine);
+            E.SetSkillshot(0.5f, 60, 1200, false, SkillshotType.SkillshotLine);
             R = new Spell(SpellSlot.R, 325);
         }
 
@@ -273,10 +284,11 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
+            menuM.AddItem(new MenuItem("Interrupt", "Use R interrupt")).SetValue(true);
             menuM.AddSubMenu(autolvlM);
 
             config.AddSubMenu(menuM);
