@@ -89,7 +89,8 @@ namespace RandomUlt.Helpers
                 }
                 if (player.ChampionName == "Draven")
                 {
-                    config.AddItem(new MenuItem("Backdamage", "Count second hit")).SetValue(false);
+                    config.AddItem(new MenuItem("Backdamage", "Count second hit")).SetValue(true);
+                    config.AddItem(new MenuItem("CallBack", "Reduce time between hits")).SetValue(true);
                 }
                 config.AddItem(new MenuItem("Hitchance", "Hitchance")).SetValue(new Slider(3, 1, 5));
                 config.AddItem(new MenuItem("Info ", "--5 is the highest chance to hit"));
@@ -295,6 +296,10 @@ namespace RandomUlt.Helpers
             {
                 return;
             }
+            if (player.ChampionName == "Draven" && player.Spellbook.GetSpell(SpellSlot.R).Name != "DravenRCast")
+            {
+                return;
+            }
             var HitChance = configMenu.Item("Hitchance").GetValue<Slider>().Value;
             foreach (Positions enemy in
                 Enemies.Where(
@@ -486,6 +491,10 @@ namespace RandomUlt.Helpers
                         xerathUlt(positions, pos);
                     }
                     R.Cast(pos);
+                    if (player.ChampionName == "Draven" && configMenu.Item("CallBack").GetValue<bool>())
+                    {
+                        Utility.DelayAction.Add((int) (UltTime(pos)-300), () => R.Cast());
+                    }
                 }
             }
         }
