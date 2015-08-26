@@ -42,6 +42,17 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
+            if (SkarnerR)
+            {
+                orbwalker.SetAttack(false);
+                orbwalker.SetMovement(false);
+                player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            }
+            else
+            {
+                orbwalker.SetAttack(true);
+                orbwalker.SetMovement(true);
+            }
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -72,10 +83,6 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target));
             }
-            if (SkarnerR)
-            {
-                return;
-            }
             var dist = player.Distance(target);
             if (config.Item("useq").GetValue<bool>() && Q.CanCast(target))
             {
@@ -84,6 +91,18 @@ namespace UnderratedAIO.Champions
             if (config.Item("usew").GetValue<bool>() || player.Distance(target) < 600)
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
+            }
+            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
+            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
+                !E.CanCast(target) &&
+                (target.Distance(player) >= Q.Range || (target.Distance(player) <= Q.Range && player.HealthPercent < 30)))
+            {
+                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
+            }
+            if (SkarnerR)
+            {
+                return;
             }
             if (config.Item("usee").GetValue<bool>() && E.CanCast(target) &&
                 ((dist < config.Item("useeMaxRange").GetValue<Slider>().Value &&
@@ -97,13 +116,6 @@ namespace UnderratedAIO.Champions
                 ((player.HealthPercent < 50 && target.HealthPercent < 50) || player.CountAlliesInRange(1000) > 1))
             {
                 R.Cast(target, config.Item("packets").GetValue<bool>());
-            }
-            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
-            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
-                !E.CanCast(target))
-            {
-                player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
         }
 
@@ -216,7 +228,7 @@ namespace UnderratedAIO.Champions
 
         private static bool SkarnerR
         {
-            get { return player.Buffs.Any(buff => buff.Name == "SkarnerImpale"); }
+            get { return player.Buffs.Any(buff => buff.Name == "skarnerimpalevo"); }
         }
 
         private static bool SkarnerW
