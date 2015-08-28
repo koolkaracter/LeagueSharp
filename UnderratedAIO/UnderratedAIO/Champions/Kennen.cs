@@ -89,7 +89,8 @@ namespace UnderratedAIO.Champions
                     Q.Cast(target, config.Item("packets").GetValue<bool>());
                 }
             }
-            if (config.Item("autow", true).GetValue<bool>() && W.IsReady() && MarkOfStorm(target) > 1)
+            if (config.Item("autow", true).GetValue<bool>() && W.IsReady() && MarkOfStorm(target) > 1 &&
+                !player.HasBuff("KennenShurikenStorm"))
             {
                 if (player.Distance(target) < W.Range)
                 {
@@ -98,7 +99,8 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("KenAutoQ", true).GetValue<KeyBind>().Active && Q.IsReady() &&
                 config.Item("KenminmanaaQ", true).GetValue<Slider>().Value < player.ManaPercent &&
-                orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo && Orbwalking.CanMove(100))
+                orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo && Orbwalking.CanMove(100) &&
+                !player.UnderTurret(true))
             {
                 if (target != null && Q.CanCast(target) && target.IsValidTarget())
                 {
@@ -135,8 +137,8 @@ namespace UnderratedAIO.Champions
             var targetE =
                 ObjectManager.Get<Obj_AI_Base>()
                     .Where(
-                        m => m.Health > 5 &&
-                            m.IsEnemy && player.Distance(m) < W.Range &&
+                        m =>
+                            m.Health > 5 && m.IsEnemy && player.Distance(m) < W.Range &&
                             Environment.Hero.countChampsAtrange(m.Position, 1000f) < 1 && !m.IsDead &&
                             !(m is Obj_AI_Turret) && !m.HasBuff("kennenmarkofstorm") && !m.UnderTurret(true))
                     .OrderBy(m => player.Distance(m));
@@ -169,9 +171,11 @@ namespace UnderratedAIO.Champions
         {
             var targetQ =
                 MinionManager.GetMinions(Q.Range)
-                    .Where(m => m.Health > 5 &&
-                        m.IsEnemy && m.Health < Q.GetDamage(m) && Q.CanCast(m) &&
-                            HealthPrediction.GetHealthPrediction(m, (int)((player.Distance(m) / Q.Speed * 1000) + Q.Delay)) > 0);
+                    .Where(
+                        m =>
+                            m.Health > 5 && m.IsEnemy && m.Health < Q.GetDamage(m) && Q.CanCast(m) &&
+                            HealthPrediction.GetHealthPrediction(
+                                m, (int) ((player.Distance(m) / Q.Speed * 1000) + Q.Delay)) > 0);
             if (targetQ.Any() && LastAttackedminiMinion != null)
             {
                 foreach (var target in
@@ -224,11 +228,6 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (config.Item("selected", true).GetValue<bool>())
-            {
-                target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
-                orbwalker.ForceTarget(target);
-            }
             if (config.Item("useItems").GetValue<bool>())
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target));
@@ -240,7 +239,7 @@ namespace UnderratedAIO.Champions
             }
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             var combodamage = ComboDamage(target);
-            var ignitedmg = (float)player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
                 !Q.CanCast(target) && !W.IsReady())
             {
@@ -252,10 +251,20 @@ namespace UnderratedAIO.Champions
             {
                 Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && W.Range > player.Distance(target) &&
-                MarkOfStorm(target) > 0)
+            if (config.Item("usew", true).GetValue<bool>() && W.IsReady())
             {
-                W.Cast(config.Item("packets").GetValue<bool>());
+                if (player.HasBuff("KennenShurikenStorm"))
+                {
+                    if (HeroManager.Enemies.Count(e => e.Distance(player) < R.Range && MarkOfStorm(e) > 0) ==
+                        player.CountEnemiesInRange(R.Range))
+                    {
+                        W.Cast(config.Item("packets").GetValue<bool>());
+                    }
+                }
+                else if (W.Range > player.Distance(target) && MarkOfStorm(target) > 0)
+                {
+                    W.Cast(config.Item("packets").GetValue<bool>());
+                }
             }
             if (config.Item("usee", true).GetValue<bool>() && !target.UnderTurret(true) && E.IsReady() &&
                 (player.Distance(target) < 80 ||
@@ -272,7 +281,12 @@ namespace UnderratedAIO.Champions
                  player.CountEnemiesInRange(config.Item("userrange", true).GetValue<Slider>().Value) ||
                  (config.Item("usertarget", true).GetValue<bool>() &&
                   combodamage + player.GetAutoAttackDamage(target) * 3 > target.Health && !Q.CanCast(target) &&
-                  player.Distance(target) < config.Item("userrange", true).GetValue<Slider>().Value)))
+                  player.Distance(target) < config.Item("userrange", true).GetValue<Slider>().Value)) ||
+                (config.Item("userLow", true).GetValue<Slider>().Value <=
+                 HeroManager.Enemies.Count(
+                     e =>
+                         e.IsValidTarget(config.Item("userrange", true).GetValue<Slider>().Value) &&
+                         e.HealthPercent < 75)))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -375,10 +389,10 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useemin", "Min healt to E", true)).SetValue(new Slider(50, 0, 100));
-            menuC.AddItem(new MenuItem("user", "Use R min", true)).SetValue(new Slider(1, 1, 5));
+            menuC.AddItem(new MenuItem("user", "Use R min", true)).SetValue(new Slider(4, 1, 5));
+            menuC.AddItem(new MenuItem("userLow", "Or enemies under 75%", true)).SetValue(new Slider(3, 1, 5));
             menuC.AddItem(new MenuItem("usertarget", "Use R in 1v1", true)).SetValue(true);
             menuC.AddItem(new MenuItem("userrange", "R activate range", true)).SetValue(new Slider(350, 0, 550));
-            menuC.AddItem(new MenuItem("selected", "Focus Selected target", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
@@ -403,7 +417,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("Minhelath", "Use Zhonya under x health", true)).SetValue(new Slider(35, 0, 100));
             menuM.AddItem(new MenuItem("autoq", "Auto Q to prepare stun", true)).SetValue(true);
             menuM.AddItem(new MenuItem("autow", "Auto W to stun", true)).SetValue(true);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
