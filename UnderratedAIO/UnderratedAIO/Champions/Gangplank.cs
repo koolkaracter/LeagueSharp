@@ -30,6 +30,7 @@ namespace UnderratedAIO.Champions
         public const int BarrelExplosionRange = 375;
         public const int BarrelConnectionRange = 660;
         public List<Barrel> savedBarrels = new List<Barrel>();
+        public double[] Rwave = new double[] { 50, 70, 90 };
 
         public Gangplank()
         {
@@ -556,6 +557,43 @@ namespace UnderratedAIO.Champions
                         Color.Coral);
                 }
             }
+            if (config.Item("drawKillable", true).GetValue<bool>() && R.IsReady())
+            {
+                var baseText = "Killable with R: ";
+                var text = new List<string>();
+                foreach (var enemy in HeroManager.Enemies.Where(e=> e.IsValidTarget()))
+                {
+                    if (getRDamage(enemy)>enemy.Health)
+                    {
+                        text.Add(enemy.ChampionName + "(" + Math.Ceiling(enemy.Health / Rwave[R.Level - 1]) + " wave)");
+                    }
+                }
+                if (text.Count>0)
+                {
+                    var result = string.Join(", ", text);
+                    Drawing.DrawText(Drawing.Width / 2 - (baseText + result).Length * 5, Drawing.Height * 0.8f, Color.Red, baseText + result); 
+                }
+                
+            }
+        }
+
+        private float getRDamage(Obj_AI_Hero enemy)
+        {
+            return (float) Damage.CalcDamage(
+                player, enemy, Damage.DamageType.Magical,
+                (Rwave[R.Level - 1] + 0.1 * player.FlatMagicDamageMod) * waveLength());
+        }
+
+        public int waveLength()
+        {
+            if (player.HasBuff("GangplankRUpgrade1"))
+            {
+                return 18;
+            }
+            else
+            {
+                return 12; 
+            }
         }
 
         private static float ComboDamage(Obj_AI_Hero hero)
@@ -564,14 +602,6 @@ namespace UnderratedAIO.Champions
             if (Q.IsReady())
             {
                 damage += Damage.GetSpellDamage(player, hero, SpellSlot.Q);
-            }
-            if (E.IsReady())
-            {
-                damage += Damage.GetSpellDamage(player, hero, SpellSlot.E);
-            }
-            if (R.IsReady())
-            {
-                damage += Damage.GetSpellDamage(player, hero, SpellSlot.R);
             }
             //damage += ItemHandler.GetItemsDamage(hero);
             var ignitedmg = player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
@@ -648,6 +678,7 @@ namespace UnderratedAIO.Champions
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage", true)).SetValue(true);
             menuD.AddItem(new MenuItem("drawW", "Draw W", true)).SetValue(true);
+            menuD.AddItem(new MenuItem("drawKillable", "Show killable targets with R", true)).SetValue(true);
             config.AddSubMenu(menuD);
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
