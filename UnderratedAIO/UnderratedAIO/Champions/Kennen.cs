@@ -280,6 +280,7 @@ namespace UnderratedAIO.Champions
                 (config.Item("user", true).GetValue<Slider>().Value <=
                  player.CountEnemiesInRange(config.Item("userrange", true).GetValue<Slider>().Value) ||
                  (config.Item("usertarget", true).GetValue<bool>() &&
+                  player.CountEnemiesInRange(config.Item("userrange", true).GetValue<Slider>().Value) == 1 &&
                   combodamage + player.GetAutoAttackDamage(target) * 3 > target.Health && !Q.CanCast(target) &&
                   player.Distance(target) < config.Item("userrange", true).GetValue<Slider>().Value)) ||
                 (config.Item("userLow", true).GetValue<Slider>().Value <=
