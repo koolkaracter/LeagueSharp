@@ -17,7 +17,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, W, E, R;
         public static bool hasGhost = false;
-        public static bool GhostDelay = false;
+        public static bool GhostDelay,justW;
         public static int GhostRange = 2200;
         public static AutoLeveler autoLeveler;
         public static int LastAATick;
@@ -53,6 +53,14 @@ namespace UnderratedAIO.Champions
                 }
                 LastAATick = Utils.GameTimeTickCount;
             }
+            if (hero.IsMe && args.SData.Name == "MordekaiserCreepingDeathCast")
+                {
+                    if (!justW)
+                    {
+                        justW = true;
+                        Utility.DelayAction.Add(500, () => justW = false);
+                    }
+                }
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -108,6 +116,12 @@ namespace UnderratedAIO.Champions
             Obj_AI_Hero target = TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Magical);
             if (target == null)
             {
+                if (MordeGhost && !GhostDelay && config.Item("follow", true).GetValue<bool>())
+                {
+                    R.Cast(Game.CursorPos.Extend(player.Position,100));
+                    GhostDelay = true;
+                    Utility.DelayAction.Add(200, () => GhostDelay = false); 
+                }
                 return;
             }
             if (config.Item("useItems").GetValue<bool>())
@@ -155,7 +169,7 @@ namespace UnderratedAIO.Champions
             if (MordeGhost && !GhostDelay && config.Item("moveGhost", true).GetValue<bool>())
             {
                 var ghost = ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(m => m.HasBuff("mordekaisercotgpetbuff2"));
-                var Gtarget = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
+                var Gtarget = TargetSelector.GetTarget(GhostRange, TargetSelector.DamageType.Magical);
                 switch (config.Item("ghostTarget", true).GetValue<StringList>().SelectedIndex)
                 {
                     case 0:
@@ -226,6 +240,10 @@ namespace UnderratedAIO.Champions
 
         private void CastW()
         {
+            if (justW)
+            {
+               return; 
+            }
             var allyW =
                     ObjectManager.Get<Obj_AI_Base>()
                         .FirstOrDefault(o => o.HasBuff("mordekaisercreepingdeath") && !o.IsMe);
@@ -391,6 +409,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("ultDef", "   Don't use on Qss/barrier etc...", true)).SetValue(true);
             menuC.AddItem(new MenuItem("moveGhost", "   Move ghost", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("follow", "   Follow without target", true)).SetValue(true);
             menuC.AddItem(new MenuItem("selected", "Focus Selected target", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
