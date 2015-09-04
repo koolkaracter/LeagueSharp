@@ -359,7 +359,7 @@ namespace UnderratedAIO.Champions
                         (b.Health < 2 || (b.Health == 2 && Q.IsReady())) &&
                         b.Distance(player) < Orbwalking.GetAutoAttackRange(player, b) &&
                         b.CountEnemiesInRange(BarrelExplosionRange) > 0);
-            if (meleeRangeBarrel != null && Orbwalking.CanMove(100))
+            if (meleeRangeBarrel != null)
             {
                 player.IssueOrder(GameObjectOrder.AttackUnit, meleeRangeBarrel);
             }

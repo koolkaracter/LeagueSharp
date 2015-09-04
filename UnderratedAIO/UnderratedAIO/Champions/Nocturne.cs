@@ -17,7 +17,7 @@ namespace UnderratedAIO.Champions
         public static Orbwalking.Orbwalker orbwalker;
         public static AutoLeveler autoLeveler;
         public static Spell P, Q, W, E, R;
-        public static int[] rRanges = new int[] {2000, 2750, 3500};
+        public static int[] rRanges = new int[] {2500, 3250, 4000};
         private static float lastR;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
 
