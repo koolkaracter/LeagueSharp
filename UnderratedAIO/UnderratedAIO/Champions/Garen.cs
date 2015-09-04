@@ -127,8 +127,7 @@ namespace UnderratedAIO.Champions
             var targHP = target.Health + 20 - CombatHelper.IgniteDamage(target);
             var rLogic = config.Item("user", true).GetValue<bool>() && R.IsReady() &&
                          (!config.Item("ult" + target.SkinName, true).GetValue<bool>() ||
-                          player.CountEnemiesInRange(1500) == 1) &&
-                         getRDamage(target) > targHP && targHP > 0;
+                          player.CountEnemiesInRange(1500) == 1) && getRDamage(target) > targHP && targHP > 0;
             if (rLogic && target.Distance(player) < R.Range)
             {
                 if (GarenE)
@@ -217,7 +216,6 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        
 
         private void InitGaren()
         {
@@ -268,7 +266,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("useqAAA", "Use Q after AA", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
