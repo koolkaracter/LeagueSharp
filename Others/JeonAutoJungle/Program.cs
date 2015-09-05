@@ -578,11 +578,6 @@ index = 15
             setSmiteSlot();
             #region 스펠설정
             Q = new Spell(SpellSlot.Q, GetSpellRange(Qdata));
-            if (Player.ChampionName == "MasterYi")
-            {
-                new Spell(SpellSlot.Q, 600f);
-                Q.SetTargetted(0.4f,2000);
-            }
             W = new Spell(SpellSlot.W, GetSpellRange(Wdata));
             E = new Spell(SpellSlot.E, GetSpellRange(Edata));
             R = new Spell(SpellSlot.R, GetSpellRange(Rdata));
