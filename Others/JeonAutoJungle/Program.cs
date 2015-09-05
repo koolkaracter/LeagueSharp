@@ -578,6 +578,11 @@ index = 15
             setSmiteSlot();
             #region 스펠설정
             Q = new Spell(SpellSlot.Q, GetSpellRange(Qdata));
+            if (Player.ChampionName == "MasterYi")
+            {
+                new Spell(SpellSlot.Q, 600f);
+                Q.SetTargetted(0.4f,2000);
+            }
             W = new Spell(SpellSlot.W, GetSpellRange(Wdata));
             E = new Spell(SpellSlot.E, GetSpellRange(Edata));
             R = new Spell(SpellSlot.R, GetSpellRange(Rdata));
@@ -700,6 +705,7 @@ index = 15
         private static void Game_OnGameUpdate(EventArgs args)
         {
             setSmiteSlot();
+            Readini.UpdateLvl();
             if (Player.InFountain() && (Player.Health < Player.MaxHealth - 50 || Player.Mana < Player.MaxMana - 50))
             {
                 return;
@@ -1016,7 +1022,6 @@ index = 15
                 }
             }
             #endregion
-            AutoLevel.Enabled(true);
         }
         private static void OnCreate(GameObject sender, EventArgs args)
         {
@@ -1082,18 +1087,18 @@ index = 15
         }
         public static void DoLaneClear()
         {
-            var mob1 = ObjectManager.Get<Obj_AI_Minion>().OrderBy(t => Player.Distance(t.Position)).First(t => t.IsEnemy & !t.IsDead);
+            var mob1 = ObjectManager.Get<Obj_AI_Minion>().Where(t => t.IsEnemy & !t.IsDead && t.Distance(Player)<700).OrderBy(t => t.MaxHealth).FirstOrDefault();
             //if (Player.ChampionName.ToUpper() == "NUNU" && Q.IsReady()) // 누누 Q버그수정 - Fix nunu Q bug
             Player.IssueOrder(GameObjectOrder.MoveTo, mob1.ServerPosition.Extend(Player.ServerPosition, 10));
-            if (ObjectManager.Get<Obj_AI_Minion>().Any(t => t.IsMinion && Player.Distance(t.Position) <= 700))
+            if (mob1!=null)
                 castspell_laneclear(mob1);
         }
         public static void DoCast()
         {
-            var mob1 = ObjectManager.Get<Obj_AI_Minion>().OrderBy(t => Player.Distance(t.Position)).First(t => t.IsEnemy & !t.IsDead);
+            var mob1 = ObjectManager.Get<Obj_AI_Minion>().Where(t => t.IsEnemy & !t.IsDead && t.Distance(Player) < 700).OrderBy(t => t.MaxHealth).FirstOrDefault();
             //if (Player.ChampionName.ToUpper() == "NUNU" && Q.IsReady()) // 누누 Q버그수정 - Fix nunu Q bug
             //Player.IssueOrder(GameObjectOrder.MoveTo, mob1.ServerPosition.Extend(Player.ServerPosition, 10));
-            if (ObjectManager.Get<Obj_AI_Minion>().Any(t => !t.IsMinion && Player.Distance(t.Position) <= 700))
+            if (mob1 != null)
                 castspell(mob1);
         }
         public static void DoCast_Hero()
@@ -1140,8 +1145,8 @@ index = 15
             else if (Player.ChampionName.ToUpper() == "MASTERYI")
             {
                 if (Q.IsReady())
-                    Q.CastOnUnit(mob1);
-                if (W.IsReady() && Player.HealthPercentage() < JeonAutoJungleMenu.Item("yi_W").GetValue<Slider>().Value)
+                    Q.CastOnUnit(mob1); 
+                if (W.IsReady() && Player.HealthPercent < JeonAutoJungleMenu.Item("yi_W").GetValue<Slider>().Value)
                     W.Cast();
                 if (E.IsReady())
                     E.Cast();
