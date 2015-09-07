@@ -139,10 +139,21 @@ namespace TeamStats
                                     }
                                     else damage += (float)Damage.GetSpellDamage(src, dsc, spell.Slot);
                                     break;
+                                case "Fiora":
+                                    if (spell.Slot == SpellSlot.R)
+                                    {
+                                        damage += (float)FioraPassiveDamage(src, dsc, 4);
+                                    }
+                                    else damage += (float)Damage.GetSpellDamage(src, dsc, spell.Slot);
+                                    break;
                                 case "Garen":
                                     if (spell.Slot == SpellSlot.E)
                                     {
-                                        damage += (float)(Damage.GetSpellDamage(src, dsc, spell.Slot) * 3);
+                                        damage += (float)GarenEDamage(src, dsc);
+                                    }
+                                    else if (spell.Slot == SpellSlot.R)
+                                    {
+                                        damage += (float)GarenR(src, dsc);
                                     }
                                     else damage += (float)Damage.GetSpellDamage(src, dsc, spell.Slot);
                                     break;
@@ -270,6 +281,73 @@ namespace TeamStats
                 (0.35 + (spell.Level * 0.05)) * (src.FlatPhysicalDamageMod + src.BaseAttackDamage))*3);
             }
             return (float)dmg;
+        }
+        public static double FioraPassiveDamage(Obj_AI_Hero source, Obj_AI_Base target, int passives)
+        {
+            return passives * (0.03f + 0.027 + 0.001f * source.Level * source.FlatPhysicalDamageMod / 100f) *
+                   target.MaxHealth;
+        }
+        private static double GarenR(Obj_AI_Hero source, Obj_AI_Hero target)
+        {
+            var R = ObjectManager.Player.Spellbook.GetSpell(SpellSlot.R);
+            var dmg = new double[] { 175, 350, 525 }[R.Level - 1] +
+                      new[] { 28.57, 33.33, 40 }[R.Level - 1] / 100 * (target.MaxHealth - target.Health);
+            if (target.HasBuff("garenpassiveenemytarget"))
+            {
+                return Damage.CalcDamage(source, target, Damage.DamageType.True, dmg);
+            }
+            else
+            {
+                return Damage.CalcDamage(source, target, Damage.DamageType.Magical, dmg);
+            }
+        }
+
+        public static int[] spins = new int[] { 5, 6, 7, 8, 9, 10 };
+        public static double[] baseEDamage = new double[] { 15, 18.8, 22.5, 26.3, 30 };
+        public static double[] bonusEDamage = new double[] { 34.5, 35.3, 36, 36.8, 37.5 };
+        private static double GarenEDamage(Obj_AI_Hero src, Obj_AI_Hero target)
+        {
+            var E = ObjectManager.Player.Spellbook.GetSpell(SpellSlot.E);
+            var dmg = (baseEDamage[E.Level - 1] +
+                      bonusEDamage[E.Level - 1] / 100 * src.TotalAttackDamage) * GetSpins(src);
+            var bonus = target.HasBuff("garenpassiveenemytarget") ? target.MaxHealth / 100f * GetSpins(src) : 0;
+            if (ObjectManager.Get<Obj_AI_Base>().Count(o => o.IsValidTarget() && o.Distance(target) < 650) == 0)
+            {
+                return Damage.CalcDamage(src, target, Damage.DamageType.Physical, dmg) * 1.33 + bonus;
+            }
+            else
+            {
+                return Damage.CalcDamage(src, target, Damage.DamageType.Physical, dmg) + bonus;
+            }
+        }
+
+        private static double GetSpins(Obj_AI_Hero src)
+        {
+            if (src.Level < 4)
+            {
+                return 5;
+            }
+            if (src.Level < 7)
+            {
+                return 6;
+            }
+            if (src.Level < 10)
+            {
+                return 7;
+            }
+            if (src.Level < 13)
+            {
+                return 8;
+            }
+            if (src.Level < 16)
+            {
+                return 9;
+            }
+            if (src.Level < 18)
+            {
+                return 10;
+            }
+            return 5;
         }
     }
  }

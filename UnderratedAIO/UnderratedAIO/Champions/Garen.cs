@@ -190,7 +190,7 @@ namespace UnderratedAIO.Champions
             }
             if (E.IsReady() && !GarenE)
             {
-                damage += Damage.GetSpellDamage(player, hero, SpellSlot.E) * 3;
+                damage += getEDamage(hero);
             }
             var ignitedmg = player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
             if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready &&
@@ -213,6 +213,53 @@ namespace UnderratedAIO.Champions
             {
                 return Damage.CalcDamage(player, hero, Damage.DamageType.Magical, dmg);
             }
+        }
+
+        public static int[] spins =new int[]{5,6,7,8,9,10};
+        public static double[] baseEDamage = new double[] { 15, 18.8, 22.5, 26.3, 30 };
+        public static double[] bonusEDamage = new double[] { 34.5, 35.3, 36, 36.8, 37.5 };
+        private double getEDamage(Obj_AI_Hero target)
+        {
+            var dmg = (baseEDamage[E.Level - 1] +
+                      bonusEDamage[E.Level - 1] / 100 * player.TotalAttackDamage) * GetSpins();
+            var bonus = target.HasBuff("garenpassiveenemytarget") ? target.MaxHealth / 100f*GetSpins():0;
+            if (ObjectManager.Get<Obj_AI_Base>().Count(o=>  o.IsValidTarget() && o.Distance(target)<650)==0)
+            {
+                return Damage.CalcDamage(player, target, Damage.DamageType.Physical, dmg) * 1.33 + bonus;
+            }
+            else
+            {
+                return Damage.CalcDamage(player, target, Damage.DamageType.Physical, dmg) + bonus;
+            }
+        }
+
+        private static double GetSpins()
+        {
+            if (player.Level<4)
+            {
+                return 5;
+            }
+            if (player.Level < 7)
+            {
+                return 6; 
+            }
+            if (player.Level<10)
+            {
+                return 7;
+            }
+            if (player.Level < 13)
+            {
+                return 8; 
+            }
+            if (player.Level < 16)
+            {
+                return 9;
+            }
+            if (player.Level < 18)
+            {
+                return 10;
+            }
+            return 5;
         }
 
 
