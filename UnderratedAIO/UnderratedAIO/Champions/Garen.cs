@@ -124,7 +124,7 @@ namespace UnderratedAIO.Champions
                 E.Cast(config.Item("packets").GetValue<bool>());
             }
             var targHP = target.Health + 20 - CombatHelper.IgniteDamage(target);
-            var rLogic = config.Item("user", true).GetValue<bool>() && R.IsReady() &&
+            var rLogic = config.Item("user", true).GetValue<bool>() && R.IsReady() && target.IsValidTarget() &&
                          (!config.Item("ult" + target.SkinName, true).GetValue<bool>() ||
                           player.CountEnemiesInRange(1500) == 1) && getRDamage(target) > targHP && targHP > 0;
             if (rLogic && target.Distance(player) < R.Range)
@@ -191,6 +191,9 @@ namespace UnderratedAIO.Champions
             if (E.IsReady() && !GarenE)
             {
                 damage += getEDamage(hero);
+            }else if (GarenE)
+            {
+                damage += getEDamage(hero, true);
             }
             var ignitedmg = player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
             if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready &&
@@ -207,23 +210,33 @@ namespace UnderratedAIO.Champions
                       new[] { 28.57, 33.33, 40 }[R.Level - 1] / 100 * (hero.MaxHealth - hero.Health);
             if (hero.HasBuff("garenpassiveenemytarget"))
             {
-                return Damage.CalcDamage(player, hero, Damage.DamageType.True, dmg);
+                return Damage.CalcDamage(player, hero, Damage.DamageType.True, dmg) - hero.PhysicalShield;
             }
             else
             {
-                return Damage.CalcDamage(player, hero, Damage.DamageType.Magical, dmg);
+                return Damage.CalcDamage(player, hero, Damage.DamageType.Magical, dmg) - hero.MagicalShield;
             }
         }
 
-        public static int[] spins =new int[]{5,6,7,8,9,10};
+        public static int[] spins = new int[] { 5, 6, 7, 8, 9, 10 };
         public static double[] baseEDamage = new double[] { 15, 18.8, 22.5, 26.3, 30 };
         public static double[] bonusEDamage = new double[] { 34.5, 35.3, 36, 36.8, 37.5 };
-        private double getEDamage(Obj_AI_Hero target)
+
+        private double getEDamage(Obj_AI_Hero target, bool bufftime=false)
         {
-            var dmg = (baseEDamage[E.Level - 1] +
-                      bonusEDamage[E.Level - 1] / 100 * player.TotalAttackDamage) * GetSpins();
-            var bonus = target.HasBuff("garenpassiveenemytarget") ? target.MaxHealth / 100f*GetSpins():0;
-            if (ObjectManager.Get<Obj_AI_Base>().Count(o=>  o.IsValidTarget() && o.Distance(target)<650)==0)
+            var spins = 0d;
+            if (bufftime)
+            {
+                spins = CombatHelper.GetBuffTime(player.GetBuff("GarenE")) * GetSpins()/3;
+            }
+            else
+            {
+                spins = GetSpins();
+            }
+            var dmg = (baseEDamage[E.Level - 1] + bonusEDamage[E.Level - 1] / 100 * player.TotalAttackDamage) *
+                      spins;
+            var bonus = target.HasBuff("garenpassiveenemytarget") ? target.MaxHealth / 100f * spins : 0;
+            if (ObjectManager.Get<Obj_AI_Base>().Count(o => o.IsValidTarget() && o.Distance(target) < 650) == 0)
             {
                 return Damage.CalcDamage(player, target, Damage.DamageType.Physical, dmg) * 1.33 + bonus;
             }
@@ -235,21 +248,21 @@ namespace UnderratedAIO.Champions
 
         private static double GetSpins()
         {
-            if (player.Level<4)
+            if (player.Level < 4)
             {
                 return 5;
             }
             if (player.Level < 7)
             {
-                return 6; 
+                return 6;
             }
-            if (player.Level<10)
+            if (player.Level < 10)
             {
                 return 7;
             }
             if (player.Level < 13)
             {
-                return 8; 
+                return 8;
             }
             if (player.Level < 16)
             {
