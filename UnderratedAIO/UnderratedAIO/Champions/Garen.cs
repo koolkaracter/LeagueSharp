@@ -149,10 +149,10 @@ namespace UnderratedAIO.Champions
             }
             bool hasFlash = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready;
             if (config.Item("useFlash", true).GetValue<bool>() && hasFlash && rLogic &&
-                target.Distance(player) < R.Range + 425 && target.Distance(player) > R.Range && !Q.IsReady() &&
+                target.Distance(player) < R.Range + 425 && target.Distance(player) > R.Range + 250 && !Q.IsReady() &&
                 !CombatHelper.IsFacing(target, player.Position) && !GarenQ)
             {
-                if (target.Distance(player) < R.Range + 200 && player.MoveSpeed > target.MoveSpeed)
+                if (target.Distance(player) < R.Range + 300 && player.MoveSpeed > target.MoveSpeed)
                 {
                     return;
                 }
