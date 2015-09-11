@@ -48,7 +48,7 @@ namespace UnderratedAIO.Helpers
             "monkeykingdoubleattack", "mordekaisermaceofspades", "nasusq", "nautiluspiercinggaze", "netherblade",
             "parley", "poppydevastatingblow", "powerfist", "renektonpreexecute", "rengarq", "shyvanadoubleattack",
             "sivirw", "takedown", "talonnoxiandiplomacy", "trundletrollsmash", "vaynetumble", "vie", "volibearq",
-            "xenzhaocombotarget", "yorickspectral", "reksaiq"
+            "xenzhaocombotarget", "yorickspectral", "reksaiq", "itemtitanichydracleave"
         };
 
         //Spells that are not attacks even if they have the "attack" word in their name.
@@ -56,7 +56,10 @@ namespace UnderratedAIO.Helpers
         {
             "jarvanivcataclysmattack", "monkeykingdoubleattack",
             "shyvanadoubleattack", "shyvanadoubleattackdragon", "zyragraspingplantattack", "zyragraspingplantattack2",
-            "zyragraspingplantattackfire", "zyragraspingplantattack2fire", "viktorpowertransfer"
+            "zyragraspingplantattackfire", "zyragraspingplantattack2fire", "viktorpowertransfer", "sivirwattackbounce",
+            "elisespiderlingbasicattack", "heimertyellowbasicattack", "heimertyellowbasicattack2", "heimertbluebasicattack",
+            "annietibbersbasicattack", "annietibbersbasicattack2", "yorickdecayedghoulbasicattack", "yorickravenousghoulbasicattack",
+            "yorickspectralghoulbasicattack", "malzaharvoidlingbasicattack", "malzaharvoidlingbasicattack2", "malzaharvoidlingbasicattack3"
         };
 
         //Spells that are attacks even if they dont have the "attack" word in their name.
@@ -369,6 +372,12 @@ namespace UnderratedAIO.Helpers
                             LastAATick = Utils.GameTimeTickCount + Game.Ping + 100 -
                                          (int) (ObjectManager.Player.AttackCastDelay * 1000f);
                             _missileLaunched = false;
+                            var d = GetRealAutoAttackRange(target) - 65;
+                            if (Player.Distance(target, true) > d * d && !Player.IsMelee)
+                            {
+                                LastAATick = Utils.GameTimeTickCount + Game.Ping + 400 -
+                                             (int) (ObjectManager.Player.AttackCastDelay * 1000f);
+                            }
                         }
                         Player.IssueOrder(GameObjectOrder.AttackUnit, target);
                         _lastTarget = target;
