@@ -13,6 +13,7 @@ namespace UnderratedAIO.Helpers
         public static Items.Item botrk = LeagueSharp.Common.Data.ItemData.Blade_of_the_Ruined_King.GetItem();
         public static Items.Item tiamat = LeagueSharp.Common.Data.ItemData.Tiamat_Melee_Only.GetItem();
         public static Items.Item hydra = LeagueSharp.Common.Data.ItemData.Ravenous_Hydra_Melee_Only.GetItem();
+        public static Items.Item titanic = new Items.Item(3748, 0);
         public static Items.Item randuins = LeagueSharp.Common.Data.ItemData.Randuins_Omen.GetItem();
         public static Items.Item odins = LeagueSharp.Common.Data.ItemData.Odyns_Veil.GetItem();
         public static Items.Item bilgewater = LeagueSharp.Common.Data.ItemData.Bilgewater_Cutlass.GetItem();
@@ -38,8 +39,10 @@ namespace UnderratedAIO.Helpers
         public static Items.Item Zhonya = new Items.Item(3157, 0);
         public static Items.Item Wooglet = new Items.Item(3090, 0);
 
-        public static bool QssUsed = false;
+        public static bool QssUsed, useHydra = false;
         public static float MuramanaTime;
+        public static Obj_AI_Hero hydraTarget;
+
 
         public static Spell Q, W, E, R;
         public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg = 0f, bool cleanseSpell=false)
@@ -47,6 +50,15 @@ namespace UnderratedAIO.Helpers
             if (config.Item("hyd").GetValue<bool>() && player.BaseSkinName != "Renekton")
             {
                 castHydra(target);
+            }
+            if (config.Item("hyd").GetValue<bool>())
+            {
+                hydraTarget = target;
+                useHydra = true;
+            }
+            else
+            {
+                useHydra = false;
             }
             if (config.Item("ran").GetValue<bool>() && Items.HasItem(randuins.Id) && Items.CanUseItem(randuins.Id))
             {
@@ -233,7 +245,7 @@ namespace UnderratedAIO.Helpers
                 if (Items.HasItem(hydra.Id) && Items.CanUseItem(hydra.Id))
                 {
                     Items.UseItem(hydra.Id);
-                }
+                } 
             }
         }
 
@@ -333,8 +345,20 @@ namespace UnderratedAIO.Helpers
             menuI.AddItem(new MenuItem("useItems", "Use Items")).SetValue(true);
             mConfig.AddSubMenu(menuI);
             Game.OnUpdate += Game_OnGameUpdate;
+            Orbwalking.OnAttack += Orbwalking_OnAttack;
             odins.Range = 500f;
             return mConfig;
+        }
+
+        static void Orbwalking_OnAttack(AttackableUnit unit, AttackableUnit target)
+        {
+            if (useHydra && unit.IsMe && target.NetworkId == hydraTarget.NetworkId && !player.HasBuff("GarenQ"))
+            {
+                if (Items.HasItem(titanic.Id) && Items.CanUseItem(titanic.Id))
+                {
+                    titanic.Cast();
+                }  
+            }
         }
 
         public static float GetItemsDamage(Obj_AI_Hero target)
