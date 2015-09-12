@@ -186,14 +186,13 @@ namespace UnderratedAIO.Champions
                     {
                         R.Cast(pos, config.Item("packets").GetValue<bool>());
                     }
-                }
-                if (clone != null && Gtarget.IsValid && !clone.IsWindingUp)
+                }else if (clone != null && Gtarget.IsValid && !clone.IsWindingUp)
                 {
-                    if (CanCloneAttack(clone) || player.HealthPercent < 25)
+                    if (CanCloneAttack(clone))
                     {
                         R.CastOnUnit(Gtarget, config.Item("packets").GetValue<bool>());
                     }
-                    else
+                    else if (player.HealthPercent > 25)
                     {
                         var prediction = Prediction.GetPrediction(Gtarget, 2);
                         R.Cast(
