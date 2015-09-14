@@ -247,14 +247,14 @@ namespace UnderratedAIO.Champions
                         .FirstOrDefault();
                 if (enemyR != null)
                 {
-                    if (enemyR.CountEnemiesInRange(2000)==1)
+                    if (enemyR.CountEnemiesInRange(2000) == 1)
                     {
-                        R.CastOnUnit(enemyR, config.Item("packets").GetValue<bool>());  
+                        R.CastOnUnit(enemyR, config.Item("packets").GetValue<bool>());
                     }
                     else if (!config.Item("ult" + enemyR.SkinName, true).GetValue<bool>())
                     {
-                        R.CastOnUnit(enemyR, config.Item("packets").GetValue<bool>());  
-                    }  
+                        R.CastOnUnit(enemyR, config.Item("packets").GetValue<bool>());
+                    }
                 }
             }
         }
@@ -388,8 +388,8 @@ namespace UnderratedAIO.Champions
             else if (!config.Item("ult" + target.SkinName, true).GetValue<bool>())
             {
                 castR = true;
-            }  
-            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() &&  castR &&
+            }
+            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() && castR &&
                 R.Instance.ManaCost < player.Mana && !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) &&
                 !CombatHelper.CheckCriticalBuffs(target))
             {
@@ -415,7 +415,7 @@ namespace UnderratedAIO.Champions
                         R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                     }
 
-                    if ((killWithIgnite || killWithIgniteAndW) && CheckW(target))
+                    if ((killWithIgnite || killWithIgniteAndW) && CheckW(target) && player.Distance(target)<600)
                     {
                         R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                         IgniteTarget = target;
