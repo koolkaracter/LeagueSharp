@@ -723,5 +723,67 @@ namespace UnderratedAIO.Helpers
                 select h);
             return nowToo ? enemies.Count(h => h.Distance(pos) < range) : enemies.Count();
         }
+
+        public static bool isDangerousSpell(string spellName,
+            Obj_AI_Hero target,
+            Obj_AI_Hero hero,
+            Vector3 end,
+            float spellRange)
+        {
+            if (spellName == "CurseofTheSadMummy")
+            {
+                if (player.Distance(hero.Position) <= 600f)
+                {
+                    return true;
+                }
+            }
+            if (CombatHelper.IsFacing(target, player.Position) &&
+                (spellName == "EnchantedCrystalArrow" || spellName == "rivenizunablade" ||
+                 spellName == "EzrealTrueshotBarrage" || spellName == "JinxR" || spellName == "sejuaniglacialprison"))
+            {
+                if (player.Distance(hero.Position) <= spellRange - 60)
+                {
+                    return true;
+                }
+            }
+            if (spellName == "InfernalGuardian" || spellName == "UFSlash" ||
+                (spellName == "RivenW" && player.HealthPercent < 25))
+            {
+                if (player.Distance(end) <= 270f)
+                {
+                    return true;
+                }
+            }
+            if (spellName == "BlindMonkRKick" || spellName == "SyndraR" || spellName == "VeigarPrimordialBurst" ||
+                spellName == "AlZaharNetherGrasp" || spellName == "LissandraR")
+            {
+                if (target.IsMe)
+                {
+                    return true;
+                }
+            }
+            if (spellName == "TristanaR" || spellName == "ViR")
+            {
+                if (target.IsMe || player.Distance(target.Position) <= 100f)
+                {
+                    return true;
+                }
+            }
+            if (spellName == "GalioIdolOfDurand")
+            {
+                if (player.Distance(hero.Position) <= 600f)
+                {
+                    return true;
+                }
+            }
+            if (target != null && target.IsMe)
+            {
+                if (CombatHelper.isTargetedCC(spellName) && spellName != "NasusW" && spellName != "ZedUlt")
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }
