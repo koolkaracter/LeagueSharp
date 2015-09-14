@@ -56,6 +56,17 @@ namespace UnderratedAIO.Champions
             {
                 lastBox = System.Environment.TickCount;
             }
+            if (args == null || hero == null)
+            {
+                return;
+            }
+            if (config.Item("userCC", true).GetValue<bool>() && hero is Obj_AI_Hero && hero.IsEnemy &&
+                player.Distance(hero) < Q.Range &&
+                CombatHelper.isDangerousSpell(
+                    args.SData.Name, args.Target as Obj_AI_Hero, hero as Obj_AI_Hero, args.End, float.MaxValue))
+            {
+                R.Cast();
+            }
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -120,10 +131,10 @@ namespace UnderratedAIO.Champions
                         .Where(m => m.Distance(player) < W.Range && m.Name == "Jack In The Box" && !m.IsDead)
                         .OrderBy(m => m.Distance(Game.CursorPos))
                         .FirstOrDefault();
-                
+
                 if (box != null)
                 {
-                       W.Cast(box.Position); 
+                    W.Cast(box.Position);
                 }
                 else
                 {
@@ -174,19 +185,7 @@ namespace UnderratedAIO.Champions
                         break;
                 }
                 var clone = ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(m => m.Name == player.Name && !m.IsMe);
-                if (clone != null && (System.Environment.TickCount - cloneTime > 16500f || clone.HealthPercent < 10) &&
-                    !clone.IsWindingUp)
-                {
-                    var pos =
-                        CombatHelper.PointsAroundTheTarget(clone.Position, 600)
-                            .OrderByDescending(p => p.CountEnemiesInRange(250))
-                            .ThenBy(p => Environment.Minion.countMinionsInrange(p, 250))
-                            .FirstOrDefault();
-                    if (pos.IsValid())
-                    {
-                        R.Cast(pos, config.Item("packets").GetValue<bool>());
-                    }
-                }else if (clone != null && Gtarget.IsValid && !clone.IsWindingUp)
+                if (clone != null && Gtarget.IsValid && !clone.IsWindingUp)
                 {
                     if (CanCloneAttack(clone))
                     {
@@ -220,7 +219,7 @@ namespace UnderratedAIO.Champions
             {
                 if (target.Distance(player) < Q.Range)
                 {
-                    Q.Cast(target.Position, config.Item("packets").GetValue<bool>());
+                    Q.Cast(Prediction.GetPrediction(target, 0.5f).UnitPosition, config.Item("packets").GetValue<bool>());
                 }
                 else
                 {
@@ -434,6 +433,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useClone", "   Move clone", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("userCC", "   Dodge targeted CC", true)).SetValue(true);
             menuC.AddItem(new MenuItem("WaitForStealth", "Block spells in stealth", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
