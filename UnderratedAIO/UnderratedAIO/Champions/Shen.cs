@@ -203,15 +203,14 @@ namespace UnderratedAIO.Champions
                          config.Item("wabove").GetValue<Slider>().Value / 100f;
             if (shield <= DamageTaken || IncSpell)
             {
-                if ((config.Item("autow").GetValue<bool>() &&(config.Item("autowwithe").GetValue<bool>() &&
-                     currEnergy - player.Spellbook.GetSpell(SpellSlot.W).ManaCost > getEenergy()) ||
-                    !config.Item("autowwithe").GetValue<bool>()) ||
+                if ((config.Item("autow").GetValue<bool>() &&
+                     (config.Item("autowwithe").GetValue<bool>() &&
+                      currEnergy - player.Spellbook.GetSpell(SpellSlot.W).ManaCost > getEenergy()) ||
+                     !config.Item("autowwithe").GetValue<bool>()) ||
                     (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && config.Item("usew").GetValue<bool>()))
                 {
-                    W.Cast();   
+                    W.Cast();
                 }
-                
-
             }
         }
 
@@ -363,22 +362,18 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target));
             }
-            if (config.Item("usee").GetValue<bool>() && E.IsReady() && player.Distance(target.Position) < E.Range)
+            var useE = config.Item("usee").GetValue<bool>() && E.IsReady() && player.Distance(target.Position) < E.Range;
+            if (useE)
             {
                 if (minHit > 1)
                 {
                     CastEmin(target, minHit);
                 }
                 else if (player.Distance(target.Position) > player.AttackRange &&
-                         E.GetPrediction(target).Hitchance >= HitChance.Low)
+                         E.GetPrediction(target).Hitchance >= HitChance.High)
                 {
                     E.Cast(target, config.Item("packets").GetValue<bool>());
                 }
-            }
-            if (Q.IsReady() && config.Item("useq").GetValue<bool>() && Q.CanCast(targetQ) && Orbwalking.CanMove(100))
-            {
-                Q.CastOnUnit(targetQ, config.Item("packets").GetValue<bool>());
-                currEnergy -= player.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
             }
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
@@ -387,21 +382,41 @@ namespace UnderratedAIO.Champions
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
+            if (useE && target.Health > Q.GetDamage(target))
+            {
+                return;
+            }
+            if (Q.IsReady() && config.Item("useq").GetValue<bool>() && Q.CanCast(targetQ) && Orbwalking.CanMove(100))
+            {
+                Q.CastOnUnit(targetQ, config.Item("packets").GetValue<bool>());
+                currEnergy -= player.Spellbook.GetSpell(SpellSlot.Q).ManaCost;
+            }
         }
 
         public static void CastEmin(Obj_AI_Base target, int min)
         {
-            foreach (var enemy in
-                ObjectManager.Get<Obj_AI_Base>()
-                    .Where(i => i.Distance(player) < E.Range && i.IsEnemy && !i.IsDead && !i.IsMinion))
+            var MaxEnemy = player.CountEnemiesInRange(1580);
+            if (MaxEnemy==1)
             {
-                E.CastIfWillHit(enemy, min - 1, config.Item("packets").GetValue<bool>());
-                return;
+                E.Cast(target);
             }
-            if (player.Distance(target.Position) > player.AttackRange && E.IsReady())
+            else
             {
-                E.CastIfWillHit(target, 0, config.Item("packets").GetValue<bool>());
+                var MinEnemy = Math.Min(min, MaxEnemy);
+                foreach (var enemy in
+                    ObjectManager.Get<Obj_AI_Hero>()
+                        .Where(i => i.Distance(player) < E.Range && i.IsEnemy && !i.IsDead && i.IsValidTarget()))
+                {
+                    for (int i = MaxEnemy; i > MinEnemy - 1; i--)
+                    {
+                        if (E.CastIfWillHit(enemy, i))
+                        {
+                            return;
+                        }
+                    }
+                }
             }
+
         }
 
         private static void FlashCombo()
@@ -466,6 +481,12 @@ namespace UnderratedAIO.Champions
             Obj_AI_Hero target = args.Target as Obj_AI_Hero;
             if (target != null && target.IsMe)
             {
+                if (config.Item("usee").GetValue<bool>() && E.IsReady() &&
+                    orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
+                    player.Distance(target.Position) < E.Range)
+                {
+                    return;
+                }
                 if (sender.IsValid && !sender.IsDead && sender.IsEnemy && target.IsValid && target.IsMe)
                 {
                     if (Orbwalking.IsAutoAttack(args.SData.Name))
@@ -491,7 +512,7 @@ namespace UnderratedAIO.Champions
             Q.SetTargetted(0.5f, 1500f);
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E, 600);
-            E.SetSkillshot(0f, 50f, 1600f, false, SkillshotType.SkillshotLine);
+            E.SetSkillshot(0.5f, 50f, 1600f, false, SkillshotType.SkillshotLine);
             EFlash = new Spell(SpellSlot.E, 990);
             EFlash.SetSkillshot(
                 E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false, SkillshotType.SkillshotLine);
@@ -530,7 +551,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useq", "Use Q")).SetValue(true);
             menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
-            menuC.AddItem(new MenuItem("useemin", "Try to use E min")).SetValue(new Slider(1, 1, 5));
+            menuC.AddItem(new MenuItem("useemin", "   Min target in teamfight")).SetValue(new Slider(1, 1, 5));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
@@ -560,7 +581,7 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("user", "Use R")).SetValue(true);
             menuU.AddItem(new MenuItem("atpercent", "Friend under")).SetValue(new Slider(20, 0, 100));
             menuU = Jungle.addJungleOptions(menuU);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
