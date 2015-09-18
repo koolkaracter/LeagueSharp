@@ -219,11 +219,11 @@ namespace UnderratedAIO.Champions
                       new[] { 28.57, 33.33, 40 }[R.Level - 1] / 100 * (hero.MaxHealth - hero.Health);
             if (hero.HasBuff("garenpassiveenemytarget"))
             {
-                return Damage.CalcDamage(player, hero, Damage.DamageType.True, dmg) - hero.PhysicalShield;
+                return Damage.CalcDamage(player, hero, Damage.DamageType.True, dmg);
             }
             else
             {
-                return Damage.CalcDamage(player, hero, Damage.DamageType.Magical, dmg) - hero.MagicalShield;
+                return Damage.CalcDamage(player, hero, Damage.DamageType.Magical, dmg);
             }
         }
 
