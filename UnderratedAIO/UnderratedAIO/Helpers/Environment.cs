@@ -83,10 +83,11 @@ namespace UnderratedAIO.Helpers
                 return
                     ObjectManager.Get<Obj_AI_Hero>()
                         .Where(
-                            i => !i.IsMe &&
+                            i =>
                                 !i.IsDead && i.IsAlly && i.CountEnemiesInRange(spellWidth) >= min &&
                                 i.Distance(player) < spellRange)
-                        .OrderByDescending(i => i.CountEnemiesInRange(spellWidth))
+                        .OrderBy(i => i.IsMe)
+                        .ThenByDescending(i => i.CountEnemiesInRange(spellWidth))
                         .FirstOrDefault();
             }
 
@@ -138,7 +139,7 @@ namespace UnderratedAIO.Helpers
 
             public static int getSpellDelay(Spell spell, Vector3 pos)
             {
-                return (int)(spell.Delay * 1000 + player.Distance(pos) / spell.Speed);
+                return (int) (spell.Delay * 1000 + player.Distance(pos) / spell.Speed);
             }
         }
 

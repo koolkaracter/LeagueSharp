@@ -17,7 +17,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, W, E, R;
         public static bool hasGhost = false;
-        public static bool GhostDelay,justW;
+        public static bool GhostDelay, justW;
         public static int GhostRange = 2200;
         public static AutoLeveler autoLeveler;
         public static int LastAATick;
@@ -54,13 +54,13 @@ namespace UnderratedAIO.Champions
                 LastAATick = Utils.GameTimeTickCount;
             }
             if (hero.IsMe && args.SData.Name == "MordekaiserCreepingDeathCast")
+            {
+                if (!justW)
                 {
-                    if (!justW)
-                    {
-                        justW = true;
-                        Utility.DelayAction.Add(500, () => justW = false);
-                    }
+                    justW = true;
+                    Utility.DelayAction.Add(1000, () => justW = false);
                 }
+            }
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -118,9 +118,9 @@ namespace UnderratedAIO.Champions
             {
                 if (MordeGhost && !GhostDelay && config.Item("follow", true).GetValue<bool>())
                 {
-                    R.Cast(Game.CursorPos.Extend(player.Position,100));
+                    R.Cast(Game.CursorPos.Extend(player.Position, 100));
                     GhostDelay = true;
-                    Utility.DelayAction.Add(200, () => GhostDelay = false); 
+                    Utility.DelayAction.Add(200, () => GhostDelay = false);
                 }
                 return;
             }
@@ -217,14 +217,15 @@ namespace UnderratedAIO.Champions
                         }
                         else
                         {
-                            var pred = Orbwalking.AutoAttack.GetPrediction(Gtarget);
+                            var pred = Prediction.GetPrediction(Gtarget, 0.5f);
                             var point =
                                 CombatHelper.PointsAroundTheTargetOuterRing(
-                                    pred.UnitPosition, Orbwalking.GetRealAutoAttackRange(Gtarget), 15)
+                                    pred.UnitPosition, Gtarget.AttackRange / 2, 15)
                                     .Where(p => !p.IsWall())
                                     .OrderBy(p => p.CountEnemiesInRange(500))
                                     .ThenBy(p => p.Distance(player.Position))
                                     .FirstOrDefault();
+
                             if (point.IsValid())
                             {
                                 R.Cast(point, config.Item("packets").GetValue<bool>());
@@ -242,11 +243,9 @@ namespace UnderratedAIO.Champions
         {
             if (justW)
             {
-               return; 
+                return;
             }
-            var allyW =
-                    ObjectManager.Get<Obj_AI_Base>()
-                        .FirstOrDefault(o => o.HasBuff("mordekaisercreepingdeath") && !o.IsMe);
+            var allyW = ObjectManager.Get<Obj_AI_Base>().FirstOrDefault(o => o.HasBuff("mordekaisercreepingdeath"));
             if (allyW != null)
             {
                 if (allyW.HealthPercent < 20 || player.HealthPercent < 20 ||
@@ -311,7 +310,7 @@ namespace UnderratedAIO.Champions
         {
             MinionManager.FarmLocation bestPosition =
                 E.GetCircularFarmLocation(
-                    MinionManager.GetMinions(E.Range-100f, MinionTypes.All, MinionTeam.NotAlly), 200f);
+                    MinionManager.GetMinions(E.Range - 100f, MinionTypes.All, MinionTeam.NotAlly), 200f);
             if (config.Item("useeLC", true).GetValue<bool>() && E.IsReady() &&
                 bestPosition.MinionsHit > config.Item("ehitLC", true).GetValue<Slider>().Value)
             {
