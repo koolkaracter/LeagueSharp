@@ -188,21 +188,30 @@ namespace UnderratedAIO.Champions
             {
                 LastHitQ(true);
             }
-            if (config.Item("autoW", true).GetValue<bool>() && W.IsReady() && !player.IsRecalling() && !Q.IsReady())
+            Obj_AI_Hero targ = null;
+            if (config.Item("autoW", true).GetValue<bool>() || config.Item("autoE", true).GetValue<bool>())
             {
-                var targ =
+                targ =
                     HeroManager.Enemies.Where(
                         hero =>
                             W.CanCast(hero) &&
                             (hero.HasBuffOfType(BuffType.Snare) || hero.HasBuffOfType(BuffType.Stun) ||
                              hero.HasBuffOfType(BuffType.Taunt) || hero.HasBuffOfType(BuffType.Suppression)))
-                        .OrderBy(hero => hero.Health)
+                        .OrderByDescending(hero => TargetSelector.GetPriority(hero))
+                        .ThenBy(hero => hero.Health)
                         .FirstOrDefault();
-                if (targ != null &&
-                    (((justQ && targ.Health > Q.GetDamage(targ) || targ.CountEnemiesInRange(W.Width) > 1)) || !justQ))
+            }
+            if (config.Item("autoW", true).GetValue<bool>() && targ != null && W.IsReady() && !player.IsRecalling() &&
+                !Q.IsReady())
+            {
+                if ((((justQ && targ.Health > Q.GetDamage(targ) || targ.CountEnemiesInRange(W.Width) > 1)) || !justQ))
                 {
                     W.Cast(targ, config.Item("packets").GetValue<bool>());
                 }
+            }
+            if (config.Item("autoE", true).GetValue<bool>() && targ != null && E.IsReady() && !player.IsRecalling())
+            {
+                CastE(targ);
             }
             if (config.Item("useEkey", true).GetValue<KeyBind>().Active && E.IsReady())
             {
@@ -362,6 +371,19 @@ namespace UnderratedAIO.Champions
                         break;
                 }
             }
+            if (config.Item("usee", true).GetValue<bool>() && E.IsReady())
+            {
+                if (config.Item("useemin", true).GetValue<Slider>().Value > 1 &&
+                    player.CountEnemiesInRange(E.Range + 175) >= config.Item("useemin", true).GetValue<Slider>().Value)
+                {
+                    switch (config.Item("eType", true).GetValue<StringList>().SelectedIndex)
+                    {
+                        case 0:
+                            CastE(target, true, config.Item("useemin", true).GetValue<Slider>().Value);
+                            return;
+                    }
+                }
+            }
             if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Q.CanCast(target) && target.IsValidTarget() &&
                 !bush && !Estun)
             {
@@ -415,7 +437,7 @@ namespace UnderratedAIO.Champions
                         R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                     }
 
-                    if ((killWithIgnite || killWithIgniteAndW) && CheckW(target) && player.Distance(target)<600)
+                    if ((killWithIgnite || killWithIgniteAndW) && CheckW(target) && player.Distance(target) < 600)
                     {
                         R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
                         IgniteTarget = target;
@@ -454,9 +476,9 @@ namespace UnderratedAIO.Champions
             return mana < player.Mana;
         }
 
-        private void CastE(Obj_AI_Hero target, bool edge = true)
+        private void CastE(Obj_AI_Hero target, bool edge = true, int minHits = 1)
         {
-            if (player.CountEnemiesInRange(E.Range) <= 1)
+            if (player.CountEnemiesInRange(E.Range + 175) <= 1)
             {
                 var targE = E.GetPrediction(target);
                 var pos = targE.CastPosition;
@@ -467,7 +489,7 @@ namespace UnderratedAIO.Champions
             }
             else
             {
-                var targE = getBestEVector3(target);
+                var targE = getBestEVector3(target, minHits);
                 if (targE != Vector3.Zero)
                 {
                     E.Cast(targE, config.Item("packets").GetValue<bool>());
@@ -605,7 +627,7 @@ namespace UnderratedAIO.Champions
             return (float) damage;
         }
 
-        private Vector3 getBestEVector3(Obj_AI_Hero target)
+        private Vector3 getBestEVector3(Obj_AI_Hero target, int minHits = 1)
         {
             var points = GetEpoints(target);
             var otherHeroes =
@@ -613,29 +635,40 @@ namespace UnderratedAIO.Champions
                     e => e.IsValidTarget() && e.NetworkId != target.NetworkId && player.Distance(e) < 1000)
                     .Select(e => E.GetPrediction(e));
 
-            var best = Vector3.Zero;
+            var targetList = new List<EData>();
+
             if (otherHeroes.Any())
             {
-                var count = 0;
                 foreach (var point in points)
                 {
-                    foreach (var otherHero in otherHeroes)
-                    {
-                        var num = 0;
-                        if (otherHero != null && otherHero.CastPosition.Distance(point) > 345 &&
-                            otherHero.CastPosition.Distance(point) < 375)
-                        {
-                            num++;
-                        }
-                        if (num > count)
-                        {
-                            count = num;
-                            best = point;
-                        }
-                    }
+                    targetList.Add(
+                        new EData(
+                            point,
+                            otherHeroes.Count(
+                                otherHero =>
+                                    otherHero.CastPosition.Distance(point) > 345 &&
+                                    otherHero.CastPosition.Distance(point) < 375), point.CountEnemiesInRange(345)));
                 }
             }
-            return best;
+
+            var result = targetList.Where(t => t.hits >= minHits).OrderByDescending(t => t.hits).FirstOrDefault();
+            if (result != null)
+            {
+                return result.point;
+            }
+            if (minHits > 1)
+            {
+                var result2 =
+                    targetList.Where(t => t.hits >= 1 && t.enemiesAround >= minHits)
+                        .OrderByDescending(t => t.hits)
+                        .ThenByDescending(t => t.enemiesAround)
+                        .FirstOrDefault();
+                if (result2 != null)
+                {
+                    return result2.point;
+                }
+            }
+            return Vector3.Zero;
         }
 
         private void InitMenu()
@@ -668,6 +701,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(false);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useekill", "   Only for kill", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useemin", "   Or AOE min", true)).SetValue(new Slider(1, 1, 5));
             menuC.AddItem(new MenuItem("useEkey", "   Manual cast", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
             menuC.AddItem(new MenuItem("eType", "   E type", true))
@@ -710,6 +744,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("autoQ", "Auto Q lasthit", true)).SetValue(true);
             menuM.AddItem(new MenuItem("autoQmana", "   Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             menuM.AddItem(new MenuItem("autoW", "Auto W on stun", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("autoE", "Auto E on stun", true)).SetValue(true);
             menuM.AddItem(new MenuItem("Interrupt", "Cast E to interrupt spells", true)).SetValue(true);
             menuM.AddItem(new MenuItem("GapCloser", "Cast E on gapclosers", true)).SetValue(true);
             menuM.AddItem(new MenuItem("OnDash", "Cast E on dash", true)).SetValue(true);
@@ -726,6 +761,20 @@ namespace UnderratedAIO.Champions
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
+        }
+    }
+
+    internal class EData
+    {
+        public Vector3 point;
+        public int hits;
+        public int enemiesAround;
+
+        public EData(Vector3 _point, int _hits, int _enemiesAround)
+        {
+            hits = _hits;
+            point = _point;
+            enemiesAround = _enemiesAround;
         }
     }
 }
