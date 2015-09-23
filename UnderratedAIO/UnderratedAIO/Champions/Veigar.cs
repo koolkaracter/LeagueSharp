@@ -128,7 +128,7 @@ namespace UnderratedAIO.Champions
 
         private void InitVeigar()
         {
-            Q = new Spell(SpellSlot.Q, 950);
+            Q = new Spell(SpellSlot.Q, 900);
             Q.SetSkillshot(0.25f, 70f, 2000f, false, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W, 900);
             W.SetSkillshot(1.25f, 225f, float.MaxValue, false, SkillshotType.SkillshotCircle);
@@ -254,7 +254,7 @@ namespace UnderratedAIO.Champions
                                (e.GetBuff("summonerdot").Caster.IsMe && e.CountAlliesInRange(600) > 0)))))
                         .OrderByDescending(e => TargetSelector.GetPriority(e))
                         .FirstOrDefault();
-                if (enemyR != null)
+                if (enemyR != null && CheckUltBlock(enemyR))
                 {
                     if (enemyR.CountEnemiesInRange(2000) == 1)
                     {
@@ -266,6 +266,12 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
+        }
+
+        private bool CheckUltBlock(Obj_AI_Hero enemyR)
+        {
+            return (!config.Item("ult" + enemyR.SkinName, true).GetValue<bool>() ||
+                    player.CountEnemiesInRange(1500) == 1);
         }
 
         private void Harass()
@@ -411,7 +417,7 @@ namespace UnderratedAIO.Champions
             {
                 castR = true;
             }
-            if (R.IsReady() && R.CanCast(target) && config.Item("user", true).GetValue<bool>() && castR &&
+            if (R.IsReady() && R.CanCast(target) && CheckUltBlock(target) && config.Item("user", true).GetValue<bool>() && castR &&
                 R.Instance.ManaCost < player.Mana && !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) &&
                 !CombatHelper.CheckCriticalBuffs(target))
             {
