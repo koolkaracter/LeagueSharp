@@ -187,7 +187,21 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
+            Obj_AI_Hero target = TargetSelector.GetTarget(
+                Q.Range + BarrelExplosionRange, TargetSelector.DamageType.Physical);
+            var barrel =
+                GetBarrels()
+                    .FirstOrDefault(
+                        o =>
+                            target != null && o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
+                            o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
+                            KillableBarrel(o) && o.Distance(target) < BarrelExplosionRange);
+
+            if (barrel != null)
+            {
+                Q.CastOnUnit(barrel, config.Item("packets").GetValue<bool>());
+                return;
+            }
             if (config.Item("useqLHH", true).GetValue<bool>())
             {
                 var mini =
@@ -196,19 +210,7 @@ namespace UnderratedAIO.Champions
                         .OrderByDescending(m => m.MaxHealth)
                         .ThenByDescending(m => m.Distance(player))
                         .FirstOrDefault();
-                var barrel =
-                    GetBarrels()
-                        .FirstOrDefault(
-                            o =>
-                                target != null && o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
-                                o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
-                                KillableBarrel(o) && o.Distance(target) < BarrelExplosionRange);
 
-                if (barrel != null)
-                {
-                    Q.CastOnUnit(barrel, config.Item("packets").GetValue<bool>());
-                    return;
-                }
                 if (mini != null)
                 {
                     Q.CastOnUnit(mini, config.Item("packets").GetValue<bool>());
@@ -492,7 +494,7 @@ namespace UnderratedAIO.Champions
 
         private void CastE(Obj_AI_Hero target, List<Obj_AI_Minion> barrels)
         {
-            if (barrels.Count(b=>b.CountEnemiesInRange(BarrelConnectionRange) > 0) < 1)
+            if (barrels.Count(b => b.CountEnemiesInRange(BarrelConnectionRange) > 0) < 1)
             {
                 if (config.Item("useeAlways", true).GetValue<bool>())
                 {
@@ -561,27 +563,30 @@ namespace UnderratedAIO.Champions
             {
                 var baseText = "Killable with R: ";
                 var text = new List<string>();
-                foreach (var enemy in HeroManager.Enemies.Where(e=> e.IsValidTarget()))
+                foreach (var enemy in HeroManager.Enemies.Where(e => e.IsValidTarget()))
                 {
-                    if (getRDamage(enemy)>enemy.Health)
+                    if (getRDamage(enemy) > enemy.Health)
                     {
                         text.Add(enemy.ChampionName + "(" + Math.Ceiling(enemy.Health / Rwave[R.Level - 1]) + " wave)");
                     }
                 }
-                if (text.Count>0)
+                if (text.Count > 0)
                 {
                     var result = string.Join(", ", text);
-                    Drawing.DrawText(Drawing.Width / 2 - (baseText + result).Length * 5, Drawing.Height * 0.8f, Color.Red, baseText + result); 
+                    Drawing.DrawText(
+                        Drawing.Width / 2 - (baseText + result).Length * 5, Drawing.Height * 0.8f, Color.Red,
+                        baseText + result);
                 }
-                
             }
         }
 
         private float getRDamage(Obj_AI_Hero enemy)
         {
-            return (float) Damage.CalcDamage(
-                player, enemy, Damage.DamageType.Magical,
-                (Rwave[R.Level - 1] + 0.1 * player.FlatMagicDamageMod) * waveLength());
+            return
+                (float)
+                    Damage.CalcDamage(
+                        player, enemy, Damage.DamageType.Magical,
+                        (Rwave[R.Level - 1] + 0.1 * player.FlatMagicDamageMod) * waveLength());
         }
 
         public int waveLength()
@@ -592,7 +597,7 @@ namespace UnderratedAIO.Champions
             }
             else
             {
-                return 12; 
+                return 12;
             }
         }
 
