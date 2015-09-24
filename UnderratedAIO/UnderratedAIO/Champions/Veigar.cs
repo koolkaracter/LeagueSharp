@@ -417,8 +417,9 @@ namespace UnderratedAIO.Champions
             {
                 castR = true;
             }
-            if (R.IsReady() && R.CanCast(target) && CheckUltBlock(target) && config.Item("user", true).GetValue<bool>() && castR &&
-                R.Instance.ManaCost < player.Mana && !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) &&
+            if (R.IsReady() && R.CanCast(target) && CheckUltBlock(target) && config.Item("user", true).GetValue<bool>() &&
+                castR && R.Instance.ManaCost < player.Mana &&
+                !target.Buffs.Any(b => CombatHelper.invulnerable.Contains(b.Name)) &&
                 !CombatHelper.CheckCriticalBuffs(target))
             {
                 if (config.Item("userPred", true).GetValue<bool>())
@@ -538,18 +539,25 @@ namespace UnderratedAIO.Champions
                     MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
                         .Where(
                             m =>
-                                m.Health > 5 && m.Distance(player) < Q.Range &&
+                                m.IsValidTarget() && m.Health > 5 && m.Distance(player) < Q.Range &&
                                 m.Health <
                                 Q.GetDamage(m) * config.Item("qLHDamage", true).GetValue<Slider>().Value / 100);
                 var objAiBases = minions as Obj_AI_Base[] ?? minions.ToArray();
                 if (objAiBases.Any())
                 {
                     Obj_AI_Base target = null;
-                    foreach (var minion in objAiBases)
+                    foreach (
+                        var minion in
+                            objAiBases.Where(
+                                minion =>
+                                    HealthPrediction.GetHealthPrediction(
+                                        minion, (int) (minion.Distance(player) / Q.Speed * 1000 + 500f)) > 0))
                     {
-                        var collision = Q.GetCollision(
-                            player.Position.To2D(),
-                            new List<Vector2>() { player.Position.Extend(minion.Position, Q.Range).To2D() }, 70f);
+                        var collision =
+                            Q.GetCollision(
+                                player.Position.To2D(),
+                                new List<Vector2>() { player.Position.Extend(minion.Position, Q.Range).To2D() }, 70f)
+                                .OrderBy(c => c.Distance(player)).ToList();
                         if (collision.Count <= 2 || collision[0].NetworkId == minion.NetworkId ||
                             collision[1].NetworkId == minion.NetworkId)
                         {
@@ -562,8 +570,6 @@ namespace UnderratedAIO.Champions
                                 var other = collision.FirstOrDefault(c => c.NetworkId != minion.NetworkId);
                                 if (other != null &&
                                     (player.GetAutoAttackDamage(other) * 2 > other.Health - Q.GetDamage(other)) &&
-                                    HealthPrediction.GetHealthPrediction(
-                                        minion, (int) (minion.Distance(player) / Q.Speed * 1000 + 250f)) > 0 &&
                                     Q.GetDamage(other) < other.Health)
                                 {
                                     qMiniForWait = other;
