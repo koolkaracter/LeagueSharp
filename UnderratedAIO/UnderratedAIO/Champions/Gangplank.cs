@@ -559,9 +559,8 @@ namespace UnderratedAIO.Champions
                         Color.Coral);
                 }
             }
-            if (config.Item("drawKillable", true).GetValue<bool>() && R.IsReady())
+            if (config.Item("drawKillableSL", true).GetValue<StringList>().SelectedIndex != 0 && R.IsReady())
             {
-                var baseText = "Killable with R: ";
                 var text = new List<string>();
                 foreach (var enemy in HeroManager.Enemies.Where(e => e.IsValidTarget()))
                 {
@@ -573,10 +572,35 @@ namespace UnderratedAIO.Champions
                 if (text.Count > 0)
                 {
                     var result = string.Join(", ", text);
-                    Drawing.DrawText(
-                        Drawing.Width / 2 - (baseText + result).Length * 5, Drawing.Height * 0.8f, Color.Red,
-                        baseText + result);
+                    switch (config.Item("drawKillableSL", true).GetValue<StringList>().SelectedIndex)
+                    {
+                        case 2:
+                                drawText(2, result);
+                            break;
+                        case 1:
+                            drawText(1, result);
+                            break;
+                        default:
+                            return;
+                    }
                 }
+            }
+        }
+
+        public void drawText(int mode, string result)
+        {
+            const string baseText = "Killable with R: ";
+            if (mode == 1)
+            {
+                Drawing.DrawText(
+                    Drawing.Width / 2 - (baseText + result).Length * 5, Drawing.Height * 0.75f, Color.Red,
+                    baseText + result);
+            }
+            else
+            {
+                    Drawing.DrawText(
+                        player.HPBarPosition.X - (baseText + result).Length * 5 + 110, player.HPBarPosition.Y + 250,
+                        Color.Red, baseText + result);
             }
         }
 
@@ -683,7 +707,8 @@ namespace UnderratedAIO.Champions
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage", true)).SetValue(true);
             menuD.AddItem(new MenuItem("drawW", "Draw W", true)).SetValue(true);
-            menuD.AddItem(new MenuItem("drawKillable", "Show killable targets with R", true)).SetValue(true);
+            menuD.AddItem(new MenuItem("drawKillableSL", "Show killable targets with R", true))
+                .SetValue(new StringList(new[] { "OFF", "Above HUD", "Under GP" }, 1));
             config.AddSubMenu(menuD);
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
