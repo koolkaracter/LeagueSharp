@@ -112,7 +112,7 @@ namespace UnderratedAIO.Champions
                                 justE = false;
                                 ePos = Vector3.Zero;
                             });
-                        Utility.DelayAction.Add(500, () => { Estun = false; });
+                        Utility.DelayAction.Add(700, () => { Estun = false; });
                     }
                 }
                 if (args.SData.Name == "VeigarPrimordialBurst")
@@ -344,7 +344,7 @@ namespace UnderratedAIO.Champions
             if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && W.CanCast(target))
             {
                 var tarPered = W.GetPrediction(target);
-                if (justE && ePos.IsValid() && target.Distance(ePos) < 375)
+                if (justE && !Estun && ePos.IsValid() && target.Distance(ePos) < 375)
                 {
                     if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
                         tarPered.Hitchance >= HitChance.High)
@@ -355,7 +355,8 @@ namespace UnderratedAIO.Champions
                 else
                 {
                     if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
-                        tarPered.Hitchance >= HitChance.VeryHigh)
+                        tarPered.Hitchance >= HitChance.VeryHigh && 
+                        !config.Item("startWithE", true).GetValue<bool>())
                     {
                         W.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
                     }
@@ -489,7 +490,7 @@ namespace UnderratedAIO.Champions
             {
                 var targE = E.GetPrediction(target);
                 var pos = targE.CastPosition;
-                if (pos.IsValid() && pos.Distance(player.Position) < E.Range && targE.Hitchance >= HitChance.High)
+                if (pos.IsValid() && pos.Distance(player.Position) < E.Range && targE.Hitchance >= HitChance.VeryHigh)
                 {
                     E.Cast(edge ? pos.Extend(player.Position, 375) : pos, config.Item("packets").GetValue<bool>());
                 }
