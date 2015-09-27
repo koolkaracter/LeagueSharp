@@ -355,8 +355,7 @@ namespace UnderratedAIO.Champions
                 else
                 {
                     if (W.Range - 80 > tarPered.CastPosition.Distance(player.Position) &&
-                        tarPered.Hitchance >= HitChance.VeryHigh && 
-                        !config.Item("startWithE", true).GetValue<bool>())
+                        tarPered.Hitchance >= HitChance.VeryHigh && !config.Item("startWithE", true).GetValue<bool>())
                     {
                         W.Cast(tarPered.CastPosition, config.Item("packets").GetValue<bool>());
                     }
@@ -543,22 +542,28 @@ namespace UnderratedAIO.Champions
                                 m.IsValidTarget() && m.Health > 5 && m.Distance(player) < Q.Range &&
                                 m.Health <
                                 Q.GetDamage(m) * config.Item("qLHDamage", true).GetValue<Slider>().Value / 100);
-                var objAiBases = minions as Obj_AI_Base[] ?? minions.ToArray();
+                var objAiBases = from minion in minions
+                    let pred =
+                        Q.GetCollision(
+                            player.Position.To2D(),
+                            new List<Vector2>() { player.Position.Extend(minion.Position, Q.Range).To2D() }, 70f)
+                    orderby pred.Count descending
+                    select minion;
                 if (objAiBases.Any())
                 {
                     Obj_AI_Base target = null;
-                    foreach (
-                        var minion in
-                            objAiBases.Where(
-                                minion =>
-                                    HealthPrediction.GetHealthPrediction(
-                                        minion, (int) (minion.Distance(player) / Q.Speed * 1000 + 500f)) > 0))
+                    foreach (var minion in
+                        objAiBases.Where(
+                            minion =>
+                                HealthPrediction.GetHealthPrediction(
+                                    minion, (int) (minion.Distance(player) / Q.Speed * 1000 + 500f)) > 0))
                     {
                         var collision =
                             Q.GetCollision(
                                 player.Position.To2D(),
                                 new List<Vector2>() { player.Position.Extend(minion.Position, Q.Range).To2D() }, 70f)
-                                .OrderBy(c => c.Distance(player)).ToList();
+                                .OrderBy(c => c.Distance(player))
+                                .ToList();
                         if (collision.Count <= 2 || collision[0].NetworkId == minion.NetworkId ||
                             collision[1].NetworkId == minion.NetworkId)
                         {
