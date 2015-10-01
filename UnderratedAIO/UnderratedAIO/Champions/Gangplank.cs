@@ -159,6 +159,22 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
+
+            if (config.Item("AutoQBarrel", true).GetValue<bool>() && Q.IsReady())
+            {
+                var barrel =
+                    GetBarrels()
+                        .FirstOrDefault(
+                            o =>
+                                o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
+                                o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
+                                KillableBarrel(o) && o.CountEnemiesInRange(BarrelExplosionRange) > 0);
+
+                if (barrel!=null)
+                {
+                    Q.Cast(barrel);
+                }
+            }
         }
 
         private void Lasthit()
@@ -575,7 +591,7 @@ namespace UnderratedAIO.Champions
                     switch (config.Item("drawKillableSL", true).GetValue<StringList>().SelectedIndex)
                     {
                         case 2:
-                                drawText(2, result);
+                            drawText(2, result);
                             break;
                         case 1:
                             drawText(1, result);
@@ -598,9 +614,9 @@ namespace UnderratedAIO.Champions
             }
             else
             {
-                    Drawing.DrawText(
-                        player.HPBarPosition.X - (baseText + result).Length * 5 + 110, player.HPBarPosition.Y + 250,
-                        Color.Red, baseText + result);
+                Drawing.DrawText(
+                    player.HPBarPosition.X - (baseText + result).Length * 5 + 110, player.HPBarPosition.Y + 250,
+                    Color.Red, baseText + result);
             }
         }
 
@@ -746,6 +762,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("Rhealt", "   Enemy health %", true)).SetValue(new Slider(35, 0, 100));
             menuM.AddItem(new MenuItem("RhealtMin", "   Enemy min health %", true)).SetValue(new Slider(10, 0, 100));
             menuM.AddItem(new MenuItem("AutoW", "W with QSS options", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("AutoQBarrel", "AutoQ barrel near enemies", true)).SetValue(false);
             menuM = Jungle.addJungleOptions(menuM);
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
