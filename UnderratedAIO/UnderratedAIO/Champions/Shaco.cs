@@ -161,7 +161,7 @@ namespace UnderratedAIO.Champions
             float dist = (float) (Q.Range + player.MoveSpeed * 2.5);
             if (ShacoClone && !GhostDelay && config.Item("useClone", true).GetValue<bool>())
             {
-                var Gtarget = TargetSelector.GetTarget(dist, TargetSelector.DamageType.Physical);
+                var Gtarget = TargetSelector.GetTarget(2200, TargetSelector.DamageType.Physical);
                 switch (config.Item("ghostTarget", true).GetValue<StringList>().SelectedIndex)
                 {
                     case 0:
