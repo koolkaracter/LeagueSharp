@@ -111,7 +111,7 @@ namespace RandomUlt.Helpers
                 config.AddItem(new MenuItem("drawNotification", "Draw notification")).SetValue(true);
             }
             config.AddItem(new MenuItem("RandomUltDrawings", "Draw possible place")).SetValue(false);
-            Menu orbBlock=new Menu("Block keys", "BlockKeys");
+            Menu orbBlock = new Menu("Block keys", "BlockKeys");
             orbBlock.AddItem(new MenuItem("OrbBlock1", "Disabled by keypress"))
                 .SetValue(new KeyBind(65, KeyBindType.Press));
             orbBlock.AddItem(new MenuItem("OrbBlock2", "Disabled by keypress"))
@@ -126,11 +126,7 @@ namespace RandomUlt.Helpers
             Game.OnUpdate += Game_OnUpdate;
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnTeleport += Obj_AI_Base_OnTeleport;
-            
         }
-
-
-
 
 
         private void Obj_AI_Base_OnTeleport(Obj_AI_Base sender, GameObjectTeleportEventArgs args)
@@ -286,13 +282,14 @@ namespace RandomUlt.Helpers
             {
                 return;
             }
-            if (player.CountEnemiesInRange(configMenu.Item("EnemiesAroundYou").GetValue<Slider>().Value)>=1)
+            if (player.CountEnemiesInRange(configMenu.Item("EnemiesAroundYou").GetValue<Slider>().Value) >= 1)
             {
-                return; 
+                return;
             }
-            if (!configMenu.Item("OnlyCombo").GetValue<bool>() && 
-                (configMenu.Item("OrbBlock1").GetValue<KeyBind>().Active || configMenu.Item("OrbBlock2").GetValue<KeyBind>().Active ||
-                configMenu.Item("OrbBlock3").GetValue<KeyBind>().Active))
+            if (!configMenu.Item("OnlyCombo").GetValue<bool>() &&
+                (configMenu.Item("OrbBlock1").GetValue<KeyBind>().Active ||
+                 configMenu.Item("OrbBlock2").GetValue<KeyBind>().Active ||
+                 configMenu.Item("OrbBlock3").GetValue<KeyBind>().Active))
             {
                 return;
             }
@@ -481,7 +478,8 @@ namespace RandomUlt.Helpers
         private void kill(Positions positions, Vector3 pos)
         {
             if (R.IsReady() && pos.Distance(positions.Player.Position) < 1200 &&
-                pos.CountAlliesInRange(configMenu.Item("Alliesrange").GetValue<Slider>().Value) < 1)
+                ObjectManager.Get<Obj_AI_Hero>()
+                    .Count(o => o.IsAlly && o.Distance(pos) < configMenu.Item("Alliesrange").GetValue<Slider>().Value) < 1)
             {
                 if (checkdmg(positions.Player, pos) && UltTime(pos) < positions.RecallData.GetRecallTime() &&
                     !isColliding(pos))
@@ -493,7 +491,7 @@ namespace RandomUlt.Helpers
                     R.Cast(pos);
                     if (player.ChampionName == "Draven" && configMenu.Item("CallBack").GetValue<bool>())
                     {
-                        Utility.DelayAction.Add((int) (UltTime(pos)-300), () => R.Cast());
+                        Utility.DelayAction.Add((int) (UltTime(pos) - 300), () => R.Cast());
                     }
                 }
             }
