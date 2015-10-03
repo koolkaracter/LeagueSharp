@@ -202,11 +202,11 @@ namespace UnderratedAIO.Champions
                 target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
                 orbwalker.ForceTarget(target);
             }
+            var cmbDmg = GetComboDamage(target);
             if (config.Item("useItems").GetValue<bool>())
             {
-                ItemHandler.UseItems(target, config);
+                ItemHandler.UseItems(target, config, cmbDmg);
             }
-            var cmbDmg = GetComboDamage(target);
             if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Orbwalking.CanMove(100) && target.IsValidTarget() && !justJumped)
             {
                 var targQ = Q.GetPrediction(target);
