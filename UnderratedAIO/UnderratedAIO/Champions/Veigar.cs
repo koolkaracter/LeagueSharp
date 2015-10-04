@@ -336,10 +336,9 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-
             if (config.Item("useItems").GetValue<bool>())
             {
-                ItemHandler.UseItems(target, config);
+                ItemHandler.UseItems(target, config, cmbDmg);
             }
             if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && W.CanCast(target))
             {
@@ -460,6 +459,7 @@ namespace UnderratedAIO.Champions
                 }
             }
         }
+
 
         private bool CheckMana()
         {
@@ -724,6 +724,8 @@ namespace UnderratedAIO.Champions
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
             menuC.AddItem(new MenuItem("eType", "   E type", true))
                 .SetValue(new StringList(new[] { "Cast on Edge", "Trap the enemy" }, 0));
+            menuC.AddItem(new MenuItem("predType", "   Prediction", true))
+                .SetValue(new StringList(new[] { "10/10 bots", "They said this is better" }, 0));
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("userPred", "   Calc ignite+W to damage", true)).SetValue(true);
             menuC.AddItem(new MenuItem("startWithE", "Start combo with E", true)).SetValue(false);
@@ -779,6 +781,20 @@ namespace UnderratedAIO.Champions
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
+            config.Item("predType", true).ValueChanged+=OnValueChanged;
+        }
+
+        private void OnValueChanged(object sender, OnValueChangeEventArgs onValueChangeEventArgs)
+        {
+            switch (onValueChangeEventArgs.GetNewValue<StringList>().SelectedIndex)
+            {
+                case 0:
+                    E.SetSkillshot(1.2f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
+                    break;
+                case 1:
+                    E.SetSkillshot(0.5f, 50f, float.MaxValue, false, SkillshotType.SkillshotCircle);
+                    break;
+            }
         }
     }
 
