@@ -781,7 +781,17 @@ namespace UnderratedAIO.Champions
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
+            switch (config.Item("predType", true).GetValue<StringList>().SelectedIndex)
+            {
+                case 0:
+                    E.SetSkillshot(1.2f, 25f, float.MaxValue, false, SkillshotType.SkillshotCircle);
+                    break;
+                case 1:
+                    E.SetSkillshot(0.5f, 50f, float.MaxValue, false, SkillshotType.SkillshotCircle);
+                    break;
+            }
             config.Item("predType", true).ValueChanged+=OnValueChanged;
+
         }
 
         private void OnValueChanged(object sender, OnValueChangeEventArgs onValueChangeEventArgs)
