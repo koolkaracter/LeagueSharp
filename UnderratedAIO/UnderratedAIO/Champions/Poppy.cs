@@ -40,19 +40,19 @@ namespace UnderratedAIO.Champions
             if (args.Unit.IsMe && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
             {
                 var mob = Jungle.GetNearest(player.Position);
-                if (mob != null && config.Item("useqLCSteal").GetValue<bool>() && Q.IsReady() &&
+                if (mob != null && config.Item("useqLCSteal", true).GetValue<bool>() && Q.IsReady() &&
                     Q.GetDamage(mob) > mob.Health)
                 {
                     Q.Cast(config.Item("packets").GetValue<bool>());
                 }
-                if (mob != null && config.Item("useqbsmite").GetValue<bool>() && Q.IsReady() &&
+                if (mob != null && config.Item("useqbsmite", true).GetValue<bool>() && Q.IsReady() &&
                     Jungle.SmiteReady(config.Item("useSmite").GetValue<KeyBind>().Active) &&
                     Q.GetDamage(mob) + Jungle.smiteDamage(mob) > mob.Health)
                 {
                     Q.Cast(config.Item("packets").GetValue<bool>());
                 }
             }
-            if (args.Unit.IsMe && Q.IsReady() && config.Item("useq").GetValue<bool>() && args.Target is Obj_AI_Hero &&
+            if (args.Unit.IsMe && Q.IsReady() && config.Item("useq", true).GetValue<bool>() && args.Target is Obj_AI_Hero &&
                 Q.GetDamage((Obj_AI_Base) args.Target) > args.Target.Health)
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
@@ -61,7 +61,7 @@ namespace UnderratedAIO.Champions
 
         private void OnInterruptableTarget(Obj_AI_Hero sender, Interrupter2.InterruptableTargetEventArgs args)
         {
-            if (config.Item("useEint").GetValue<bool>() && E.IsReady() && E.CanCast(sender))
+            if (config.Item("useEint", true).GetValue<bool>() && E.IsReady() && E.CanCast(sender))
             {
                 E.CastOnUnit(sender, config.Item("packets").GetValue<bool>());
             }
@@ -71,12 +71,12 @@ namespace UnderratedAIO.Champions
         {
             if (unit.IsMe && Q.IsReady() &&
                 (((orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo ||
-                   config.Item("useeflashforced").GetValue<KeyBind>().Active) && config.Item("useq").GetValue<bool>() &&
+                   config.Item("useeflashforced", true).GetValue<KeyBind>().Active) && config.Item("useq", true).GetValue<bool>() &&
                   target.IsEnemy && target is Obj_AI_Hero &&
                   target.Health - player.GetAutoAttackDamage(target as Obj_AI_Hero) > 0) ||
                  (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear &&
-                  player.ManaPercent > config.Item("minmana").GetValue<Slider>().Value &&
-                  config.Item("useqLC").GetValue<bool>() && target is Obj_AI_Minion &&
+                  player.ManaPercent > config.Item("minmana", true).GetValue<Slider>().Value &&
+                  config.Item("useqLC", true).GetValue<bool>() && target is Obj_AI_Minion &&
                   target.Health > Q.GetDamage((Obj_AI_Base) target) * 2)))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
@@ -87,7 +87,7 @@ namespace UnderratedAIO.Champions
         private static void Game_OnGameUpdate(EventArgs args)
         {
             Obj_AI_Hero targetf = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
-            if (config.Item("useeflashforced").GetValue<KeyBind>().Active)
+            if (config.Item("useeflashforced", true).GetValue<KeyBind>().Active)
             {
                 if (targetf == null)
                 {
@@ -135,25 +135,20 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (config.Item("selected").GetValue<bool>())
-            {
-                target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
-                orbwalker.ForceTarget(target);
-            }
             if (config.Item("useItems").GetValue<bool>())
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target));
             }
             bool hasFlash = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready;
 
-            if (config.Item("usew").GetValue<bool>() && player.Distance(target.Position) < R.Range && W.IsReady())
+            if (config.Item("usew", true).GetValue<bool>() && player.Distance(target.Position) < R.Range && W.IsReady())
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
 
-            if (config.Item("usee").GetValue<bool>() && E.IsReady())
+            if (config.Item("usee", true).GetValue<bool>() && E.IsReady())
             {
-                if (config.Item("useewall").GetValue<bool>())
+                if (config.Item("useewall", true).GetValue<bool>())
                 {
                     var bestpos = CombatHelper.bestVectorToPoppyFlash2(target);
                     float damage =
@@ -164,7 +159,7 @@ namespace UnderratedAIO.Champions
                                  (eSecond[E.Level - 1] + 0.8f * player.FlatMagicDamageMod)) +
                              (player.GetAutoAttackDamage(target) * 4));
                     float damageno = (float) (ComboDamage(target) + (player.GetAutoAttackDamage(target) * 4));
-                    if (config.Item("useeflash").GetValue<bool>() && hasFlash && !CheckWalls(player, target) &&
+                    if (config.Item("useeflash", true).GetValue<bool>() && hasFlash && !CheckWalls(player, target) &&
                         damage > target.Health && target.Health > damageno &&
                         CombatHelper.bestVectorToPoppyFlash(target).IsValid())
                     {
@@ -194,7 +189,7 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
-            if (config.Item("user").GetValue<bool>())
+            if (config.Item("user", true).GetValue<bool>())
             {
                 if (R.IsReady() && player.Distance(target.Position) < E.Range &&
                     ComboDamage(target) + player.GetAutoAttackDamage(target) * 5 < target.Health &&
@@ -210,15 +205,29 @@ namespace UnderratedAIO.Champions
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-            if (config.Item("userindanger").GetValue<Slider>().Value < player.CountEnemiesInRange(R.Range))
+            if (config.Item("userindanger", true).GetValue<Slider>().Value < player.CountEnemiesInRange(R.Range))
             {
-                if (config.Item("userOnweakest").GetValue<bool>())
+                if (config.Item("autopriority", true).GetValue<bool>())
                 {
                     var tmpTarg =
                         ObjectManager.Get<Obj_AI_Hero>()
                             .Where(
-                                i => i.IsEnemy && i.IsDead && player.Distance(i) < R.Range && i.Health > i.MaxHealth / 2)
+                                i => i.IsEnemy && !i.IsDead && player.Distance(i) < R.Range && i.Health > i.MaxHealth / 3)
                             .OrderBy(i => CombatHelper.GetChampDmgToMe(i))
+                            .FirstOrDefault();
+                    if (tmpTarg != null)
+                    {
+                        target = tmpTarg;
+                    }
+                }
+                else
+                {
+
+                    var tmpTarg = ObjectManager.Get<Obj_AI_Hero>()
+                            .Where(
+                                i => i.IsEnemy && !i.IsDead && player.Distance(i) < R.Range && i.Health > i.MaxHealth / 2)
+                            .OrderByDescending(i => config.Item("ultpriority" + i.SkinName, true).GetValue<Slider>().Value)
+                            .ThenByDescending(i=>i.Health)
                             .FirstOrDefault();
                     if (tmpTarg != null)
                     {
@@ -232,12 +241,12 @@ namespace UnderratedAIO.Champions
         private static void Clear()
         {
             var mob = Jungle.GetNearest(player.Position);
-            float perc = config.Item("minmana").GetValue<Slider>().Value / 100f;
+            float perc = config.Item("minmana", true).GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc)
             {
                 return;
             }
-            if (config.Item("useeLC").GetValue<bool>() && E.CanCast(mob) && CheckWalls(player, mob))
+            if (config.Item("useeLC", true).GetValue<bool>() && E.CanCast(mob) && CheckWalls(player, mob))
             {
                 E.CastOnUnit(mob, config.Item("packets").GetValue<bool>());
             }
@@ -245,9 +254,8 @@ namespace UnderratedAIO.Champions
 
         private static void Game_OnDraw(EventArgs args)
         {
-            DrawHelper.DrawCircle(config.Item("drawaa").GetValue<Circle>(), player.AttackRange);
-            DrawHelper.DrawCircle(config.Item("drawee").GetValue<Circle>(), E.Range);
-            DrawHelper.DrawCircle(config.Item("drawrr").GetValue<Circle>(), R.Range);
+            DrawHelper.DrawCircle(config.Item("drawee", true).GetValue<Circle>(), E.Range);
+            DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), R.Range);
             Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
@@ -255,7 +263,7 @@ namespace UnderratedAIO.Champions
 
         private static void OnEnemyGapcloser(ActiveGapcloser gapcloser)
         {
-            if (config.Item("useEgap").GetValue<bool>() && E.IsReady() && E.CanCast(gapcloser.Sender) &&
+            if (config.Item("useEgap", true).GetValue<bool>() && E.IsReady() && E.CanCast(gapcloser.Sender) &&
                 CheckWalls(player, gapcloser.Sender))
             {
                 E.CastOnUnit(gapcloser.Sender, config.Item("packets").GetValue<bool>());
@@ -322,42 +330,45 @@ namespace UnderratedAIO.Champions
 
             // Draw settings
             Menu menuD = new Menu("Drawings ", "dsettings");
-            menuD.AddItem(new MenuItem("drawaa", "Draw AA range")).SetValue(new Circle(false, Color.DarkCyan));
-            menuD.AddItem(new MenuItem("drawee", "Draw E range")).SetValue(new Circle(false, Color.DarkCyan));
-            menuD.AddItem(new MenuItem("drawrr", "Draw R range")).SetValue(new Circle(false, Color.DarkCyan));
+            menuD.AddItem(new MenuItem("drawee", "Draw E range", true)).SetValue(new Circle(false, Color.DarkCyan));
+            menuD.AddItem(new MenuItem("drawrr", "Draw R range", true)).SetValue(new Circle(false, Color.DarkCyan));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage")).SetValue(true);
             config.AddSubMenu(menuD);
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
-            menuC.AddItem(new MenuItem("useq", "Use Q")).SetValue(true);
-            menuC.AddItem(new MenuItem("usew", "Use W")).SetValue(true);
-            menuC.AddItem(new MenuItem("usee", "Use E")).SetValue(true);
-            menuC.AddItem(new MenuItem("useewall", "Use E only near walls")).SetValue(true);
-            menuC.AddItem(new MenuItem("useeflash", "Use flash to positioning")).SetValue(true);
-            menuC.AddItem(new MenuItem("useeflashforced", "Forced flash+E if possible"))
+            menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useewall", "Use E only near walls", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useeflash", "Use flash to positioning", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useeflashforced", "Forced flash+E if possible", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
-            menuC.AddItem(new MenuItem("user", "Use R to maximize dmg")).SetValue(true);
-            menuC.AddItem(new MenuItem("userindanger", "Auto activate if more than")).SetValue(new Slider(3, 1, 6));
-            menuC.AddItem(new MenuItem("userOnweakest", "Use on the weakest enemy")).SetValue(true);
-            menuC.AddItem(new MenuItem("selected", "Focus Selected target")).SetValue(true);
+            menuC.AddItem(new MenuItem("user", "Use R to maximize dmg", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("userindanger", "Auto activate if more than", true)).SetValue(new Slider(3, 1, 6));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // LaneClear Settings
             Menu menuLC = new Menu("Clear ", "Lcsettings");
-            menuLC.AddItem(new MenuItem("useqLC", "Use Q")).SetValue(true);
-            menuLC.AddItem(new MenuItem("useqLCSteal", "Use Q to steal in jungle")).SetValue(true);
-            menuLC.AddItem(new MenuItem("useqbsmite", "Use Q before smite")).SetValue(true);
-            menuLC.AddItem(new MenuItem("useeLC", "Use E")).SetValue(true);
-            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana")).SetValue(new Slider(50, 1, 100));
+            menuLC.AddItem(new MenuItem("useqLC", "Use Q", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("useqLCSteal", "Use Q to steal in jungle", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("useqbsmite", "Use Q before smite", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("useeLC", "Use E", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana", true)).SetValue(new Slider(50, 1, 100));
             config.AddSubMenu(menuLC);
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");
-            menuM.AddItem(new MenuItem("useEint", "Use E interrupt")).SetValue(true);
-            menuM.AddItem(new MenuItem("useEgap", "Use E on gapcloser near walls")).SetValue(true);
+            menuM.AddItem(new MenuItem("useEint", "Use E interrupt", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("useEgap", "Use E on gapcloser near walls", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-
-
+            var sulti = new Menu("R priority", "upriority");
+            foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))
+            {
+                sulti.AddItem(new MenuItem("ultpriority" + hero.SkinName, hero.SkinName, true)).SetValue(new Slider(1, 1, 5));
+            }
+            sulti.AddItem(new MenuItem("autopriority", "R auto priority", true)).SetValue(true);
+            menuM.AddSubMenu(sulti);
+            
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);
