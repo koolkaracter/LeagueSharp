@@ -21,8 +21,8 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static int[] eRanges = new int[] { 1150, 1250, 1350, 1450, 1700 };
-        public static float[] eChannelTimes = new float[] { 0.9f, 1.0f, 1.1f, 1.2f, 1.3f };
+        public static int[] eRanges = new int[] { 1150, 1300, 1450, 1600, 1750 };
+        public static float[] eChannelTimes = new float[] { 0.9f, 1.05f, 1.2f, 1.35f, 1.5f };
         public static Vector3 farmPos, pos;
         public static float zacETime;
 
