@@ -71,7 +71,7 @@ namespace UnderratedAIO.Champions
             return savedBarrels.Select(b => b.barrel).Where(b => b.IsValid);
         }
 
-        private bool KillableBarrel(Obj_AI_Base targetB)
+        private bool KillableBarrel(Obj_AI_Base targetB, bool melee = false)
         {
             if (targetB.Health < 2)
             {
@@ -81,7 +81,8 @@ namespace UnderratedAIO.Champions
             if (barrel != null)
             {
                 var time = targetB.Health * getEActivationDelay() * 1000;
-                if (System.Environment.TickCount - barrel.time + GetQTime(targetB) * 1000 > time)
+                if (System.Environment.TickCount - barrel.time + (melee ? player.AttackDelay : GetQTime(targetB)) * 1000 >
+                    time)
                 {
                     return true;
                 }
@@ -107,6 +108,7 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
+            orbwalker.SetAttack(true);
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             switch (orbwalker.ActiveMode)
             {
@@ -170,7 +172,7 @@ namespace UnderratedAIO.Champions
                                 o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
                                 KillableBarrel(o) && o.CountEnemiesInRange(BarrelExplosionRange) > 0);
 
-                if (barrel!=null)
+                if (barrel != null)
                 {
                     Q.Cast(barrel);
                 }
@@ -374,11 +376,18 @@ namespace UnderratedAIO.Champions
             var meleeRangeBarrel =
                 barrels.FirstOrDefault(
                     b =>
-                        (b.Health < 2 || (b.Health == 2 && Q.IsReady())) &&
+                        b.Health < 2 && KillableBarrel(b, true) &&
                         b.Distance(player) < Orbwalking.GetAutoAttackRange(player, b) &&
-                        b.CountEnemiesInRange(BarrelExplosionRange) > 0);
+                        ObjectManager.Get<Obj_AI_Hero>()
+                            .Count(
+                                o =>
+                                    o.Distance(b) < BarrelExplosionRange &&
+                                    b.Distance(Prediction.GetPrediction(o, 500).UnitPosition) <
+                                    BarrelExplosionRange) > 0);
             if (meleeRangeBarrel != null && !Q.IsReady() && !justQ)
             {
+                orbwalker.SetAttack(false);
+                Orbwalking.Orbwalk(meleeRangeBarrel, meleeRangeBarrel.Position.Extend(player.Position, 100), 80, 60);
                 player.IssueOrder(GameObjectOrder.AttackUnit, meleeRangeBarrel);
             }
             if (Q.IsReady())
