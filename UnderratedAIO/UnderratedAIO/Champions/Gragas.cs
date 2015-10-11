@@ -331,8 +331,8 @@ namespace UnderratedAIO.Champions
                 var logic = config.Item("user", true).GetValue<bool>() && !target.IsMoving &&
                             (target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun) ||
                              target.HasBuffOfType(BuffType.Suppression)) && !target.HasBuffOfType(BuffType.Knockback);
-                if (savedQ != null && !SimpleQ && target.Distance(qPos) > QExplosionRange &&
-                    target.Distance(player) < R.Range - 100 &&
+                if (config.Item("rtoq", true).GetValue<bool>() && savedQ != null && !SimpleQ &&
+                    target.Distance(qPos) > QExplosionRange && target.Distance(player) < R.Range - 100 &&
                     (target.Health < combodmg || CheckRPushForAlly(target, combodmg)) &&
                     target.Position.Distance(savedQ.position) < 550 + QExplosionRange / 2)
                 {
@@ -346,10 +346,12 @@ namespace UnderratedAIO.Champions
                         return;
                     }
                 }
-                if (logic && target.Health - combodmg < target.MaxHealth * 0.5f)
+                if (config.Item("rtoally", true).GetValue<bool>() && logic &&
+                    target.Health - combodmg < target.MaxHealth * 0.5f)
                 {
                     var allies =
-                        HeroManager.Allies.Where(a => !a.IsDead && !a.IsMe &&a.HealthPercent > 40 && a.Distance(target) < 700)
+                        HeroManager.Allies.Where(
+                            a => !a.IsDead && !a.IsMe && a.HealthPercent > 40 && a.Distance(target) < 700)
                             .OrderByDescending(a => TargetSelector.GetPriority(a));
                     if (allies.Any())
                     {
@@ -371,8 +373,8 @@ namespace UnderratedAIO.Champions
                         ObjectManager.Get<Obj_AI_Turret>()
                             .OrderBy(t => t.Distance(target))
                             .FirstOrDefault(t => t.Distance(target) < 2000 && t.IsAlly && !t.IsDead);
-                    
-                    if (turret != null)
+
+                    if (config.Item("rtoturret", true).GetValue<bool>() && turret != null)
                     {
                         var pos = target.Position.Extend(turret.Position, -100);
                         if (target.Distance(turret) > pos.Extend(target.Position, 500).Distance(turret.Position))
@@ -390,9 +392,9 @@ namespace UnderratedAIO.Champions
                             return;
                         }
                     }
-
                 }
-                if (config.Item("user", true).GetValue<bool>() && R.GetDamage(target) > target.Health &&
+                if (config.Item("rtokill", true).GetValue<bool>() && config.Item("user", true).GetValue<bool>() &&
+                    R.GetDamage(target) > target.Health &&
                     (savedQ == null ||
                      (savedQ != null && !qPos.IsValid() && target.Distance(savedQ.position) > QExplosionRange)) &&
                     (target.CountAlliesInRange(700) <= 1 || player.HealthPercent < 35))
@@ -604,6 +606,10 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R 1v1", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("rtoally", "   To ally", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("rtoq", "   To Q", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("rtoturret", "   To turret", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("rtokill", "   To kill", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "Use R teamfigh", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("insec", "E-R combo to Q", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
