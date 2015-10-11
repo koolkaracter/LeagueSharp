@@ -608,7 +608,6 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("insec", "E-R combo to Q", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
-            menuC.AddItem(new MenuItem("useFlash", "Use Flash", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
             // Harass Settings
