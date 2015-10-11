@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Timers;
 using LeagueSharp;
 using LeagueSharp.Common;
@@ -289,7 +290,7 @@ namespace UnderratedAIO.Helpers
             bool randomizeMinDistance = true)
         {
             var deltaT = Utils.GameTimeTickCount - LastMoveCommandT;
-            if (deltaT < _delay && !overrideTimer)
+            if (deltaT < _delay + _random.Next(0, 15) && !overrideTimer)
             {
                 return;
             }
@@ -353,7 +354,9 @@ namespace UnderratedAIO.Helpers
             bool randomizeMinDistance = true,
             bool autoWindup = false,
             bool meleePrediction = true,
-            bool movement = true)
+            OrbwalkingMode mode = OrbwalkingMode.None,
+            bool comboMovement = true,
+            bool clearMovement = true)
         {
             try
             {
@@ -384,7 +387,7 @@ namespace UnderratedAIO.Helpers
                         return;
                     }
                 }
-                if (!movement)
+                if ((!comboMovement && mode == OrbwalkingMode.Combo) || (!clearMovement && mode == OrbwalkingMode.LaneClear))
                 {
                     return;
                 }
@@ -552,6 +555,9 @@ namespace UnderratedAIO.Helpers
                 comboOpt.AddItem(new MenuItem("ComboMovement", "   Movement").SetShared().SetValue(true));
                 comboOpt.AddItem(new MenuItem("ComboMelee", "   Melee Magnet").SetShared().SetValue(true));
                 misc.AddSubMenu(comboOpt);
+                var clearOpt = new Menu("Clear Options", "clearOpt");
+                clearOpt.AddItem(new MenuItem("ClearMovement", "   Movement").SetShared().SetValue(true));
+                misc.AddSubMenu(clearOpt);
                 _config.AddSubMenu(misc);
                 /* Delay sliders */
                 _config.AddItem(
@@ -559,7 +565,7 @@ namespace UnderratedAIO.Helpers
                 _config.AddItem(new MenuItem("AutoWindup", "Try to fix stuttering").SetShared().SetValue(false));
                 _config.AddItem(new MenuItem("FarmDelay", "Farm delay").SetShared().SetValue(new Slider(0, 0, 200)));
                 _config.AddItem(
-                    new MenuItem("MovementDelay", "Movement delay").SetShared().SetValue(new Slider(30, 0, 150)))
+                    new MenuItem("MovementDelay", "Movement delay").SetShared().SetValue(new Slider(130, 0, 150)))
                     .ValueChanged += (sender, args) => SetMovementDelay(args.GetNewValue<Slider>().Value);
                 /*Load the menu*/
                 _config.AddItem(
@@ -852,7 +858,9 @@ namespace UnderratedAIO.Helpers
                         _config.Item("ExtraWindup").GetValue<Slider>().Value,
                         _config.Item("HoldPosRadius").GetValue<Slider>().Value, true, true,
                         _config.Item("AutoWindup").GetValue<bool>(), _config.Item("ComboMelee").GetValue<bool>(),
-                        _config.Item("ComboMovement").GetValue<bool>());
+                        this.ActiveMode,
+                        _config.Item("ComboMovement").GetValue<bool>(),
+                        _config.Item("ClearMovement").GetValue<bool>());
                 }
                 catch (Exception e)
                 {
