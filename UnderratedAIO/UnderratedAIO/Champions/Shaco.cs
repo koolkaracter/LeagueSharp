@@ -459,7 +459,7 @@ namespace UnderratedAIO.Champions
             Menu menuLC = new Menu("LaneClear ", "Lcsettings");
             menuLC.AddItem(new MenuItem("usewLC", "Use W", true)).SetValue(true);
             menuLC.AddItem(new MenuItem("whitLC", "   Min mob", true).SetValue(new Slider(2, 1, 5)));
-            menuLC.AddItem(new MenuItem("useeLC", "Use E", true)).SetValue(true);
+            menuLC.AddItem(new MenuItem("useeLC", "Use E to secure buff", true)).SetValue(true);
             config.AddSubMenu(menuLC);
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");

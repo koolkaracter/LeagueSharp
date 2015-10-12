@@ -214,7 +214,19 @@ namespace UnderratedAIO.Helpers
             }
             return hitC;
         }
-
+        public static bool CheckWalls(Vector3 from, Vector3 to)
+        {
+            var steps = 6f;
+            var stepLength = from.Distance(to) / steps;
+            for (int i = 1; i < steps+1; i++)
+            {
+                if (from.Extend(to, stepLength * i).IsWall())
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         public static List<Vector3> PointsAroundTheTarget(Obj_AI_Base target, float dist)
         {
             if (target == null)

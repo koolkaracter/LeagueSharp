@@ -69,7 +69,7 @@ namespace UnderratedAIO.Helpers
             "caitlynheadshotmissile", "frostarrow", "garenslash2",
             "kennenmegaproc", "lucianpassiveattack", "masteryidoublestrike", "quinnwenhanced", "renektonexecute",
             "renektonsuperexecute", "rengarnewpassivebuffdash", "trundleq", "xenzhaothrust", "xenzhaothrust2",
-            "xenzhaothrust3", "viktorqbuff", "GangplankQWrapper"
+            "xenzhaothrust3", "viktorqbuff", "GangplankQWrapper","RenektonExecute"
         };
 
         // Champs whose auto attacks can't be cancelled

@@ -32,9 +32,18 @@ namespace UnderratedAIO.Champions
             Game.OnUpdate += Game_OnGameUpdate;
             Orbwalking.BeforeAttack += beforeAttack;
             Orbwalking.AfterAttack += afterAttack;
+            Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
             Drawing.OnDraw += Game_OnDraw;
             Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
+        }
+
+        private void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
+        {
+            if (sender.IsMe)
+            {
+                Console.WriteLine(args.SData.Name);
+            }
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -65,7 +74,8 @@ namespace UnderratedAIO.Champions
         private void afterAttack(AttackableUnit unit, AttackableUnit target)
         {
             if (unit.IsMe && target is Obj_AI_Hero &&
-                (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo ||
+                ((orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
+                  checkFuryMode(SpellSlot.W, (Obj_AI_Base) target)) ||
                  orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed))
             {
                 var time = Game.Time - W.Instance.CooldownExpires;
@@ -74,12 +84,33 @@ namespace UnderratedAIO.Champions
                     ItemHandler.castHydra((Obj_AI_Hero) target);
                 }
             }
+            if (unit.IsMe && target is Obj_AI_Hero &&
+                config.Item("useCH", true).GetValue<StringList>().SelectedIndex == 0)
+            {
+                if (W.IsReady())
+                {
+                    W.Cast();
+                    Orbwalking.ResetAutoAttackTimer();
+                    return;
+                }
+                if (Q.IsReady())
+                {
+                    Q.Cast();
+                    return;
+                }
+                if (E.CanCast((Obj_AI_Base) target))
+                {
+                    E.Cast(target.Position);
+                    return;
+                }
+            }
         }
 
         private void beforeAttack(Orbwalking.BeforeAttackEventArgs args)
         {
             if (args.Unit.IsMe && W.IsReady() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
-                config.Item("usew", true).GetValue<bool>() && args.Target is Obj_AI_Hero)
+                args.Target is Obj_AI_Hero && checkFuryMode(SpellSlot.W, (Obj_AI_Base) args.Target) &&
+                config.Item("usew", true).GetValue<bool>())
             {
                 if ((player.Mana > 40 && !fury) || (Q.IsReady() && canBeOpWIthQ(player.Position)))
                 {
@@ -90,7 +121,8 @@ namespace UnderratedAIO.Champions
                 return;
             }
             if (args.Unit.IsMe && W.IsReady() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed &&
-                config.Item("usewH", true).GetValue<bool>() && args.Target is Obj_AI_Hero)
+                config.Item("usewH", true).GetValue<bool>() && args.Target is Obj_AI_Hero &&
+                config.Item("useCH", true).GetValue<StringList>().SelectedIndex != 0)
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -155,10 +187,11 @@ namespace UnderratedAIO.Champions
                 }
             }
             if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && !renw && !player.IsDashing() &&
+                checkFuryMode(SpellSlot.Q, target) &&
                 (!W.IsReady() ||
                  ((W.IsReady() && !fury) || (player.Health < target.Health) ||
-                  (Environment.Minion.countMinionsInrange(player.Position, Q.Range) + player.CountEnemiesInRange(Q.Range) >
-                  3 && fury))))
+                  (Environment.Minion.countMinionsInrange(player.Position, Q.Range) +
+                   player.CountEnemiesInRange(Q.Range) > 3 && fury))))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -172,7 +205,7 @@ namespace UnderratedAIO.Champions
                 lastE = System.Environment.TickCount;
                 return;
             }
-            if (config.Item("usee", true).GetValue<bool>() && !lastE.Equals(0) &&
+            if (config.Item("usee", true).GetValue<bool>() && checkFuryMode(SpellSlot.E, target) && !lastE.Equals(0) &&
                 (eDmg + player.GetAutoAttackDamage(target) > target.Health ||
                  (((W.IsReady() && canBeOpWIthQ(target.Position) && !rene) ||
                    (distance < target.Distance(player.Position.Extend(target.Position, E.Range)) - distance) ||
@@ -224,43 +257,84 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (config.Item("eqweb", true).GetValue<bool>() && Q.IsReady() && E.IsReady() && lastE.Equals(0) && fury && !rene)
+            switch (config.Item("useCH", true).GetValue<StringList>().SelectedIndex)
             {
-                if (config.Item("donteqwebtower", true).GetValue<bool>() &&
-                    player.Position.Extend(target.Position, E.Range).UnderTurret(true))
-                {
+                case 1:
+                    if (Q.IsReady() && E.IsReady() && lastE.Equals(0) && fury && !rene)
+                    {
+                        if (config.Item("donteqwebtower", true).GetValue<bool>() &&
+                            player.Position.Extend(target.Position, E.Range).UnderTurret(true))
+                        {
+                            return;
+                        }
+                        var closeGapTarget =
+                            ObjectManager.Get<Obj_AI_Minion>()
+                                .Where(
+                                    i =>
+                                        i.IsEnemy && player.Distance(i) < E.Range && !i.IsDead &&
+                                        i.Distance(target.ServerPosition) < Q.Range - 40)
+                                .OrderByDescending(i => Environment.Minion.countMinionsInrange(i.Position, Q.Range))
+                                .FirstOrDefault();
+                        if (closeGapTarget != null)
+                        {
+                            lastEpos = player.ServerPosition;
+                            Utility.DelayAction.Add(4100, () => lastEpos = new Vector3());
+                            E.Cast(closeGapTarget.Position, config.Item("packets").GetValue<bool>());
+                            lastE = System.Environment.TickCount;
+                            return;
+                        }
+                        else
+                        {
+                            lastEpos = player.ServerPosition;
+                            Utility.DelayAction.Add(4100, () => lastEpos = new Vector3());
+                            E.Cast(target.Position, config.Item("packets").GetValue<bool>());
+                            lastE = System.Environment.TickCount;
+                            return;
+                        }
+                    }
+                    if (player.Distance(target) < Orbwalking.GetRealAutoAttackRange(target) && Q.IsReady() &&
+                        E.IsReady() && E.IsReady())
+                    {
+                        orbwalker.ForceTarget(target);
+                    }
                     return;
-                }
-                var closeGapTarget =
-                    ObjectManager.Get<Obj_AI_Minion>()
-                        .Where(
-                            i =>
-                                i.IsEnemy && player.Distance(i) < E.Range && !i.IsDead &&
-                                i.Distance(target.ServerPosition) < Q.Range - 40)
-                        .OrderByDescending(i => Environment.Minion.countMinionsInrange(i.Position, Q.Range))
-                        .FirstOrDefault();
-                if (closeGapTarget != null)
-                {
-                    lastEpos = player.ServerPosition;
-                    Utility.DelayAction.Add(4100, () => lastEpos = new Vector3());
-                    E.Cast(closeGapTarget.Position, config.Item("packets").GetValue<bool>());
-                    lastE = System.Environment.TickCount;
+                    break;
+                case 0:
+                    if (Q.IsReady() && W.IsReady() && !rene && E.CanCast(target))
+                    {
+                        if (config.Item("donteqwebtower", true).GetValue<bool>() &&
+                            player.Position.Extend(target.Position, E.Range).UnderTurret(true))
+                        {
+                            return;
+                        }
+                        if (E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>()))
+                        {
+                            lastE = System.Environment.TickCount;
+                        }
+                    }
+                    if (rene && E.CanCast(target) && !lastE.Equals(0) && System.Environment.TickCount - lastE > 3600)
+                    {
+                        E.CastIfHitchanceEquals(
+                            target, HitChance.High, config.Item("packets").GetValue<bool>());
+                    }
+                    if (player.Distance(target) < Orbwalking.GetRealAutoAttackRange(target) && Q.IsReady() &&
+                        E.IsReady() && E.IsReady())
+                    {
+                        orbwalker.ForceTarget(target);
+                    }
                     return;
-                }
-                else
-                {
-                    lastEpos = player.ServerPosition;
-                    Utility.DelayAction.Add(4100, () => lastEpos = new Vector3());
-                    E.Cast(target.Position, config.Item("packets").GetValue<bool>());
-                    lastE = System.Environment.TickCount;
-                    return;
-                }
+                    break;
+                default:
+                    break;
             }
+
             if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target))
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("eqweb", true).GetValue<bool>() && !lastE.Equals(0) && rene && !Q.IsReady() && !renw)
+
+            if (config.Item("useCH", true).GetValue<StringList>().SelectedIndex == 0 && !lastE.Equals(0) && rene &&
+                !Q.IsReady() && !renw)
             {
                 if (lastEpos.IsValid())
                 {
@@ -347,6 +421,50 @@ namespace UnderratedAIO.Champions
             return (float) damage;
         }
 
+        public bool checkFuryMode(SpellSlot spellSlot, Obj_AI_Base target)
+        {
+            if (Damage.GetSpellDamage(player, target, spellSlot) > target.Health)
+            {
+                return true;
+            }
+            if (!fury)
+            {
+                return true; 
+            }
+            if (player.IsWindingUp)
+            {
+                return false;
+            }
+            switch (config.Item("furyMode", true).GetValue<StringList>().SelectedIndex)
+            {
+                case 0:
+                    return true;
+                    break;
+                case 1:
+                    if (spellSlot != SpellSlot.Q && Q.IsReady())
+                    {
+                        return false;
+                    }
+                    break;
+                case 2:
+                    if (spellSlot != SpellSlot.W && (W.IsReady() || renw))
+                    {
+                        return false;
+                    }
+                    break;
+                case 3:
+                    if (spellSlot != SpellSlot.E && rene)
+                    {
+                        return false;
+                    }
+                    break;
+                default:
+                    return true;
+                    break;
+            }
+            return false;
+        }
+
         private void InitRenekton()
         {
             Q = new Spell(SpellSlot.Q, 300);
@@ -388,6 +506,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R under", true)).SetValue(new Slider(20, 0, 100));
             menuC.AddItem(new MenuItem("userindanger", "Use R above X enemy", true)).SetValue(new Slider(2, 1, 5));
+            menuC.AddItem(new MenuItem("furyMode", "Fury priority", true))
+                .SetValue(new StringList(new[] { "No priority", "Q", "W", "E" }, 0));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
@@ -395,7 +515,8 @@ namespace UnderratedAIO.Champions
             Menu menuH = new Menu("Harass ", "Hsettings");
             menuH.AddItem(new MenuItem("useqH", "Use Q", true)).SetValue(true);
             menuH.AddItem(new MenuItem("usewH", "Use W", true)).SetValue(true);
-            menuH.AddItem(new MenuItem("eqweb", "E-furyQ-Eback if possible", true)).SetValue(true);
+            menuH.AddItem(new MenuItem("useCH", "Harass mode", true))
+                .SetValue(new StringList(new[] { "Use harass combo", "E-furyQ-Eback if possible", "Basic" }, 1));
             menuH.AddItem(new MenuItem("donteqwebtower", "Don't dash under tower", true)).SetValue(true);
             config.AddSubMenu(menuH);
             // LaneClear Settings
@@ -408,7 +529,7 @@ namespace UnderratedAIO.Champions
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
