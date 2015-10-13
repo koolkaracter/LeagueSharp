@@ -38,6 +38,16 @@ namespace UnderratedAIO.Champions
             GameObject.OnCreate += GameObjectOnOnCreate;
             GameObject.OnDelete += GameObject_OnDelete;
             Interrupter2.OnInterruptableTarget += OnInterruptableTarget;
+            CustomEvents.Unit.OnDash += Unit_OnDash;
+        }
+
+        private void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args)
+        {
+            if (sender.IsEnemy && config.Item("useegc", true).GetValue<bool>() && sender is Obj_AI_Hero &&
+                args.EndPos.Distance(player.Position) < E.Range && E.CanCast(sender))
+            {
+                Utility.DelayAction.Add(args.Duration, () => { E.Cast(args.EndPos); });  
+            }
         }
 
         private void OnInterruptableTarget(Obj_AI_Hero target, Interrupter2.InterruptableTargetEventArgs args)
@@ -400,7 +410,12 @@ namespace UnderratedAIO.Champions
                     (target.CountAlliesInRange(700) <= 1 || player.HealthPercent < 35))
                 {
                     //Console.WriteLine("R to Kill");
-                    R.CastIfHitchanceEquals(target, HitChance.VeryHigh, config.Item("packets").GetValue<bool>());
+                    var pred = R.GetPrediction(target, true, 150f);
+                    if (pred.Hitchance>=HitChance.High)
+                    {
+                        R.Cast(pred.CastPosition);
+                    }
+                    //R.CastIfHitchanceEquals(target, HitChance.VeryHigh, config.Item("packets").GetValue<bool>());
                     return;
                 }
             }
@@ -635,6 +650,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("useEint", "Use E interrupt", true)).SetValue(true);
             menuM.AddItem(new MenuItem("useRint", "Use R interrupt", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("useegc", "Use E gapclosers", true)).SetValue(true);
             menuM.AddItem(new MenuItem("autoQ", "Auto Q", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
