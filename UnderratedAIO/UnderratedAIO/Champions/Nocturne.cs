@@ -17,7 +17,7 @@ namespace UnderratedAIO.Champions
         public static Orbwalking.Orbwalker orbwalker;
         public static AutoLeveler autoLeveler;
         public static Spell P, Q, W, E, R;
-        public static int[] rRanges = new int[] {2500, 3250, 4000};
+        public static int[] rRanges = new int[] { 2500, 3250, 4000 };
         private static float lastR;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
 
@@ -30,7 +30,7 @@ namespace UnderratedAIO.Champions
             Game.OnUpdate += Game_OnGameUpdate;
             Helpers.Jungle.setSmiteSlot();
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
-            Obj_AI_Base.OnProcessSpellCast+=Obj_AI_Hero_OnProcessSpellCast;
+            Obj_AI_Base.OnProcessSpellCast += Obj_AI_Hero_OnProcessSpellCast;
         }
 
         private void Game_OnGameUpdate(EventArgs args)
@@ -42,10 +42,10 @@ namespace UnderratedAIO.Champions
                     Combo();
                     break;
                 case Orbwalking.OrbwalkingMode.Mixed:
-                        Harass(target);
+                    Harass(target);
                     break;
                 case Orbwalking.OrbwalkingMode.LaneClear:
-                        Clear();
+                    Clear();
                     break;
                 case Orbwalking.OrbwalkingMode.LastHit:
                     break;
@@ -78,11 +78,11 @@ namespace UnderratedAIO.Champions
             {
                 if (dist < 550)
                 {
-                    Q.CastIfHitchanceEquals(target,HitChance.Medium , config.Item("packets").GetValue<bool>());
+                    Q.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
                 }
                 else
                 {
-                    Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>()); 
+                    Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
                 }
             }
             if (config.Item("usee", true).GetValue<bool>() && E.CanCast(eTarget) &&
@@ -96,10 +96,10 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("user", true).GetValue<bool>() && lastR.Equals(0) && !target.UnderTurret(true) &&
                 R.CanCast(target) &&
-                ((qTrailOnMe && eBuff(target) &&
-                  target.MoveSpeed > player.MoveSpeed && dist > 360 && target.HealthPercent<60) ||
-                 (dist < rRanges[R.Level - 1] && dist > 900 && target.CountAlliesInRange(2000) >=
-                  target.CountEnemiesInRange(2000) &&
+                ((qTrailOnMe && eBuff(target) && target.MoveSpeed > player.MoveSpeed && dist > 360 &&
+                  target.HealthPercent < 60) ||
+                 (dist < rRanges[R.Level - 1] && dist > 900 &&
+                  target.CountAlliesInRange(2000) >= target.CountEnemiesInRange(2000) &&
                   cmbdmg + Environment.Hero.GetAdOverFive(target) > target.Health &&
                   (target.Health > Q.GetDamage(target) || !Q.IsReady())) ||
                  (player.HealthPercent < 40 && target.HealthPercent < 40 && target.CountAlliesInRange(1000) == 1 &&
@@ -110,8 +110,9 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("user", true).GetValue<bool>() && !lastR.Equals(0) && R.CanCast(target) &&
                 ((cmbdmg * 1.6 + Environment.Hero.GetAdOverFive(target) > target.Health ||
-                  R.GetDamage(target) > target.Health || (qTrailOnMe && eBuff(target) &&
-                  target.MoveSpeed > player.MoveSpeed && dist > 360 && target.HealthPercent < 60))))
+                  R.GetDamage(target) > target.Health ||
+                  (qTrailOnMe && eBuff(target) && target.MoveSpeed > player.MoveSpeed && dist > 360 &&
+                   target.HealthPercent < 60))))
             {
                 var time = System.Environment.TickCount - lastR;
                 if (time > 3500f || player.Distance(target) > E.Range || cmbdmg > target.Health ||
@@ -129,6 +130,7 @@ namespace UnderratedAIO.Champions
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
         }
+
         private float GetTargetRange()
         {
             if (R.IsReady())
@@ -140,6 +142,7 @@ namespace UnderratedAIO.Champions
                 return Q.Range;
             }
         }
+
         private void Clear()
         {
             if (Environment.Minion.KillableMinion(player.AttackRange))
@@ -152,7 +155,7 @@ namespace UnderratedAIO.Champions
                 return;
             }
             MinionManager.FarmLocation bestPositionQ =
-                E.GetLineFarmLocation(MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly));
+                Q.GetLineFarmLocation(MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly));
             if (config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() &&
                 bestPositionQ.MinionsHit >= config.Item("qhitLC", true).GetValue<Slider>().Value)
             {
@@ -184,7 +187,7 @@ namespace UnderratedAIO.Champions
         private static float ComboDamage(Obj_AI_Hero hero)
         {
             double damage = 0;
-            if (Q.IsReady() && Q.Instance.ManaCost<player.Mana)
+            if (Q.IsReady() && Q.Instance.ManaCost < player.Mana)
             {
                 damage += Damage.GetSpellDamage(player, hero, SpellSlot.Q);
             }
@@ -262,7 +265,8 @@ namespace UnderratedAIO.Champions
         {
             DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), Q.Range);
             DrawHelper.DrawCircle(config.Item("drawee", true).GetValue<Circle>(), E.Range);
-            DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), R.Level>=1?rRanges[R.Level - 1]:rRanges[0]);
+            DrawHelper.DrawCircle(
+                config.Item("drawrr", true).GetValue<Circle>(), R.Level >= 1 ? rRanges[R.Level - 1] : rRanges[0]);
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
@@ -284,8 +288,7 @@ namespace UnderratedAIO.Champions
             P.SetSkillshot(
                 3000, Orbwalking.GetRealAutoAttackRange(player) + 50, 3000, false, SkillshotType.SkillshotCircle);
             Q = new Spell(SpellSlot.Q, 1150);
-            Q.SetSkillshot(
-                0.25f, Q.Instance.SData.LineWidth, 1350, false, SkillshotType.SkillshotLine);
+            Q.SetSkillshot(0.25f, 60f, 1350, false, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W);
             E = new Spell(SpellSlot.E, 400);
             R = new Spell(SpellSlot.R, rRanges[0]);
@@ -335,10 +338,12 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuD);
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
-            menuC.AddItem(new MenuItem("useqMaxRange", "   Q max Range", true)).SetValue(new Slider(1000, 0, (int)Q.Range));
+            menuC.AddItem(new MenuItem("useqMaxRange", "   Q max Range", true))
+                .SetValue(new Slider(1000, 0, (int) Q.Range));
             menuC.AddItem(new MenuItem("usew", "Use W against targeted CC", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
-            menuC.AddItem(new MenuItem("useeMaxRange", "   E max Range", true)).SetValue(new Slider(300, 0, (int)E.Range));
+            menuC.AddItem(new MenuItem("useeMaxRange", "   E max Range", true))
+                .SetValue(new Slider(300, 0, (int) E.Range));
             menuC.AddItem(new MenuItem("user", "Use R in close range", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
@@ -356,7 +361,7 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
