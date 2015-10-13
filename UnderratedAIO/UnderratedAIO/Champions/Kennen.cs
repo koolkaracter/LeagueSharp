@@ -47,6 +47,15 @@ namespace UnderratedAIO.Champions
         private void Game_OnGameUpdate(EventArgs args)
         {
             orbwalker.SetMovement(true);
+            if (player.HasBuff("KennenLightningRush"))
+            {
+                orbwalker.SetAttack(false);
+            }
+            else
+            {
+                orbwalker.SetAttack(true);
+            }
+            
             Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
             switch (orbwalker.ActiveMode)
             {
@@ -160,10 +169,21 @@ namespace UnderratedAIO.Champions
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
             var moveTo = targetE.FirstOrDefault();
-            if (player.HasBuff("KennenLightningRush") && moveTo != null)
+
+            if (player.HasBuff("KennenLightningRush"))
             {
-                orbwalker.SetMovement(false);
-                player.IssueOrder(GameObjectOrder.MoveTo, moveTo);
+                if (moveTo==null)
+                {
+                    orbwalker.SetMovement(false);
+                    player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                }
+                else
+                {
+                    orbwalker.SetMovement(false);
+                    player.IssueOrder(GameObjectOrder.MoveTo, moveTo);
+                    
+                }
+
             }
         }
 
