@@ -19,8 +19,8 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static bool justQ, useIgnite;
-        public Vector3 qPos;
+        public static bool justQ, useIgnite, justE;
+        public Vector3 qPos, from, to ,brl;
         public const int QExplosionRange = 300;
         public static GragasQ savedQ = null;
         public double[] Rwave = new double[] { 50, 70, 90 };
@@ -39,6 +39,15 @@ namespace UnderratedAIO.Champions
             GameObject.OnDelete += GameObject_OnDelete;
             Interrupter2.OnInterruptableTarget += OnInterruptableTarget;
             CustomEvents.Unit.OnDash += Unit_OnDash;
+            AntiGapcloser.OnEnemyGapcloser += OnEnemyGapcloser;
+        }
+
+        private void OnEnemyGapcloser(ActiveGapcloser gapcloser)
+        {
+            if (config.Item("usewgc", true).GetValue<bool>() && gapcloser.End.Distance(player.Position) < 200)
+            {
+                W.Cast();
+            }
         }
 
         private void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args)
@@ -46,7 +55,7 @@ namespace UnderratedAIO.Champions
             if (sender.IsEnemy && config.Item("useegc", true).GetValue<bool>() && sender is Obj_AI_Hero &&
                 args.EndPos.Distance(player.Position) < E.Range && E.CanCast(sender))
             {
-                Utility.DelayAction.Add(args.Duration, () => { E.Cast(args.EndPos); });  
+                Utility.DelayAction.Add(args.Duration, () => { E.Cast(args.EndPos); });
             }
         }
 
@@ -140,24 +149,6 @@ namespace UnderratedAIO.Champions
                 default:
                     break;
             }
-            if (config.Item("insec", true).GetValue<KeyBind>().Active)
-            {
-                if (target == null)
-                {
-                    player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
-                    return;
-                }
-                else if (savedQ != null)
-                {
-                    if (E.CanCast(target))
-                    {
-                        E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
-                    }
-                    HandeR(target);
-                    DetonateQ();
-                }
-                Orbwalking.Orbwalk(target, Game.CursorPos, 90, 90);
-            }
             if (config.Item("autoQ", true).GetValue<bool>())
             {
                 if (Q.IsReady() && config.Item("useqH", true).GetValue<bool>() && savedQ != null)
@@ -172,6 +163,31 @@ namespace UnderratedAIO.Champions
                 {
                     Q.Cast();
                 }
+            }
+            if (config.Item("insec", true).GetValue<KeyBind>().Active)
+            {
+                if (target == null)
+                {
+                    player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                    return;
+                }
+                else if (savedQ != null)
+                {
+                    if (E.CanCast(target) &&
+                        Prediction.GetPrediction(target, 0.2f).UnitPosition.Distance(savedQ.position) < 500)
+                    {
+                        E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                    }
+                    if (savedQ != null && !SimpleQ /*&& target.Distance(qPos) > QExplosionRange*/&&
+                        target.Distance(player) < R.Range - 100 &&
+                        target.Position.Distance(savedQ.position) < 550 + QExplosionRange / 2 &&
+                        !target.HasBuffOfType(BuffType.Knockback))
+                    {
+                        HandeR(target, savedQ.position, true);
+                    }
+                    DetonateQ();
+                }
+                Orbwalking.Orbwalk(target, Game.CursorPos, 90, 90);
             }
         }
 
@@ -299,7 +315,7 @@ namespace UnderratedAIO.Champions
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite", true).GetValue<bool>() &&
                 ignitedmg > HealthPrediction.GetHealthPrediction(target, 700) && hasIgnite &&
-                !CombatHelper.CheckCriticalBuffs(target) && !Q.IsReady() &&
+                !CombatHelper.CheckCriticalBuffs(target) &&
                 ((savedQ == null ||
                   (savedQ != null && target.Distance(savedQ.position) < QExplosionRange &&
                    getQdamage(target) > target.Health)) || useIgnite))
@@ -325,7 +341,7 @@ namespace UnderratedAIO.Champions
                     CastE(target, combodmg);
                 }
             }
-            if (W.IsReady() && !Q.CanCast(target) && config.Item("usew", true).GetValue<bool>() &&
+            if (W.IsReady() && (!SimpleQ || !Q.IsReady()) && config.Item("usew", true).GetValue<bool>() &&
                 player.Distance(target) < 300 && Orbwalking.CanMove(100) &&
                 target.Health > combodmg - getWdamage(target))
             {
@@ -338,21 +354,21 @@ namespace UnderratedAIO.Champions
                 {
                     return;
                 }
-                var logic = config.Item("user", true).GetValue<bool>() && !target.IsMoving &&
-                            (target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun) ||
-                             target.HasBuffOfType(BuffType.Suppression)) && !target.HasBuffOfType(BuffType.Knockback);
+                var logic = config.Item("user", true).GetValue<bool>();
                 if (config.Item("rtoq", true).GetValue<bool>() && savedQ != null && !SimpleQ &&
-                    target.Distance(qPos) > QExplosionRange && target.Distance(player) < R.Range - 100 &&
+                    (target.Distance(qPos) > QExplosionRange ||
+                     (target.Health < combodmg && target.Health > getQdamage(target))) &&
+                    target.Distance(player) < R.Range - 100 &&
                     (target.Health < combodmg || CheckRPushForAlly(target, combodmg)) &&
                     target.Position.Distance(savedQ.position) < 550 + QExplosionRange / 2)
                 {
-                    var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(savedQ.position, -100);
+                    var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(savedQ.position, -200);
                     if (cast.Distance(player.Position) < R.Range)
                     {
-                        //Console.WriteLine("R to Q");
+                        Console.WriteLine("R to Q");
                         useIgnite = true;
-                        Utility.DelayAction.Add(200, () => useIgnite = false);
-                        R.Cast(cast);
+                        Utility.DelayAction.Add(400, () => useIgnite = false);
+                        HandeR(target, savedQ.position, true);
                         return;
                     }
                 }
@@ -361,20 +377,21 @@ namespace UnderratedAIO.Champions
                 {
                     var allies =
                         HeroManager.Allies.Where(
-                            a => !a.IsDead && !a.IsMe && a.HealthPercent > 40 && a.Distance(target) < 700)
-                            .OrderByDescending(a => TargetSelector.GetPriority(a));
+                            a =>
+                                !a.IsDead && !a.IsMe && a.HealthPercent > 40 && a.Distance(target) < 700 &&
+                                a.Distance(target) > 300).OrderByDescending(a => TargetSelector.GetPriority(a));
                     if (allies.Any())
                     {
                         foreach (var ally in allies)
                         {
-                            var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(ally.Position, -100);
+                            var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(ally.Position, -200);
                             if (cast.CountEnemiesInRange(1000) <= cast.CountAlliesInRange(1000) &&
                                 cast.Distance(player.Position) < R.Range &&
                                 cast.Extend(target.Position, 500).Distance(ally.Position) <
                                 target.Distance(ally.Position))
                             {
-                                //Console.WriteLine("R to Ally");
-                                R.Cast(cast);
+                                Console.WriteLine("R to Ally: " + ally.Name);
+                                HandeR(target, Prediction.GetPrediction(ally, 400f).UnitPosition, false);
                                 return;
                             }
                         }
@@ -386,32 +403,32 @@ namespace UnderratedAIO.Champions
 
                     if (config.Item("rtoturret", true).GetValue<bool>() && turret != null)
                     {
-                        var pos = target.Position.Extend(turret.Position, -100);
+                        var pos = target.Position.Extend(turret.Position, -200);
                         if (target.Distance(turret) > pos.Extend(target.Position, 500).Distance(turret.Position))
                         {
                             //nothing
                         }
-                        if ((pos.CountEnemiesInRange(1000) < pos.CountAlliesInRange(1000) &&
-                             target.Health - combodmg < target.MaxHealth * 0.4f) ||
-                            (ObjectManager.Get<Obj_AI_Turret>()
-                                .Count(t => t.Distance(pos) < 950 && t.IsAlly && t.IsValid && !t.IsDead) > 0 &&
-                             target.Health - combodmg < target.MaxHealth * 0.5f))
+                        else if ((pos.CountEnemiesInRange(1000) < pos.CountAlliesInRange(1000) &&
+                                  target.Health - combodmg < target.MaxHealth * 0.4f) ||
+                                 (ObjectManager.Get<Obj_AI_Turret>()
+                                     .Count(t => t.Distance(pos) < 950 && t.IsAlly && t.IsValid && !t.IsDead) > 0 &&
+                                  target.Health - combodmg < target.MaxHealth * 0.5f))
                         {
-                            //Console.WriteLine("R to Turret");
-                            R.Cast(pos);
+                            Console.WriteLine("R to Turret");
+                            HandeR(target, turret.Position, false);
                             return;
                         }
                     }
                 }
                 if (config.Item("rtokill", true).GetValue<bool>() && config.Item("user", true).GetValue<bool>() &&
-                    R.GetDamage(target) > target.Health &&
+                    R.GetDamage(target) > target.Health && !justE && !justQ &&
                     (savedQ == null ||
                      (savedQ != null && !qPos.IsValid() && target.Distance(savedQ.position) > QExplosionRange)) &&
                     (target.CountAlliesInRange(700) <= 1 || player.HealthPercent < 35))
                 {
-                    //Console.WriteLine("R to Kill");
-                    var pred = R.GetPrediction(target, true, 150f);
-                    if (pred.Hitchance>=HitChance.High)
+                    Console.WriteLine("R to Kill");
+                    var pred = R.GetPrediction(target, true);
+                    if (pred.Hitchance >= HitChance.VeryHigh)
                     {
                         R.Cast(pred.CastPosition);
                     }
@@ -443,18 +460,65 @@ namespace UnderratedAIO.Champions
             return player.Mana > manareq;
         }
 
-        private void HandeR(Obj_AI_Hero target)
+        private void HandeR(Obj_AI_Base target, Vector3 toVector3, bool toBarrel)
         {
-            if (savedQ != null && !SimpleQ && !target.IsMoving && target.Distance(qPos) > QExplosionRange &&
-                target.Distance(player) < R.Range - 100 &&
-                (target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun) ||
-                 target.HasBuffOfType(BuffType.Suppression)) &&
-                target.Position.Distance(savedQ.position) < 550 + QExplosionRange / 2 &&
-                !target.HasBuffOfType(BuffType.Knockback))
+            if (target == null || !toVector3.IsValid())
             {
-                var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(savedQ.position, -100);
-                R.Cast(cast);
+                return;
             }
+            if (target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun) ||
+                target.HasBuffOfType(BuffType.Suppression) ||
+                target.HasBuffOfType(BuffType.Knockup) && !target.IsMoving)
+            {
+                var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(toVector3, -200);
+                if (checkBuffs(target, player.Distance(cast)) && player.Distance(cast)<R.Range)
+                {
+                    if (toBarrel &&
+                        4000 - savedQ.deltaT() > (player.Distance(cast) + cast.Distance(savedQ.position)) / R.Speed)
+                    {
+                        R.Cast(cast);
+                        from = target.Position;
+                        to = cast;
+                        brl = toVector3;
+                        return;
+                    }
+                    else if (!toBarrel)
+                    {
+                        from = target.Position;
+                        to = cast;
+                        brl = toVector3;
+                        R.Cast(cast);
+                    }
+                }
+            }
+            /*
+            if (!config.Item("insecOnlyStun", true).GetValue<bool>())
+            {
+                var cast = R.GetPrediction(target, true, 90);
+                if (cast.Hitchance >= HitChance.VeryHigh)
+                {
+                    R.Cast(cast.CastPosition.Extend(savedQ.position, -100));
+                }
+            }*/
+        }
+
+        private bool checkBuffs(Obj_AI_Base hero, float distance)
+        {
+            var stun =
+                hero.Buffs.Where(
+                    buff =>
+                        buff.Type == BuffType.Snare || buff.Type == BuffType.Stun || buff.Type == BuffType.Suppression ||
+                        buff.Type == BuffType.Knockup)
+                    .OrderByDescending(buff => CombatHelper.GetBuffTime(buff))
+                    .FirstOrDefault();
+            if (stun != null)
+            {
+                if (stun != null && CombatHelper.GetBuffTime(stun) > distance / R.Speed)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private bool CheckRPushForAlly(Obj_AI_Hero target, float combodmg)
@@ -505,6 +569,9 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
+            if (from.IsValid()) Render.Circle.DrawCircle(to, 70, Color.LawnGreen, 8);
+            if (from.IsValid()) Render.Circle.DrawCircle(from, 60, Color.Red, 8);
+            if (from.IsValid()) Render.Circle.DrawCircle(brl, 50, Color.DeepSkyBlue, 8);
         }
 
         private static float ComboDamage(Obj_AI_Hero hero)
@@ -593,6 +660,15 @@ namespace UnderratedAIO.Champions
                         Utility.DelayAction.Add(500, () => justQ = false);
                     }
                 }
+                if (args.SData.Name == "GragasE")
+                {
+                    var dist = player.Distance(args.End);
+                    if (!justE)
+                    {
+                        justE = true;
+                        Utility.DelayAction.Add((int)(dist > E.Range ? E.Range : dist / E.Speed * 1000), () => justE = false);
+                    }
+                }
             }
         }
 
@@ -628,6 +704,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("Rmin", "Use R teamfigh", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("insec", "E-R combo to Q", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+            //menuC.AddItem(new MenuItem("insecOnlyStun", "   Only Stunned enemy", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
@@ -649,7 +726,8 @@ namespace UnderratedAIO.Champions
 
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("useEint", "Use E interrupt", true)).SetValue(true);
-            menuM.AddItem(new MenuItem("useRint", "Use R interrupt", true)).SetValue(true);
+            menuM.AddItem(new MenuItem("useRint", "Use R interrupt", true)).SetValue(false);
+            menuM.AddItem(new MenuItem("usewgc", "Use W gapclosers", true)).SetValue(false);
             menuM.AddItem(new MenuItem("useegc", "Use E gapclosers", true)).SetValue(true);
             menuM.AddItem(new MenuItem("autoQ", "Auto Q", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
