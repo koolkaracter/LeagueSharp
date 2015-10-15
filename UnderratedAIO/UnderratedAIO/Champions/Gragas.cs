@@ -19,8 +19,8 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static bool justQ, useIgnite, justE;
-        public Vector3 qPos;
+        public static bool justQ, useIgnite, justE, canUlt;
+        public Vector3 qPos, lastpos;
         public const int QExplosionRange = 300;
         public static GragasQ savedQ = null;
         public double[] Rwave = new double[] { 50, 70, 90 };
@@ -174,7 +174,8 @@ namespace UnderratedAIO.Champions
                 else if (savedQ != null)
                 {
                     if (E.CanCast(target) &&
-                        Prediction.GetPrediction(target, 0.2f).UnitPosition.Distance(savedQ.position) < 500)
+                        Prediction.GetPrediction(target, 0.2f).UnitPosition.Distance(savedQ.position) <
+                        500 + QExplosionRange / 2)
                     {
                         E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
                     }
@@ -322,6 +323,7 @@ namespace UnderratedAIO.Champions
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
+            var rqCombo = R.GetDamage(target) + getQdamage(target) + (hasIgnite ? ignitedmg : 0);
             if (Q.CanCast(target) && config.Item("useq", true).GetValue<bool>() && savedQ == null && SimpleQ)
             {
                 if (Q.CastIfHitchanceEquals(target, HitChance.VeryHigh, config.Item("packets").GetValue<bool>()))
@@ -357,18 +359,19 @@ namespace UnderratedAIO.Champions
                 var logic = config.Item("user", true).GetValue<bool>();
                 if (config.Item("rtoq", true).GetValue<bool>() && savedQ != null && !SimpleQ &&
                     (target.Distance(qPos) > QExplosionRange ||
-                     (target.Health < combodmg && target.Health > getQdamage(target))) &&
+                     (target.Health < rqCombo && target.Health > getQdamage(target))) &&
                     target.Distance(player) < R.Range - 100 &&
-                    (target.Health < combodmg || CheckRPushForAlly(target, combodmg)) &&
+                    (target.Health < rqCombo || CheckRPushForAlly(target, rqCombo)) &&
                     target.Position.Distance(savedQ.position) < 550 + QExplosionRange / 2)
                 {
                     var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(savedQ.position, -200);
                     if (cast.Distance(player.Position) < R.Range)
                     {
                         //Console.WriteLine("R to Q");
-                        if (target.Health < combodmg && target.Health > combodmg-ignitedmg)
+                        if (target.Health < rqCombo && target.Health > rqCombo - ignitedmg &&
+                            player.Distance(target) < 580)
                         {
-                            useIgnite = true;  
+                            useIgnite = true;
                         }
 
                         Utility.DelayAction.Add(400, () => useIgnite = false);
@@ -377,7 +380,7 @@ namespace UnderratedAIO.Champions
                     }
                 }
                 if (config.Item("rtoally", true).GetValue<bool>() && logic &&
-                    target.Health - combodmg < target.MaxHealth * 0.5f)
+                    target.Health - rqCombo < target.MaxHealth * 0.5f)
                 {
                     var allies =
                         HeroManager.Allies.Where(
@@ -388,7 +391,9 @@ namespace UnderratedAIO.Champions
                     {
                         foreach (var ally in allies)
                         {
-                            var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(ally.Position, -200);
+                            var cast =
+                                Prediction.GetPrediction(target, 1000f)
+                                    .UnitPosition.Extend(Prediction.GetPrediction(ally, 400f).UnitPosition, -200);
                             if (cast.CountEnemiesInRange(1000) <= cast.CountAlliesInRange(1000) &&
                                 cast.Distance(player.Position) < R.Range &&
                                 cast.Extend(target.Position, 500).Distance(ally.Position) <
@@ -413,7 +418,7 @@ namespace UnderratedAIO.Champions
                             //nothing
                         }
                         else if ((pos.CountEnemiesInRange(1000) < pos.CountAlliesInRange(1000) &&
-                                  target.Health - combodmg < target.MaxHealth * 0.4f) ||
+                                  target.Health - rqCombo < target.MaxHealth * 0.4f) ||
                                  (ObjectManager.Get<Obj_AI_Turret>()
                                      .Count(t => t.Distance(pos) < 950 && t.IsAlly && t.IsValid && !t.IsDead) > 0 &&
                                   target.Health - combodmg < target.MaxHealth * 0.5f))
@@ -472,10 +477,15 @@ namespace UnderratedAIO.Champions
             }
             if (target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun) ||
                 target.HasBuffOfType(BuffType.Suppression) ||
-                target.HasBuffOfType(BuffType.Knockup) && !target.IsMoving)
+                target.HasBuffOfType(BuffType.Knockup) && !target.HasBuffOfType(BuffType.Knockback) && !target.IsMoving &&
+                !target.IsDashing() && !justE)
             {
-                var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(toVector3, -200);
-                if (checkBuffs(target, player.Distance(cast)) && player.Distance(cast)<R.Range)
+                var pred = Prediction.GetPrediction(target, 1000f);
+                var cast = pred.UnitPosition.Extend(toVector3, -200);
+                if (player.Distance(cast) < R.Range && checkBuffs(target, player.Distance(cast)) &&
+                    pred.UnitPosition.Distance(target.Position) < 15 &&
+                    ((!CombatHelper.CheckWalls(target.Position, toVector3)) ||
+                     (toBarrel && savedQ.position.Distance(target.Position) < QExplosionRange)))
                 {
                     if (toBarrel &&
                         4000 - savedQ.deltaT() > (player.Distance(cast) + cast.Distance(savedQ.position)) / R.Speed)
@@ -511,7 +521,7 @@ namespace UnderratedAIO.Champions
                     .FirstOrDefault();
             if (stun != null)
             {
-                if (stun != null && CombatHelper.GetBuffTime(stun) > distance / R.Speed)
+                if (CombatHelper.GetBuffTime(stun) > distance / R.Speed)
                 {
                     return true;
                 }
@@ -652,6 +662,7 @@ namespace UnderratedAIO.Champions
                     {
                         justQ = true;
                         qPos = args.End;
+                        savedQ = new GragasQ(args.End, System.Environment.TickCount - 500);
                         Utility.DelayAction.Add(500, () => justQ = false);
                     }
                 }
@@ -661,7 +672,8 @@ namespace UnderratedAIO.Champions
                     if (!justE)
                     {
                         justE = true;
-                        Utility.DelayAction.Add((int)(dist > E.Range ? E.Range : dist / E.Speed * 1000), () => justE = false);
+                        Utility.DelayAction.Add(
+                            (int) (dist > E.Range ? E.Range : dist / E.Speed * 1000), () => justE = false);
                     }
                 }
             }
