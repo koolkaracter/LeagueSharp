@@ -20,7 +20,7 @@ namespace UnderratedAIO.Champions
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static bool justQ, useIgnite, justE;
-        public Vector3 qPos, from, to ,brl;
+        public Vector3 qPos;
         public const int QExplosionRange = 300;
         public static GragasQ savedQ = null;
         public double[] Rwave = new double[] { 50, 70, 90 };
@@ -365,8 +365,12 @@ namespace UnderratedAIO.Champions
                     var cast = Prediction.GetPrediction(target, 1000f).UnitPosition.Extend(savedQ.position, -200);
                     if (cast.Distance(player.Position) < R.Range)
                     {
-                        Console.WriteLine("R to Q");
-                        useIgnite = true;
+                        //Console.WriteLine("R to Q");
+                        if (target.Health < combodmg && target.Health > combodmg-ignitedmg)
+                        {
+                            useIgnite = true;  
+                        }
+
                         Utility.DelayAction.Add(400, () => useIgnite = false);
                         HandeR(target, savedQ.position, true);
                         return;
@@ -390,7 +394,7 @@ namespace UnderratedAIO.Champions
                                 cast.Extend(target.Position, 500).Distance(ally.Position) <
                                 target.Distance(ally.Position))
                             {
-                                Console.WriteLine("R to Ally: " + ally.Name);
+                                //Console.WriteLine("R to Ally: " + ally.Name);
                                 HandeR(target, Prediction.GetPrediction(ally, 400f).UnitPosition, false);
                                 return;
                             }
@@ -414,7 +418,7 @@ namespace UnderratedAIO.Champions
                                      .Count(t => t.Distance(pos) < 950 && t.IsAlly && t.IsValid && !t.IsDead) > 0 &&
                                   target.Health - combodmg < target.MaxHealth * 0.5f))
                         {
-                            Console.WriteLine("R to Turret");
+                            //Console.WriteLine("R to Turret");
                             HandeR(target, turret.Position, false);
                             return;
                         }
@@ -426,7 +430,7 @@ namespace UnderratedAIO.Champions
                      (savedQ != null && !qPos.IsValid() && target.Distance(savedQ.position) > QExplosionRange)) &&
                     (target.CountAlliesInRange(700) <= 1 || player.HealthPercent < 35))
                 {
-                    Console.WriteLine("R to Kill");
+                    //Console.WriteLine("R to Kill");
                     var pred = R.GetPrediction(target, true);
                     if (pred.Hitchance >= HitChance.VeryHigh)
                     {
@@ -477,16 +481,10 @@ namespace UnderratedAIO.Champions
                         4000 - savedQ.deltaT() > (player.Distance(cast) + cast.Distance(savedQ.position)) / R.Speed)
                     {
                         R.Cast(cast);
-                        from = target.Position;
-                        to = cast;
-                        brl = toVector3;
                         return;
                     }
                     else if (!toBarrel)
                     {
-                        from = target.Position;
-                        to = cast;
-                        brl = toVector3;
                         R.Cast(cast);
                     }
                 }
@@ -569,9 +567,6 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
-            if (from.IsValid()) Render.Circle.DrawCircle(to, 70, Color.LawnGreen, 8);
-            if (from.IsValid()) Render.Circle.DrawCircle(from, 60, Color.Red, 8);
-            if (from.IsValid()) Render.Circle.DrawCircle(brl, 50, Color.DeepSkyBlue, 8);
         }
 
         private static float ComboDamage(Obj_AI_Hero hero)
