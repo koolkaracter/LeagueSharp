@@ -55,8 +55,8 @@ namespace UnderratedAIO.Champions
             {
                 orbwalker.SetAttack(true);
             }
-            
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+
+            Obj_AI_Hero target = getTarget();
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -224,7 +224,7 @@ namespace UnderratedAIO.Champions
             {
                 LastHitQ();
             }
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+            Obj_AI_Hero target = getTarget();
             if (target == null)
             {
                 return;
@@ -243,7 +243,7 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+            Obj_AI_Hero target = getTarget();
             if (target == null)
             {
                 return;
@@ -378,7 +378,21 @@ namespace UnderratedAIO.Champions
             E = new Spell(SpellSlot.E);
             R = new Spell(SpellSlot.R, 500);
         }
-
+        private Obj_AI_Hero getTarget()
+        {
+            switch (config.Item("DmgType", true).GetValue<StringList>().SelectedIndex)
+            {
+                case 0:
+                    return TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+                    break;
+                case 1:
+                    return TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Physical);
+                    break;
+                default:
+                    return TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
+                    break;
+            }
+        }
         private void InitMenu()
         {
             config = new Menu("Kennen", "Kennen", true);
@@ -438,7 +452,8 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("Minhelath", "Use Zhonya under x health", true)).SetValue(new Slider(35, 0, 100));
             menuM.AddItem(new MenuItem("autoq", "Auto Q to prepare stun", true)).SetValue(true);
             menuM.AddItem(new MenuItem("autow", "Auto W to stun", true)).SetValue(true);
-
+            menuM.AddItem(new MenuItem("DmgType", "Damage Type", true))
+                .SetValue(new StringList(new[] { "AP", "AD" }, 0));
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
