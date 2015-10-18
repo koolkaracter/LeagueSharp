@@ -289,49 +289,58 @@ namespace UnderratedAIO.Helpers
             bool useFixedDistance = true,
             bool randomizeMinDistance = true)
         {
-            var deltaT = Utils.GameTimeTickCount - LastMoveCommandT;
-            if (deltaT < _delay + _random.Next(0, 15) && !overrideTimer)
+            var playerPosition = Player.ServerPosition;
+
+            if (playerPosition.Distance(position, true) < holdAreaRadius * holdAreaRadius)
             {
-                return;
-            }
-            LastMoveCommandT = Utils.GameTimeTickCount;
-            if (Player.ServerPosition.Distance(position) < holdAreaRadius)
-            {
-                if (Player.Path.Count() > 1)
+                if (Player.Path.Length > 0)
                 {
-                    Player.IssueOrder((GameObjectOrder) 10, Player.ServerPosition);
-                    Player.IssueOrder(GameObjectOrder.HoldPosition, Player.ServerPosition);
-                    LastMoveCommandPosition = Player.ServerPosition;
+                    Player.IssueOrder(GameObjectOrder.Stop, playerPosition);
+                    LastMoveCommandPosition = playerPosition;
+                    LastMoveCommandT = Utils.GameTimeTickCount - 70;
                 }
                 return;
             }
+
             var point = position;
-            if (useFixedDistance)
+
+            if (Player.Distance(point, true) < 150 * 150)
             {
-                point = Player.ServerPosition +
-                        (randomizeMinDistance ? (_random.NextFloat(0.6f, 1) + 0.2f) * _minDistance : _minDistance) *
-                        (position.To2D() - Player.ServerPosition.To2D()).Normalized().To3D();
+                point = playerPosition.Extend(position, (randomizeMinDistance ? (_random.NextFloat(0.6f, 1) + 0.2f) * _minDistance : _minDistance));
             }
-            else
+            var angle = 0f;
+            var currentPath = Player.GetWaypoints();
+            if (currentPath.Count > 1 && currentPath.PathLength() > 100)
             {
-                if (randomizeMinDistance)
+                var movePath = Player.GetPath(point);
+
+                if (movePath.Length > 1)
                 {
-                    point = Player.ServerPosition +
-                            (_random.NextFloat(0.6f, 1) + 0.2f) * _minDistance *
-                            (position.To2D() - Player.ServerPosition.To2D()).Normalized().To3D();
-                }
-                else if (Player.ServerPosition.Distance(position) > _minDistance)
-                {
-                    point = Player.ServerPosition +
-                            _minDistance * (position.To2D() - Player.ServerPosition.To2D()).Normalized().To3D();
+                    var v1 = currentPath[1] - currentPath[0];
+                    var v2 = movePath[1] - movePath[0];
+                    angle = v1.AngleBetween(v2.To2D());
+                    var distance = movePath.Last().To2D().Distance(currentPath.Last(), true);
+
+                    if ((angle < 10 && distance < 500 * 500) || distance < 50 * 50)
+                    {
+                        return;
+                    }
                 }
             }
-            if (point.Distance(LastMoveCommandPosition) < 80 && deltaT < 250)
+
+            if (Utils.GameTimeTickCount - LastMoveCommandT < (70 + _delay +Math.Min(_random.Next(50,70), Game.Ping)) && !overrideTimer && angle < 60)
             {
                 return;
             }
+
+            if (angle >= 60 && Utils.GameTimeTickCount - LastMoveCommandT < 60)
+            {
+                return;
+            }
+
             Player.IssueOrder(GameObjectOrder.MoveTo, point);
             LastMoveCommandPosition = point;
+            LastMoveCommandT = Utils.GameTimeTickCount;
         }
 
         private static void MissileClient_OnCreate(GameObject sender, EventArgs args)
