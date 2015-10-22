@@ -93,6 +93,7 @@ namespace UnderratedAIO.Helpers
         private static float _minDistance = 400;
         private static readonly Random _random = new Random(DateTime.Now.Millisecond);
         private static bool _missileLaunched;
+        private static int basicDelay;
 
 
         static Orbwalking()
@@ -100,6 +101,7 @@ namespace UnderratedAIO.Helpers
             AutoAttack = new Spell(SpellSlot.Unknown, GetAutoAttackRange());
             AutoAttack.SetTargetted(player.BasicAttack.SpellCastTime, player.BasicAttack.MissileSpeed);
             Player = ObjectManager.Player;
+            basicDelay = _random.Next(50, 80);
             Obj_AI_Base.OnProcessSpellCast += OnProcessSpell;
             Spellbook.OnStopCast += SpellbookOnStopCast;
             MissileClient.OnCreate += MissileClient_OnCreate;
@@ -328,7 +330,7 @@ namespace UnderratedAIO.Helpers
                 }
             }
 
-            if (Utils.GameTimeTickCount - LastMoveCommandT < (70 + _delay +Math.Min(_random.Next(50,70), Game.Ping)) && !overrideTimer && angle < 60)
+            if (Utils.GameTimeTickCount - LastMoveCommandT < (basicDelay + _delay +Math.Min(_random.Next(50,70), Game.Ping)) && !overrideTimer && angle < 60)
             {
                 return;
             }
