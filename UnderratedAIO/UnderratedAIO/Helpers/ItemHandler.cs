@@ -43,6 +43,7 @@ namespace UnderratedAIO.Helpers
         public static float MuramanaTime;
         public static Obj_AI_Hero hydraTarget;
 
+        private static readonly Random _random = new Random(DateTime.Now.Millisecond);
 
         public static Spell Q, W, E, R;
         public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg = 0f, bool cleanseSpell=false)
@@ -473,7 +474,7 @@ namespace UnderratedAIO.Helpers
 
         private static void Cleanse(Items.Item Item, Menu config, bool useSpell=false)
         {
-            var delay = config.Item("QSSdelay").GetValue<Slider>().Value;
+            var delay = config.Item("QSSdelay").GetValue<Slider>().Value + _random.Next(0, 120);
             foreach (var buff in player.Buffs)
             {
                 if (config.Item("slow").GetValue<bool>() && buff.Type == BuffType.Slow)

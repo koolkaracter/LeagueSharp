@@ -5,6 +5,7 @@ using System.Net;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
+using Collision = LeagueSharp.Common.Collision;
 
 namespace UnderratedAIO.Helpers
 {
@@ -53,8 +54,11 @@ namespace UnderratedAIO.Helpers
                     "Drain", "BlindingDart", "RunePrison", "IceBlast", "Dazzle", "Fling", "MaokaiUnstableGrowth",
                     "MordekaiserChildrenOfTheGrave", "ZedUlt", "LuluW", "PantheonW", "ViR", "JudicatorReckoning",
                     "IreliaEquilibriumStrike", "InfiniteDuress", "SkarnerImpale", "SowTheWind", "PuncturingTaunt",
-                    "UrgotSwap2", "NasusW", "VolibearW", "Feast", "NocturneUnspeakableHorror", "Terrify", "VeigarPrimordialBurst"
+                    "UrgotSwap2", "NasusW", "NocturneUnspeakableHorror", "Terrify"
                 });
+
+        public static List<string> TargetedDangerous =
+            new List<string>(new string[] { "VolibearW", "Feast", "VeigarPrimordialBurst" });
 
         public static List<string> invulnerable =
             new List<string>(
@@ -214,11 +218,12 @@ namespace UnderratedAIO.Helpers
             }
             return hitC;
         }
+
         public static bool CheckWalls(Vector3 from, Vector3 to)
         {
             var steps = 6f;
             var stepLength = from.Distance(to) / steps;
-            for (int i = 1; i < steps+1; i++)
+            for (int i = 1; i < steps + 1; i++)
             {
                 if (from.Extend(to, stepLength * i).IsWall())
                 {
@@ -227,6 +232,7 @@ namespace UnderratedAIO.Helpers
             }
             return false;
         }
+
         public static List<Vector3> PointsAroundTheTarget(Obj_AI_Base target, float dist)
         {
             if (target == null)
@@ -655,9 +661,9 @@ namespace UnderratedAIO.Helpers
             return false;
         }
 
-        public static bool isTargetedCC(string Spellname)
+        public static bool isTargetedCC(string Spellname, bool highDmgToo=true)
         {
-            return TargetedCC.Contains(Spellname);
+            return TargetedCC.Contains(Spellname) || (TargetedDangerous.Contains(Spellname) && highDmgToo);
         }
 
         public static bool IsPossibleToReachHim(Obj_AI_Hero target, float moveSpeedBuff, float duration)
@@ -689,7 +695,12 @@ namespace UnderratedAIO.Helpers
             }
             return false;
         }
-
+        public static bool IsCollidingWith(Obj_AI_Base from, Vector3 toPos, float spellWidth, CollisionableObjects[] colloObjects)
+        {
+                var input = new PredictionInput { Radius = spellWidth, Unit = from, };
+                input.CollisionObjects = colloObjects;
+                return Collision.GetCollision(new List<Vector3> { toPos }, input).Any();
+        }
         public static bool CheckInterrupt(Vector3 pos, float range)
         {
             return
@@ -708,7 +719,6 @@ namespace UnderratedAIO.Helpers
 
         public static float IgniteDamage(Obj_AI_Hero target)
         {
-
             var igniteBuff =
                 target.Buffs.Where(buff => buff.Name == "summonerdot").OrderBy(buff => buff.StartTime).FirstOrDefault();
             if (igniteBuff == null)
@@ -724,7 +734,6 @@ namespace UnderratedAIO.Helpers
             }
         }
 
-
         #endregion
 
         internal static int CountEnemiesInRangeAfterTime(Vector3 pos, float range, float delay, bool nowToo)
@@ -738,13 +747,14 @@ namespace UnderratedAIO.Helpers
 
         public static bool isDangerousSpell(string spellName,
             Obj_AI_Hero target,
-            Obj_AI_Hero hero,
+            Obj_AI_Hero sender,
             Vector3 end,
-            float spellRange)
+            float spellRange,
+            bool highDmg=true)
         {
             if (spellName == "CurseofTheSadMummy")
             {
-                if (player.Distance(hero.Position) <= 600f)
+                if (player.Distance(sender.Position) <= 600f)
                 {
                     return true;
                 }
@@ -753,7 +763,7 @@ namespace UnderratedAIO.Helpers
                 (spellName == "EnchantedCrystalArrow" || spellName == "rivenizunablade" ||
                  spellName == "EzrealTrueshotBarrage" || spellName == "JinxR" || spellName == "sejuaniglacialprison"))
             {
-                if (player.Distance(hero.Position) <= spellRange - 60)
+                if (player.Distance(sender.Position) <= spellRange - 60)
                 {
                     return true;
                 }
@@ -783,14 +793,14 @@ namespace UnderratedAIO.Helpers
             }
             if (spellName == "GalioIdolOfDurand")
             {
-                if (player.Distance(hero.Position) <= 600f)
+                if (player.Distance(sender.Position) <= 600f)
                 {
                     return true;
                 }
             }
             if (target != null && target.IsMe)
             {
-                if (CombatHelper.isTargetedCC(spellName) && spellName != "NasusW" && spellName != "ZedUlt")
+                if (CombatHelper.isTargetedCC(spellName, highDmg) && spellName != "NasusW" && spellName != "ZedUlt")
                 {
                     return true;
                 }
