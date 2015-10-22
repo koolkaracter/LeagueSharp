@@ -1,13 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Diagnostics.Eventing.Reader;
-using System.Drawing.Text;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
 using Color = System.Drawing.Color;
 using LeagueSharp;
 using LeagueSharp.Common;
@@ -387,7 +380,6 @@ namespace UnderratedAIO.Champions
             if (meleeRangeBarrel != null && !Q.IsReady() && !justQ)
             {
                 orbwalker.SetAttack(false);
-                Orbwalking.Orbwalk(meleeRangeBarrel, meleeRangeBarrel.Position.Extend(player.Position, 100), 80, 60);
                 player.IssueOrder(GameObjectOrder.AttackUnit, meleeRangeBarrel);
             }
             if (Q.IsReady())
