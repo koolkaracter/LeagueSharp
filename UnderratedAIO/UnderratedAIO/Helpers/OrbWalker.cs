@@ -58,9 +58,11 @@ namespace UnderratedAIO.Helpers
             "jarvanivcataclysmattack", "monkeykingdoubleattack",
             "shyvanadoubleattack", "shyvanadoubleattackdragon", "zyragraspingplantattack", "zyragraspingplantattack2",
             "zyragraspingplantattackfire", "zyragraspingplantattack2fire", "viktorpowertransfer", "sivirwattackbounce",
-            "elisespiderlingbasicattack", "heimertyellowbasicattack", "heimertyellowbasicattack2", "heimertbluebasicattack",
-            "annietibbersbasicattack", "annietibbersbasicattack2", "yorickdecayedghoulbasicattack", "yorickravenousghoulbasicattack",
-            "yorickspectralghoulbasicattack", "malzaharvoidlingbasicattack", "malzaharvoidlingbasicattack2", "malzaharvoidlingbasicattack3"
+            "elisespiderlingbasicattack", "heimertyellowbasicattack", "heimertyellowbasicattack2",
+            "heimertbluebasicattack", "annietibbersbasicattack", "annietibbersbasicattack2",
+            "yorickdecayedghoulbasicattack", "yorickravenousghoulbasicattack", "yorickspectralghoulbasicattack",
+            "malzaharvoidlingbasicattack", "malzaharvoidlingbasicattack2", "malzaharvoidlingbasicattack3",
+            "kindredwolfBasicAttack", "kindredbasicattackoverridelightbombfinal"
         };
 
         //Spells that are attacks even if they dont have the "attack" word in their name.
@@ -69,7 +71,7 @@ namespace UnderratedAIO.Helpers
             "caitlynheadshotmissile", "frostarrow", "garenslash2",
             "kennenmegaproc", "lucianpassiveattack", "masteryidoublestrike", "quinnwenhanced", "renektonexecute",
             "renektonsuperexecute", "rengarnewpassivebuffdash", "trundleq", "xenzhaothrust", "xenzhaothrust2",
-            "xenzhaothrust3", "viktorqbuff", "GangplankQWrapper","RenektonExecute"
+            "xenzhaothrust3", "viktorqbuff", "GangplankQWrapper", "RenektonExecute"
         };
 
         // Champs whose auto attacks can't be cancelled
@@ -308,7 +310,8 @@ namespace UnderratedAIO.Helpers
 
             if (Player.Distance(point, true) < 150 * 150)
             {
-                point = playerPosition.Extend(position, (randomizeMinDistance ? (_random.NextFloat(0.6f, 1) + 0.2f) * _minDistance : _minDistance));
+                point = playerPosition.Extend(
+                    position, (randomizeMinDistance ? (_random.NextFloat(0.6f, 1) + 0.2f) * _minDistance : _minDistance));
             }
             var angle = 0f;
             var currentPath = Player.GetWaypoints();
@@ -330,7 +333,8 @@ namespace UnderratedAIO.Helpers
                 }
             }
 
-            if (Utils.GameTimeTickCount - LastMoveCommandT < (basicDelay + _delay +Math.Min(_random.Next(50,70), Game.Ping)) && !overrideTimer && angle < 60)
+            if (Utils.GameTimeTickCount - LastMoveCommandT <
+                (basicDelay + _delay + Math.Min(_random.Next(50, 70), Game.Ping)) && !overrideTimer && angle < 60)
             {
                 return;
             }
@@ -398,7 +402,8 @@ namespace UnderratedAIO.Helpers
                         return;
                     }
                 }
-                if ((!comboMovement && mode == OrbwalkingMode.Combo) || (!clearMovement && mode == OrbwalkingMode.LaneClear))
+                if ((!comboMovement && mode == OrbwalkingMode.Combo) ||
+                    (!clearMovement && mode == OrbwalkingMode.LaneClear))
                 {
                     return;
                 }
@@ -869,8 +874,7 @@ namespace UnderratedAIO.Helpers
                         _config.Item("ExtraWindup").GetValue<Slider>().Value,
                         _config.Item("HoldPosRadius").GetValue<Slider>().Value, true, true,
                         _config.Item("AutoWindup").GetValue<bool>(), _config.Item("ComboMelee").GetValue<bool>(),
-                        this.ActiveMode,
-                        _config.Item("ComboMovement").GetValue<bool>(),
+                        this.ActiveMode, _config.Item("ComboMovement").GetValue<bool>(),
                         _config.Item("ClearMovement").GetValue<bool>());
                 }
                 catch (Exception e)
