@@ -233,23 +233,7 @@ namespace UnderratedAIO.Champions
             if (config.Item("user", true).GetValue<bool>() && R.IsReady())
             {
                 var rTarget = TargetSelector.GetTarget(2500, TargetSelector.DamageType.Physical, true);
-                if (activatedR && rTarget.Distance(Game.CursorPos) < 300)
-                {
-                    var pred = Prediction.GetPrediction(rTarget, 0.3f);
-                    if (player.Distance(rTarget) > 500)
-                    {
-                        player.IssueOrder(GameObjectOrder.MoveTo, pred.UnitPosition);
-                    }
-                    else
-                    {
-                        R.Cast(target.Position, true);
-                        if (CombatHelper.IsFacing(player, rTarget.ServerPosition, 45))
-                        {
-                            player.IssueOrder(GameObjectOrder.MoveTo, rTarget.ServerPosition);
-                        }
-                    }
-                }
-                else if (!activatedR && !player.IsWindingUp)
+                if (!activatedR && !player.IsWindingUp)
                 {
                     if (rTarget != null && !rTarget.IsInvulnerable && !rTarget.MagicImmune &&
                         rTarget.Distance(Game.CursorPos) < 300)
@@ -331,7 +315,7 @@ namespace UnderratedAIO.Champions
 
         private void checkCastedQ(Obj_AI_Base target)
         {
-            if (justQ && target.Distance(player)>Q.Range)
+            if (justQ && target.Distance(player) > Q.Range)
             {
                 return;
             }
@@ -357,9 +341,7 @@ namespace UnderratedAIO.Champions
             var heroes = HeroManager.Enemies.Where(e => poly.IsInside(e.Position));
             if (heroes.Any())
             {
-                var escaping =
-                    heroes.Count(
-                        h =>poly.IsOutside(Prediction.GetPrediction(h, 0.2f).UnitPosition.To2D()));
+                var escaping = heroes.Count(h => poly.IsOutside(Prediction.GetPrediction(h, 0.2f).UnitPosition.To2D()));
 
                 if ((escaping > 0 &&
                      (heroes.Count() == 1 || (heroes.Count() >= 2 && System.Environment.TickCount - qStart > 1000))) ||
@@ -368,7 +350,6 @@ namespace UnderratedAIO.Champions
                     Q.Cast(target.Position, true);
                 }
             }
-            poly.Draw(Color.Aqua, 2);
         }
 
         private void CastEHero(Obj_AI_Hero target)
