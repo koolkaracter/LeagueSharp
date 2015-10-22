@@ -499,9 +499,7 @@ namespace UnderratedAIO.Champions
         {
             if (
                 barrels.FirstOrDefault(
-                    b =>
-                        b.Health == 2 &&
-                        Prediction.GetPrediction(target, GetQTime(b)).UnitPosition.Distance(b.Position) <
+                    b =>target.Distance(b.Position) <
                         BarrelExplosionRange) != null && target.Health > Q.GetDamage(target))
             {
                 return;
