@@ -7,6 +7,7 @@ using Color = System.Drawing.Color;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
+using SharpDX.Direct3D9;
 using UnderratedAIO.Helpers;
 using Environment = UnderratedAIO.Helpers.Environment;
 using Orbwalking = UnderratedAIO.Helpers.Orbwalking;
@@ -23,7 +24,7 @@ namespace UnderratedAIO.Champions
         public static bool justQ, useIgnite, justE, IncSpell;
         public static float DamageTaken, DamageTakenTime, qStart, DamageCount;
         public Vector3 lastQPos;
-        public const int qWidth = 330;
+        public const int qWidth = 350;
         public double[] Rwave = new double[] { 50, 70, 90 };
 
         public Sion()
@@ -148,9 +149,10 @@ namespace UnderratedAIO.Champions
             else if (Q.CanCast(target) && !player.IsWindingUp)
             {
                 var qPred = Prediction.GetPrediction(target, 0.3f);
-                if (qPred.Hitchance >= HitChance.High &&
-                    qPred.UnitPosition.Distance(player.Position) < Q.ChargedMaxRange &&
-                    target.Position.Distance(player.Position) < Q.ChargedMaxRange)
+                var qPred2 = Prediction.GetPrediction(target, 0.6f);
+                var poly = GetPoly(qPred.UnitPosition);
+                if (qPred2.Hitchance >= HitChance.High && poly.IsInside(qPred2.UnitPosition.To2D()) &&
+                    poly.IsInside(target.ServerPosition))
                 {
                     Q.StartCharging(qPred.CastPosition);
                     return;
@@ -218,7 +220,7 @@ namespace UnderratedAIO.Champions
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (W.IsReady() && !activatedW && activatedW && config.Item("usewLC", true).GetValue<bool>() &&
+            if (W.IsReady() && activatedW && config.Item("usewLC", true).GetValue<bool>() &&
                 MinionManager.GetMinions(
                     ObjectManager.Player.ServerPosition, W.Range, MinionTypes.All, MinionTeam.NotAlly)
                     .Count(m => HealthPrediction.GetHealthPrediction(m, 500) < 0) > 0)
@@ -319,7 +321,24 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            var POS = player.ServerPosition.Extend(lastQPos, Q.ChargedMaxRange);
+            var poly = GetPoly(lastQPos);
+            var heroes = HeroManager.Enemies.Where(e => poly.IsInside(e.Position));
+            if (heroes.Any())
+            {
+                var escaping = heroes.Count(h => poly.IsOutside(Prediction.GetPrediction(h, 0.2f).UnitPosition.To2D()));
+
+                if ((escaping > 0 &&
+                     (heroes.Count() == 1 || (heroes.Count() >= 2 && System.Environment.TickCount - qStart > 1000))) ||
+                    DamageTaken > player.Health)
+                {
+                    Q.Cast(target.Position, true);
+                }
+            }
+        }
+
+        private Geometry.Polygon GetPoly(Vector3 pos)
+        {
+            var POS = player.ServerPosition.Extend(pos, Q.ChargedMaxRange);
             var direction = (POS.To2D() - player.ServerPosition.To2D()).Normalized();
 
             var pos1 = (player.ServerPosition.To2D() - direction.Perpendicular() * qWidth / 2f).To3D();
@@ -338,18 +357,7 @@ namespace UnderratedAIO.Champions
             poly.Add(pos3);
             poly.Add(pos2);
             poly.Add(pos4);
-            var heroes = HeroManager.Enemies.Where(e => poly.IsInside(e.Position));
-            if (heroes.Any())
-            {
-                var escaping = heroes.Count(h => poly.IsOutside(Prediction.GetPrediction(h, 0.2f).UnitPosition.To2D()));
-
-                if ((escaping > 0 &&
-                     (heroes.Count() == 1 || (heroes.Count() >= 2 && System.Environment.TickCount - qStart > 1000))) ||
-                    DamageTaken > player.Health)
-                {
-                    Q.Cast(target.Position, true);
-                }
-            }
+            return poly;
         }
 
         private void CastEHero(Obj_AI_Hero target)
@@ -479,7 +487,8 @@ namespace UnderratedAIO.Champions
             if (config.Item("userCC", true).GetValue<bool>() && sender is Obj_AI_Hero && sender.IsEnemy &&
                 player.Distance(sender) < Q.Range &&
                 CombatHelper.isDangerousSpell(
-                    args.SData.Name, args.Target as Obj_AI_Hero, sender as Obj_AI_Hero, args.End, float.MaxValue, false))
+                    args.SData.Name, args.Target as Obj_AI_Hero, sender as Obj_AI_Hero, args.End, float.MaxValue, false) &&
+                HeroManager.Enemies.FirstOrDefault(e => e.Distance(Game.CursorPos) < 300) != null)
             {
                 R.Cast(Game.CursorPos, config.Item("packets").GetValue<bool>());
             }

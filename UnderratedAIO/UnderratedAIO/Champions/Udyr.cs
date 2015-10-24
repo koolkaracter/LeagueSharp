@@ -190,7 +190,7 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var target =
-                MinionManager.GetMinions(R.Range, MinionTypes.All, MinionTeam.NotAlly)
+                MinionManager.GetMinions(700, MinionTypes.All, MinionTeam.NotAlly)
                     .FirstOrDefault(m => m.MaxHealth > 1000 && m.Health > 300);
             if (target != null && W.IsReady() && player.HealthPercent < 25 &&
                 ComboDamage(target) + player.GetAutoAttackDamage(target) * 3 < target.Health)
@@ -206,6 +206,10 @@ namespace UnderratedAIO.Champions
             if (target != null && (stance == Stance.Tiger || stance == Stance.Bear))
             {
                 orbwalker.ForceTarget(target);
+                if (stance == Stance.Bear && CanStun(target))
+                {
+                    return;
+                }
             }
             if (R.IsReady() && config.Item("userLC", true).GetValue<bool>() &&
                 ((target != null && (player.ManaPercent > 20 || (player.ManaPercent < 20 && stance == Stance.Turtle))) ||
