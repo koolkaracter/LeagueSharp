@@ -155,7 +155,7 @@ namespace UnderratedAIO.Champions
                     E.Range, TargetSelector.DamageType.Physical, true, HeroManager.Enemies.Where(h => h.IsInvulnerable));
                 if (target != null && target.CountEnemiesInRange(R.Range) > 1)
                 {
-                    if (System.Environment.TickCount - UltiCheck > 250 || UltiCheck==0f)
+                    if (System.Environment.TickCount - UltiCheck > 250 || UltiCheck == 0f)
                     {
                         var enemies =
                             HeroManager.Enemies.Where(e => e.IsValidTarget() && e.Distance(player) < 600)
@@ -444,7 +444,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("Interrupt", "Cast R to interrupt spells", true)).SetValue(false);
             menuM = Jungle.addJungleOptions(menuM);
-            
+
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

@@ -172,7 +172,7 @@ namespace UnderratedAIO.Champions
 
             if (player.HasBuff("KennenLightningRush"))
             {
-                if (moveTo==null)
+                if (moveTo == null)
                 {
                     orbwalker.SetMovement(false);
                     player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
@@ -181,9 +181,7 @@ namespace UnderratedAIO.Champions
                 {
                     orbwalker.SetMovement(false);
                     player.IssueOrder(GameObjectOrder.MoveTo, moveTo);
-                    
                 }
-
             }
         }
 
@@ -378,6 +376,7 @@ namespace UnderratedAIO.Champions
             E = new Spell(SpellSlot.E);
             R = new Spell(SpellSlot.R, 500);
         }
+
         private Obj_AI_Hero getTarget()
         {
             switch (config.Item("DmgType", true).GetValue<StringList>().SelectedIndex)
@@ -393,6 +392,7 @@ namespace UnderratedAIO.Champions
                     break;
             }
         }
+
         private void InitMenu()
         {
             config = new Menu("Kennen", "Kennen", true);
@@ -462,7 +462,8 @@ namespace UnderratedAIO.Champions
             Menu autoQ = new Menu("Auto Harass", "autoQ");
             autoQ.AddItem(
                 new MenuItem("KenAutoQ", "Auto Q toggle", true).SetShared()
-                    .SetValue(new KeyBind('H', KeyBindType.Toggle)));
+                    .SetValue(new KeyBind('H', KeyBindType.Toggle)))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             autoQ.AddItem(new MenuItem("KenminmanaaQ", "Keep X% energy", true)).SetValue(new Slider(40, 1, 100));
             autoQ.AddItem(new MenuItem("qHit", "Q hitChance", true).SetValue(new Slider(4, 1, 4)));
             autoQ.AddItem(new MenuItem("ShowState", "Show always", true)).SetValue(true);

@@ -52,8 +52,8 @@ namespace UnderratedAIO.Champions
                     Q.Cast(config.Item("packets").GetValue<bool>());
                 }
             }
-            if (args.Unit.IsMe && Q.IsReady() && config.Item("useq", true).GetValue<bool>() && args.Target is Obj_AI_Hero &&
-                Q.GetDamage((Obj_AI_Base) args.Target) > args.Target.Health)
+            if (args.Unit.IsMe && Q.IsReady() && config.Item("useq", true).GetValue<bool>() &&
+                args.Target is Obj_AI_Hero && Q.GetDamage((Obj_AI_Base) args.Target) > args.Target.Health)
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -71,8 +71,8 @@ namespace UnderratedAIO.Champions
         {
             if (unit.IsMe && Q.IsReady() &&
                 (((orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo ||
-                   config.Item("useeflashforced", true).GetValue<KeyBind>().Active) && config.Item("useq", true).GetValue<bool>() &&
-                  target.IsEnemy && target is Obj_AI_Hero &&
+                   config.Item("useeflashforced", true).GetValue<KeyBind>().Active) &&
+                  config.Item("useq", true).GetValue<bool>() && target.IsEnemy && target is Obj_AI_Hero &&
                   target.Health - player.GetAutoAttackDamage(target as Obj_AI_Hero) > 0) ||
                  (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear &&
                   player.ManaPercent > config.Item("minmana", true).GetValue<Slider>().Value &&
@@ -212,7 +212,8 @@ namespace UnderratedAIO.Champions
                     var tmpTarg =
                         ObjectManager.Get<Obj_AI_Hero>()
                             .Where(
-                                i => i.IsEnemy && !i.IsDead && player.Distance(i) < R.Range && i.Health > i.MaxHealth / 3)
+                                i =>
+                                    i.IsEnemy && !i.IsDead && player.Distance(i) < R.Range && i.Health > i.MaxHealth / 3)
                             .OrderBy(i => CombatHelper.GetChampDmgToMe(i))
                             .FirstOrDefault();
                     if (tmpTarg != null)
@@ -222,12 +223,14 @@ namespace UnderratedAIO.Champions
                 }
                 else
                 {
-
-                    var tmpTarg = ObjectManager.Get<Obj_AI_Hero>()
+                    var tmpTarg =
+                        ObjectManager.Get<Obj_AI_Hero>()
                             .Where(
-                                i => i.IsEnemy && !i.IsDead && player.Distance(i) < R.Range && i.Health > i.MaxHealth / 2)
-                            .OrderByDescending(i => config.Item("ultpriority" + i.SkinName, true).GetValue<Slider>().Value)
-                            .ThenByDescending(i=>i.Health)
+                                i =>
+                                    i.IsEnemy && !i.IsDead && player.Distance(i) < R.Range && i.Health > i.MaxHealth / 2)
+                            .OrderByDescending(
+                                i => config.Item("ultpriority" + i.SkinName, true).GetValue<Slider>().Value)
+                            .ThenByDescending(i => i.Health)
                             .FirstOrDefault();
                     if (tmpTarg != null)
                     {
@@ -342,9 +345,11 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useewall", "Use E only near walls", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useeflash", "Use flash to positioning", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useeflashforced", "Forced flash+E if possible", true))
-                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuC.AddItem(new MenuItem("user", "Use R to maximize dmg", true)).SetValue(true);
-            menuC.AddItem(new MenuItem("userindanger", "Auto activate if more than", true)).SetValue(new Slider(3, 1, 6));
+            menuC.AddItem(new MenuItem("userindanger", "Auto activate if more than", true))
+                .SetValue(new Slider(3, 1, 6));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
             config.AddSubMenu(menuC);
@@ -364,11 +369,12 @@ namespace UnderratedAIO.Champions
             var sulti = new Menu("R priority", "upriority");
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))
             {
-                sulti.AddItem(new MenuItem("ultpriority" + hero.SkinName, hero.SkinName, true)).SetValue(new Slider(1, 1, 5));
+                sulti.AddItem(new MenuItem("ultpriority" + hero.SkinName, hero.SkinName, true))
+                    .SetValue(new Slider(1, 1, 5));
             }
             sulti.AddItem(new MenuItem("autopriority", "R auto priority", true)).SetValue(true);
             menuM.AddSubMenu(sulti);
-            
+
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

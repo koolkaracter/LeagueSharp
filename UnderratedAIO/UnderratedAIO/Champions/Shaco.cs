@@ -469,7 +469,8 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("ks", "KS Q+E", true)).SetValue(true);
             menuM.AddItem(new MenuItem("autoMoveClone", "Always move clone", true)).SetValue(false);
             menuM.AddItem(new MenuItem("stackBox", "Stack boxes", true))
-                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuM = Jungle.addJungleOptions(menuM);
 
 

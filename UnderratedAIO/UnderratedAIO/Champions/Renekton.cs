@@ -314,8 +314,7 @@ namespace UnderratedAIO.Champions
                     }
                     if (rene && E.CanCast(target) && !lastE.Equals(0) && System.Environment.TickCount - lastE > 3600)
                     {
-                        E.CastIfHitchanceEquals(
-                            target, HitChance.High, config.Item("packets").GetValue<bool>());
+                        E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
                     }
                     if (player.Distance(target) < Orbwalking.GetRealAutoAttackRange(target) && Q.IsReady() &&
                         E.IsReady() && E.IsReady())
@@ -429,7 +428,7 @@ namespace UnderratedAIO.Champions
             }
             if (!fury)
             {
-                return true; 
+                return true;
             }
             if (player.IsWindingUp)
             {

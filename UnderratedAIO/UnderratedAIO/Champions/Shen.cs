@@ -396,7 +396,7 @@ namespace UnderratedAIO.Champions
         public static void CastEmin(Obj_AI_Base target, int min)
         {
             var MaxEnemy = player.CountEnemiesInRange(1580);
-            if (MaxEnemy==1)
+            if (MaxEnemy == 1)
             {
                 E.Cast(target);
             }
@@ -416,7 +416,6 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
-
         }
 
         private static void FlashCombo()
@@ -577,7 +576,8 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("useeagc", "Use E to anti gap closer")).SetValue(false);
             menuU.AddItem(new MenuItem("useeint", "Use E to interrupt")).SetValue(true);
             menuU.AddItem(new MenuItem("useeflash", "Flash+E"))
-                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuU.AddItem(new MenuItem("user", "Use R")).SetValue(true);
             menuU.AddItem(new MenuItem("atpercent", "Friend under")).SetValue(new Slider(20, 0, 100));
             menuU = Jungle.addJungleOptions(menuU);

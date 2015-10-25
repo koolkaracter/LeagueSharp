@@ -474,7 +474,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "   R min", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("manualRflash", "Flash R", true))
-                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuC.AddItem(new MenuItem("Rminflash", "   R min", true)).SetValue(new Slider(3, 1, 5));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
@@ -503,7 +504,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("AutoWmana", "   Min mana", true)).SetValue(new Slider(50, 1, 100));
             menuM.AddItem(new MenuItem("AutoWhealth", "   Under health", true)).SetValue(new Slider(70, 1, 100));
             menuM = Jungle.addJungleOptions(menuM);
-            
+
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

@@ -40,7 +40,7 @@ namespace UnderratedAIO.Champions
             if (config.Item("Enabledcomm").GetValue<bool>())
             {
                 autoLeveler.enabled = true;
-                
+
                 switch (orbwalker.ActiveMode)
                 {
                     case Orbwalking.OrbwalkingMode.Combo:
@@ -59,9 +59,10 @@ namespace UnderratedAIO.Champions
             }
             else
             {
-                autoLeveler.enabled = false; 
+                autoLeveler.enabled = false;
             }
         }
+
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(900, TargetSelector.DamageType.Physical);
@@ -74,7 +75,7 @@ namespace UnderratedAIO.Champions
                 ItemHandler.UseItems(target, config);
             }
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            var ignitedmg = (float)player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);

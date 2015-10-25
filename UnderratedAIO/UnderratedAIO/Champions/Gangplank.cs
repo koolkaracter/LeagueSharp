@@ -375,8 +375,8 @@ namespace UnderratedAIO.Champions
                             .Count(
                                 o =>
                                     o.Distance(b) < BarrelExplosionRange &&
-                                    b.Distance(Prediction.GetPrediction(o, 500).UnitPosition) <
-                                    BarrelExplosionRange) > 0);
+                                    b.Distance(Prediction.GetPrediction(o, 500).UnitPosition) < BarrelExplosionRange) >
+                        0);
             if (meleeRangeBarrel != null && !Q.IsReady() && !justQ)
             {
                 orbwalker.SetAttack(false);
@@ -497,10 +497,8 @@ namespace UnderratedAIO.Champions
 
         private void CastQonHero(Obj_AI_Hero target, List<Obj_AI_Minion> barrels)
         {
-            if (
-                barrels.FirstOrDefault(
-                    b =>target.Distance(b.Position) <
-                        BarrelExplosionRange) != null && target.Health > Q.GetDamage(target))
+            if (barrels.FirstOrDefault(b => target.Distance(b.Position) < BarrelExplosionRange) != null &&
+                target.Health > Q.GetDamage(target))
             {
                 return;
             }

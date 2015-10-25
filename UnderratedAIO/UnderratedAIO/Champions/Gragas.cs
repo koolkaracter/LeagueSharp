@@ -710,7 +710,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("rtokill", "   To kill", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "Use R teamfigh", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("insec", "E-R combo to Q", true))
-                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             //menuC.AddItem(new MenuItem("insecOnlyStun", "   Only Stunned enemy", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);

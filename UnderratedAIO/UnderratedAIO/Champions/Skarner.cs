@@ -84,7 +84,7 @@ namespace UnderratedAIO.Champions
                 ItemHandler.UseItems(target, config, ComboDamage(target));
             }
             var dist = player.Distance(target);
-            if (config.Item("useq").GetValue<bool>() && Q.CanCast(target))
+            if (config.Item("useq").GetValue<bool>() && player.CountEnemiesInRange(Q.Range) > 0)
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }

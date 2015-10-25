@@ -32,19 +32,20 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
         }
 
-        void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target)
+        private void Orbwalking_AfterAttack(AttackableUnit unit, AttackableUnit target)
         {
-            if (unit.IsMe && config.Item("useqH", true).GetValue<bool>() && Q.IsReady() &&  orbwalker.ActiveMode!=Orbwalking.OrbwalkingMode.Combo && !player.UnderTurret(true))
+            if (unit.IsMe && config.Item("useqH", true).GetValue<bool>() && Q.IsReady() &&
+                orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo && !player.UnderTurret(true))
             {
-                var collision = Collision.GetCollision(
-                    new List<Vector3>() { player.Position, player.Position.Extend(target.Position, Q.Range) },
-                    new PredictionInput()
-                    {
-                        Aoe = true,
-                        Collision = false,
-                        CollisionObjects = new CollisionableObjects[] { CollisionableObjects.Heroes },
-
-                    });
+                var collision =
+                    Collision.GetCollision(
+                        new List<Vector3>() { player.Position, player.Position.Extend(target.Position, Q.Range) },
+                        new PredictionInput()
+                        {
+                            Aoe = true,
+                            Collision = false,
+                            CollisionObjects = new CollisionableObjects[] { CollisionableObjects.Heroes },
+                        });
                 if (collision.Any())
                 {
                     Q.Cast();
@@ -72,6 +73,7 @@ namespace UnderratedAIO.Champions
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
         }
+
         private void LastHit()
         {
             var target =
@@ -274,7 +276,7 @@ namespace UnderratedAIO.Champions
             // Misc Settings
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

@@ -73,7 +73,6 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-
             if (E.IsCharging || eActive)
             {
                 orbwalker.SetAttack(false);
@@ -83,7 +82,7 @@ namespace UnderratedAIO.Champions
             {
                 orbwalker.SetAttack(true);
                 orbwalker.SetMovement(true);
-            }   
+            }
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -277,7 +276,8 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var eFlyPred = E.GetPrediction(target);
-            var enemyPred = Prediction.GetPrediction(target, eChannelTimes[E.Level - 1]+target.Distance(player)/E.Speed/1000);
+            var enemyPred = Prediction.GetPrediction(
+                target, eChannelTimes[E.Level - 1] + target.Distance(player) / E.Speed / 1000);
             if (E.IsCharging)
             {
                 if (!eFlyPred.CastPosition.IsValid() || eFlyPred.CastPosition.IsWall())
@@ -464,7 +464,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("Interrupt", "Cast R to interrupt spells", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-            
+
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);

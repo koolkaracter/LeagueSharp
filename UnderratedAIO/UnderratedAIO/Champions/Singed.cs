@@ -296,9 +296,10 @@ namespace UnderratedAIO.Champions
                         .OrderBy(m => m.Distance(player))
                         .FirstOrDefault();
 
-                if (mini != null && Orbwalking.CanMove(100) && player.Mana>30)
+                if (mini != null && Orbwalking.CanMove(100) && player.Mana > 30)
                 {
-                    player.IssueOrder(GameObjectOrder.MoveTo, player.Position.Extend(mini.Position, player.Distance(mini) + 100));
+                    player.IssueOrder(
+                        GameObjectOrder.MoveTo, player.Position.Extend(mini.Position, player.Distance(mini) + 100));
                 }
             }
         }
@@ -398,18 +399,20 @@ namespace UnderratedAIO.Champions
             }
             if (E.IsReady() && config.Item("usee", true).GetValue<bool>())
             {
-                Orbwalking.Attack = false;  
+                Orbwalking.Attack = false;
             }
             var throwPos = target.Position.Extend(player.Position, 500);
             if (config.Item("usee", true).GetValue<bool>() && E.IsReady() && E.CanCast(target) &&
                 ((throwPos.CountAlliesInRange(700) > target.CountAlliesInRange(700) &&
                   HeroManager.Allies.FirstOrDefault(a => a.Distance(throwPos) < 700 && a.HealthPercent < 25) == null) ||
-                 W.GetDamage(target) > target.Health || !target.HasBuff("poisontrailtarget") || config.Item("WwithE", true).GetValue<bool>()))
+                 W.GetDamage(target) > target.Health || !target.HasBuff("poisontrailtarget") ||
+                 config.Item("WwithE", true).GetValue<bool>()))
             {
-                var pos = Prediction.GetPrediction(target, W.Delay/2).UnitPosition.Extend(player.Position, 515 + player.Distance(target.Position));
+                var pos = Prediction.GetPrediction(target, W.Delay / 2)
+                    .UnitPosition.Extend(player.Position, 515 + player.Distance(target.Position));
                 if (config.Item("WwithE", true).GetValue<bool>() && W.IsReady() &&
-                    player.Mana > E.Instance.ManaCost + W.Instance.ManaCost + 15 &&
-                    !pos.IsWall() && target.Health>E.GetDamage(target)+Q.GetDamage(target))
+                    player.Mana > E.Instance.ManaCost + W.Instance.ManaCost + 15 && !pos.IsWall() &&
+                    target.Health > E.GetDamage(target) + Q.GetDamage(target))
                 {
                     W.Cast(pos);
                     return;
@@ -493,7 +496,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("rMinEnemy", "   Minimum enemy", true)).SetValue(new Slider(2, 1, 6));
             menuC.AddItem(new MenuItem("rkeepManaE", "   Keep mana for E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useEkey", "Throw enemy to cursor", true))
-                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuC.AddItem(new MenuItem("targRange", "Target indicator", true)).SetValue(new Slider(300, 20, 600));
             menuC.AddItem(new MenuItem("RunFOTT", "Run front of the target", true)).SetValue(true);
             menuC.AddItem(new MenuItem("RunFOTTHP", "   Only with more health", true)).SetValue(true);

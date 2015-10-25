@@ -143,7 +143,8 @@ namespace UnderratedAIO.Champions
                     MinionManager.GetMinions(
                         Orbwalking.GetRealAutoAttackRange(player), MinionTypes.All, MinionTeam.NotAlly)
                         .FirstOrDefault(
-                            minion => minion.Health > 5 &&
+                            minion =>
+                                minion.Health > 5 &&
                                 HealthPrediction.GetHealthPrediction(
                                     minion,
                                     (int) (player.AttackCastDelay * 1000) - 100 + Game.Ping / 2 +
@@ -191,7 +192,7 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-            Obj_AI_Hero target=getTarget();
+            Obj_AI_Hero target = getTarget();
             Obj_AI_Hero Rtarget = TargetSelector.GetTarget(2000, TargetSelector.DamageType.Magical);
             if (target == null)
             {
@@ -207,7 +208,8 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config, cmbDmg);
             }
-            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Orbwalking.CanMove(100) && target.IsValidTarget() && !justJumped)
+            if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Orbwalking.CanMove(100) &&
+                target.IsValidTarget() && !justJumped)
             {
                 var targQ = Q.GetPrediction(target);
                 if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) && targQ.Hitchance >= HitChance.High)
@@ -316,7 +318,8 @@ namespace UnderratedAIO.Champions
                 var minions =
                     MinionManager.GetMinions(Q.Range, MinionTypes.All, MinionTeam.NotAlly)
                         .Where(
-                            m =>m.Health > 5 &&
+                            m =>
+                                m.Health > 5 &&
                                 m.Health <
                                 (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.LastHit
                                     ? Q.GetDamage(m)
@@ -484,7 +487,7 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLH);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM = Jungle.addJungleOptions(menuM);
-            
+
             menuM.AddItem(new MenuItem("DmgType", "Damage Type", true))
                 .SetValue(new StringList(new[] { "AP", "AD" }, 0));
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
@@ -493,7 +496,8 @@ namespace UnderratedAIO.Champions
             Menu autoQ = new Menu("Auto Harass", "autoQ");
             autoQ.AddItem(
                 new MenuItem("EzAutoQ", "Auto Q toggle", true).SetShared()
-                    .SetValue(new KeyBind('H', KeyBindType.Toggle)));
+                    .SetValue(new KeyBind('H', KeyBindType.Toggle)))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             autoQ.AddItem(new MenuItem("EzminmanaaQ", "Keep X% mana", true)).SetValue(new Slider(40, 1, 100));
             autoQ.AddItem(new MenuItem("qHit", "Q hitChance", true).SetValue(new Slider(4, 1, 4)));
             autoQ.AddItem(new MenuItem("ShowState", "Show always", true)).SetValue(true);

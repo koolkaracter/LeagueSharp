@@ -299,8 +299,11 @@ namespace UnderratedAIO.Champions
                     player.GetSpellSlot("SummonerFlash"), player.Position.Extend(target.Position, 400));
                 Utility.DelayAction.Add(50, () => R.Cast(target, config.Item("packets").GetValue<bool>()));
             }
-            var rtarget = HeroManager.Enemies.Where(e => e.IsValidTarget() && R.CanCast(e)).OrderByDescending(e => TargetSelector.GetPriority(e)).FirstOrDefault();
-            if (config.Item("user", true).GetValue<bool>() && rtarget!=null &&
+            var rtarget =
+                HeroManager.Enemies.Where(e => e.IsValidTarget() && R.CanCast(e))
+                    .OrderByDescending(e => TargetSelector.GetPriority(e))
+                    .FirstOrDefault();
+            if (config.Item("user", true).GetValue<bool>() && rtarget != null &&
                 player.GetSpellDamage(target, SpellSlot.R) > rtarget.Health)
             {
                 R.Cast(rtarget, config.Item("packets").GetValue<bool>());
@@ -370,8 +373,7 @@ namespace UnderratedAIO.Champions
             Q = new Spell(SpellSlot.Q, 950);
             Q.SetSkillshot(0.5f, 175f, 625f, false, SkillshotType.SkillshotCircle);
             W = new Spell(SpellSlot.W, 650);
-            W.SetSkillshot(
-                0.25f, 250f, float.MaxValue, false, SkillshotType.SkillshotCone);
+            W.SetSkillshot(0.25f, 250f, float.MaxValue, false, SkillshotType.SkillshotCone);
             E = new Spell(SpellSlot.E, 500);
             E.SetSkillshot(
                 E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false, SkillshotType.SkillshotLine);
@@ -440,7 +442,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useWint", "Use W to interrupt", true)).SetValue(true);
             menuM.AddItem(new MenuItem("useWgc", "Use W on gapclosers", true)).SetValue(false);
             menuM = Helpers.Jungle.addJungleOptions(menuM);
-            
+
             menuM.AddItem(new MenuItem("useRJ", "Use R in jungle", true)).SetValue(false);
             menuM.AddItem(new MenuItem("useRSJ", "Use R+Smite", true)).SetValue(false);
             menuM.AddItem(new MenuItem("priorizeSmite", "Use smite if possible", true)).SetValue(false);

@@ -171,6 +171,7 @@ namespace UnderratedAIO.Champions
                 Obj_AI_Hero target = TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical);
                 if (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && targetO.NetworkId == target.NetworkId &&
                     R.IsReady() && R.CanCast(target) &&
+                    HealthPrediction.GetHealthPrediction(target, 1000) > player.GetAutoAttackDamage(target) &&
                     ComboDamage(target) + player.GetAutoAttackDamage(target) * 5 > target.Health &&
                     ((config.Item("userally", true).GetValue<Slider>().Value <=
                       HeroManager.Allies.Count(
@@ -280,7 +281,8 @@ namespace UnderratedAIO.Champions
             {
                 hero = targetW;
             }
-            if (target != null && (!hero.HasBuff("fiorarmark") || (hero.HasBuff("fiorarmark") && player.HealthPercent < 50)) &&
+            if (target != null &&
+                (!hero.HasBuff("fiorarmark") || (hero.HasBuff("fiorarmark") && player.HealthPercent < 50)) &&
                 (W.IsReady() && target.IsMe &&
                  (Orbwalking.IsAutoAttack(spellName) || CombatHelper.IsAutoattack(spellName)) &&
                  ((config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
@@ -524,7 +526,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usertf", "R teamfight", true)).SetValue(true);
             menuC.AddItem(new MenuItem("userally", "  Min allies", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("RapidAttack", "Fast AA Combo", true))
-                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Toggle));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Toggle))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuC.AddItem(new MenuItem("MoveToVitals", "Move to vitals", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite")).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);

@@ -349,7 +349,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useRmin", "R minimum target", true)).SetValue(new Slider(1, 1, 5));
             menuC.AddItem(new MenuItem("useRminr", "   Minimum range", true)).SetValue(new Slider(0, 0, 350));
             menuC.AddItem(new MenuItem("manualR", "Cast R asap", true))
-                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
             menuC = ItemHandler.addItemOptons(menuC);
 
@@ -369,7 +370,7 @@ namespace UnderratedAIO.Champions
             menuU.AddItem(new MenuItem("usergc", "Use R to anti gap closer", true)).SetValue(false);
             menuU.AddItem(new MenuItem("userint", "Use R to interrupt", true)).SetValue(false);
             menuU = Jungle.addJungleOptions(menuU);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

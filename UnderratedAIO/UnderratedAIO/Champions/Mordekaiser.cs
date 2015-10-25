@@ -37,28 +37,28 @@ namespace UnderratedAIO.Champions
             Helpers.Jungle.setSmiteSlot();
         }
 
+
         private void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base hero, GameObjectProcessSpellCastEventArgs args)
         {
-            if (MordeGhost)
-            {
-                var clone = ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(m => m.HasBuff("mordekaisercotgpetbuff2"));
-
-                if (args == null || clone == null)
-                {
-                    return;
-                }
-                if (hero.NetworkId != clone.NetworkId)
-                {
-                    return;
-                }
-                LastAATick = Utils.GameTimeTickCount;
-            }
             if (hero.IsMe && args.SData.Name == "MordekaiserCreepingDeathCast")
             {
                 if (!justW)
                 {
                     justW = true;
                     Utility.DelayAction.Add(1000, () => justW = false);
+                }
+            }
+            if (MordeGhost)
+            {
+                //var clone = ObjectManager.Get<Obj_AI_Base>().FirstOrDefault(m => m.HasBuff("mordekaisercotgpetbuff2"));
+                var clone = ObjectManager.Player.Pet;
+                if (clone == null)
+                {
+                    return;
+                }
+                if (hero.NetworkId == clone.NetworkId)
+                {
+                    LastAATick = Utils.GameTimeTickCount;
                 }
             }
         }
@@ -82,6 +82,10 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            if (MordeGhost && !GhostDelay && config.Item("autoMoveGhost", true).GetValue<bool>())
+            {
+                moveGhost();
+            }
         }
 
         private void BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
@@ -114,6 +118,11 @@ namespace UnderratedAIO.Champions
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Magical);
+            if (MordeGhost && !GhostDelay && config.Item("moveGhost", true).GetValue<bool>() &&
+                !config.Item("autoMoveGhost", true).GetValue<bool>())
+            {
+                moveGhost();
+            }
             if (target == null)
             {
                 if (MordeGhost && !GhostDelay && config.Item("follow", true).GetValue<bool>())
@@ -166,76 +175,75 @@ namespace UnderratedAIO.Champions
                 }
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-            if (MordeGhost && !GhostDelay && config.Item("moveGhost", true).GetValue<bool>())
+        }
+
+        private void moveGhost()
+        {
+            var ghost = ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(m => m.HasBuff("mordekaisercotgpetbuff2"));
+            var Gtarget = TargetSelector.GetTarget(GhostRange, TargetSelector.DamageType.Magical);
+            switch (config.Item("ghostTarget", true).GetValue<StringList>().SelectedIndex)
             {
-                var ghost = ObjectManager.Get<Obj_AI_Minion>().FirstOrDefault(m => m.HasBuff("mordekaisercotgpetbuff2"));
-                var Gtarget = TargetSelector.GetTarget(GhostRange, TargetSelector.DamageType.Magical);
-                switch (config.Item("ghostTarget", true).GetValue<StringList>().SelectedIndex)
+                case 0:
+                    Gtarget = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
+                    break;
+                case 1:
+                    Gtarget =
+                        ObjectManager.Get<Obj_AI_Hero>()
+                            .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) <= R.Range)
+                            .OrderBy(i => i.Health)
+                            .FirstOrDefault();
+                    break;
+                case 2:
+                    Gtarget =
+                        ObjectManager.Get<Obj_AI_Hero>()
+                            .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) <= R.Range)
+                            .OrderBy(i => player.Distance(i))
+                            .FirstOrDefault();
+                    break;
+                default:
+                    break;
+            }
+            if (ghost != null && Gtarget != null && Gtarget.IsValid && !ghost.IsWindingUp)
+            {
+                if (ghost.IsMelee)
                 {
-                    case 0:
-                        Gtarget = TargetSelector.GetTarget(R.Range, TargetSelector.DamageType.Magical);
-                        break;
-                    case 1:
-                        Gtarget =
-                            ObjectManager.Get<Obj_AI_Hero>()
-                                .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) <= R.Range)
-                                .OrderBy(i => i.Health)
-                                .FirstOrDefault();
-                        break;
-                    case 2:
-                        Gtarget =
-                            ObjectManager.Get<Obj_AI_Hero>()
-                                .Where(i => i.IsEnemy && !i.IsDead && player.Distance(i) <= R.Range)
-                                .OrderBy(i => player.Distance(i))
-                                .FirstOrDefault();
-                        break;
-                    default:
-                        break;
-                }
-                if (ghost != null && Gtarget.IsValid && !ghost.IsWindingUp)
-                {
-                    if (ghost.IsMelee)
+                    if (CanCloneAttack(ghost) || player.HealthPercent < 25)
                     {
-                        if (CanCloneAttack(ghost) || player.HealthPercent < 25)
-                        {
-                            R.CastOnUnit(Gtarget, config.Item("packets").GetValue<bool>());
-                        }
-                        else
-                        {
-                            var prediction = Prediction.GetPrediction(Gtarget, 2);
-                            R.Cast(
-                                target.Position.Extend(
-                                    prediction.UnitPosition, Orbwalking.GetRealAutoAttackRange(Gtarget)),
-                                config.Item("packets").GetValue<bool>());
-                        }
+                        R.CastOnUnit(Gtarget, config.Item("packets").GetValue<bool>());
                     }
                     else
                     {
-                        if (CanCloneAttack(ghost) || player.HealthPercent < 25)
-                        {
-                            R.CastOnUnit(Gtarget, config.Item("packets").GetValue<bool>());
-                        }
-                        else
-                        {
-                            var pred = Prediction.GetPrediction(Gtarget, 0.5f);
-                            var point =
-                                CombatHelper.PointsAroundTheTargetOuterRing(
-                                    pred.UnitPosition, Gtarget.AttackRange / 2, 15)
-                                    .Where(p => !p.IsWall())
-                                    .OrderBy(p => p.CountEnemiesInRange(500))
-                                    .ThenBy(p => p.Distance(player.Position))
-                                    .FirstOrDefault();
+                        var prediction = Prediction.GetPrediction(Gtarget, 2);
+                        R.Cast(
+                            Gtarget.Position.Extend(prediction.UnitPosition, Orbwalking.GetRealAutoAttackRange(Gtarget)),
+                            config.Item("packets").GetValue<bool>());
+                    }
+                }
+                else
+                {
+                    if (CanCloneAttack(ghost) || player.HealthPercent < 25)
+                    {
+                        R.CastOnUnit(Gtarget, config.Item("packets").GetValue<bool>());
+                    }
+                    else
+                    {
+                        var pred = Prediction.GetPrediction(Gtarget, 0.5f);
+                        var point =
+                            CombatHelper.PointsAroundTheTargetOuterRing(pred.UnitPosition, Gtarget.AttackRange / 2, 15)
+                                .Where(p => !p.IsWall())
+                                .OrderBy(p => p.CountEnemiesInRange(500))
+                                .ThenBy(p => p.Distance(Game.CursorPos))
+                                .FirstOrDefault();
 
-                            if (point.IsValid())
-                            {
-                                R.Cast(point, config.Item("packets").GetValue<bool>());
-                            }
+                        if (point.IsValid())
+                        {
+                            Console.WriteLine("---orbwalk---");
+                            R.Cast(point, config.Item("packets").GetValue<bool>());
                         }
                     }
-
-                    GhostDelay = true;
-                    Utility.DelayAction.Add(200, () => GhostDelay = false);
                 }
+                GhostDelay = true;
+                Utility.DelayAction.Add(200, () => GhostDelay = false);
             }
         }
 
@@ -288,7 +296,11 @@ namespace UnderratedAIO.Champions
         {
             if (ghost != null)
             {
-                return Utils.GameTimeTickCount >= LastAATick + (ghost.AttackDelay - ghost.AttackCastDelay) * 1000;
+                Console.WriteLine(
+                    Utils.GameTimeTickCount + " >= " + LastAATick + " + " + Game.Ping + " + " + 100 + " + " + "(" +
+                    ghost.AttackDelay + " - " + ghost.AttackCastDelay + ")" + " * " + 1000);
+                return Utils.GameTimeTickCount >=
+                       LastAATick + Game.Ping + 100 + (ghost.AttackDelay - ghost.AttackCastDelay) * 1000;
             }
             return false;
         }
@@ -429,7 +441,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("ghostTarget", "Ghost target priority", true))
                 .SetValue(new StringList(new[] { "Targetselector", "Lowest health", "Closest to you" }, 0));
             menuM = Jungle.addJungleOptions(menuM);
-
+            menuM.AddItem(new MenuItem("autoMoveGhost", "Always move ghost", true)).SetValue(false);
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

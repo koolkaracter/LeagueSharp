@@ -169,7 +169,7 @@ namespace UnderratedAIO.Champions
             }
             var manaperc = player.Mana / player.MaxMana * 100;
             if (player.HasBuff("MaokaiSapMagicMelee") &&
-                player.Distance(target) < Orbwalking.GetRealAutoAttackRange(player) + 75)
+                player.Distance(target) < Orbwalking.GetRealAutoAttackRange(target) + 75)
             {
                 return;
             }
@@ -177,7 +177,8 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target));
             }
-            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && config.Item("usee", true).GetValue<bool>() &&
+            if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) &&
+                config.Item("usee", true).GetValue<bool>() &&
                 player.Distance(target) <= config.Item("useqrange", true).GetValue<Slider>().Value &&
                 ((config.Item("useqroot", true).GetValue<bool>() &&
                   (!target.HasBuffOfType(BuffType.Snare) && !target.HasBuffOfType(BuffType.Slow) &&
@@ -203,7 +204,8 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target))
             {
-                if (!config.Item("blocke", true).GetValue<bool>() || config.Item("blocke", true).GetValue<bool>() && !W.IsReady())
+                if (!config.Item("blocke", true).GetValue<bool>() ||
+                    config.Item("blocke", true).GetValue<bool>() && !W.IsReady())
                 {
                     E.Cast(target, config.Item("packets").GetValue<bool>());
                 }
@@ -374,7 +376,7 @@ namespace UnderratedAIO.Champions
             menuM.AddItem(new MenuItem("useQgc", "Use Q on gapclosers", true)).SetValue(false);
             menuM.AddItem(new MenuItem("useQint", "Use W to interrupt", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Color = System.Drawing.Color;
-
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX.Direct3D9;
@@ -12,14 +11,14 @@ using Orbwalking = UnderratedAIO.Helpers.Orbwalking;
 
 namespace UnderratedAIO.Champions
 {
-    class Volibear
+    internal class Volibear
     {
-         public static Menu config;
+        public static Menu config;
         public static Orbwalking.Orbwalker orbwalker;
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static float[] MsBuff = new float[5] { 0.3f, 0.35f, 0.4f, 0.45f, 0.5f };
-        private float passivetime=0f;
+        private float passivetime = 0f;
         private bool passivecd = false;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
 
@@ -47,32 +46,39 @@ namespace UnderratedAIO.Champions
                 passivecd = false;
                 passivetime = 0f;
             }
-                switch (orbwalker.ActiveMode)
-                {
-                    case Orbwalking.OrbwalkingMode.Combo:
-                        Combo();
-                        break;
-                    case Orbwalking.OrbwalkingMode.Mixed:
-                        Harass();
-                        break;
-                    case Orbwalking.OrbwalkingMode.LaneClear:
-                        Clear();
-                        break;
-                    case Orbwalking.OrbwalkingMode.LastHit:
-                        break;
-                    default:
-                        break;
-                }
-                Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            switch (orbwalker.ActiveMode)
+            {
+                case Orbwalking.OrbwalkingMode.Combo:
+                    Combo();
+                    break;
+                case Orbwalking.OrbwalkingMode.Mixed:
+                    Harass();
+                    break;
+                case Orbwalking.OrbwalkingMode.LaneClear:
+                    Clear();
+                    break;
+                case Orbwalking.OrbwalkingMode.LastHit:
+                    break;
+                default:
+                    break;
+            }
+            Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
         }
 
         private void Harass()
         {
             float perc = config.Item("minmanaH").GetValue<Slider>().Value / 100f;
-            if (player.Mana < player.MaxMana * perc) return;
+            if (player.Mana < player.MaxMana * perc)
+            {
+                return;
+            }
             Obj_AI_Hero target = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
-            if (target == null) return;
-            if (config.Item("usewH").GetValue<bool>() && W.CanCast(target) && CanW && (config.Item("maxHealthH").GetValue<Slider>().Value / 100f) * target.MaxHealth > target.Health)
+            if (target == null)
+            {
+                return;
+            }
+            if (config.Item("usewH").GetValue<bool>() && W.CanCast(target) && CanW &&
+                (config.Item("maxHealthH").GetValue<Slider>().Value / 100f) * target.MaxHealth > target.Health)
             {
                 W.Cast(target, config.Item("packets").GetValue<bool>());
             }
@@ -85,21 +91,28 @@ namespace UnderratedAIO.Champions
         private void Clear()
         {
             var mob = Jungle.GetNearest(player.Position);
-            if (mob != null && config.Item("usewLCSteal").GetValue<bool>() && CanW && W.CanCast(mob) && player.CalcDamage(mob, Damage.DamageType.Physical, Wdmg(mob)) > mob.Health)
+            if (mob != null && config.Item("usewLCSteal").GetValue<bool>() && CanW && W.CanCast(mob) &&
+                player.CalcDamage(mob, Damage.DamageType.Physical, Wdmg(mob)) > mob.Health)
             {
                 W.Cast(mob, config.Item("packets").GetValue<bool>());
             }
-            if (mob != null && config.Item("usewbsmite").GetValue<bool>() && CanW && W.CanCast(mob) && Jungle.SmiteReady(config.Item("useSmite").GetValue<KeyBind>().Active) && player.CalcDamage(mob, Damage.DamageType.Physical, Wdmg(mob)) + Jungle.smiteDamage(mob) > mob.Health)
+            if (mob != null && config.Item("usewbsmite").GetValue<bool>() && CanW && W.CanCast(mob) &&
+                Jungle.SmiteReady(config.Item("useSmite").GetValue<KeyBind>().Active) &&
+                player.CalcDamage(mob, Damage.DamageType.Physical, Wdmg(mob)) + Jungle.smiteDamage(mob) > mob.Health)
             {
                 W.Cast(mob, config.Item("packets").GetValue<bool>());
             }
             float perc = config.Item("minmana").GetValue<Slider>().Value / 100f;
-            if (player.Mana < player.MaxMana * perc) return;
-            var minions = MinionManager.GetMinions(W.Range, MinionTypes.All ,MinionTeam.NotAlly);
-            if (config.Item("useeLC").GetValue<bool>() && E.IsReady() && config.Item("ehitLC").GetValue<Slider>().Value <= minions.Count)
+            if (player.Mana < player.MaxMana * perc)
+            {
+                return;
+            }
+            var minions = MinionManager.GetMinions(W.Range, MinionTypes.All, MinionTeam.NotAlly);
+            if (config.Item("useeLC").GetValue<bool>() && E.IsReady() &&
+                config.Item("ehitLC").GetValue<Slider>().Value <= minions.Count)
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
-            }        
+            }
         }
 
         public static float MsBonus(Obj_AI_Hero target)
@@ -108,7 +121,9 @@ namespace UnderratedAIO.Champions
 
             if (Q.IsReady() && !QEnabled)
             {
-                if (ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(h => h.IsEnemy && player.Distance(h) < 2000 && player.IsFacing(h)) != null)
+                if (
+                    ObjectManager.Get<Obj_AI_Hero>()
+                        .FirstOrDefault(h => h.IsEnemy && player.Distance(h) < 2000 && player.IsFacing(h)) != null)
                 {
                     msBonus += MsBuff[Q.Level - 1];
                 }
@@ -119,62 +134,84 @@ namespace UnderratedAIO.Champions
             }
             return msBonus;
         }
+
         private void Combo()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(1490, TargetSelector.DamageType.Physical);
-            if (target == null) return;
+            if (target == null)
+            {
+                return;
+            }
             if (config.Item("selected").GetValue<bool>())
             {
                 target = CombatHelper.SetTarget(target, TargetSelector.GetSelectedTarget());
                 orbwalker.ForceTarget(target);
             }
-            if (config.Item("useItems").GetValue<bool>()) ItemHandler.UseItems(target, config, ComboDamage(target));
-            if (config.Item("useq").GetValue<bool>() && Q.IsReady() && !QEnabled && player.Distance(target) >= config.Item("useqmin").GetValue<Slider>().Value && player.Distance(target) < (player.MoveSpeed * MsBonus(target)) * 3.0f)
+            if (config.Item("useItems").GetValue<bool>())
+            {
+                ItemHandler.UseItems(target, config, ComboDamage(target));
+            }
+            if (config.Item("useq").GetValue<bool>() && Q.IsReady() && !QEnabled &&
+                player.Distance(target) >= config.Item("useqmin").GetValue<Slider>().Value &&
+                player.Distance(target) < (player.MoveSpeed * MsBonus(target)) * 3.0f)
             {
                 Q.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("usew").GetValue<bool>() && CanW && W.CanCast(target) && (player.CalcDamage(target, Damage.DamageType.Physical, Wdmg(target)) > target.Health || player.HealthPercent<10))
+            if (config.Item("usew").GetValue<bool>() && CanW && W.CanCast(target) &&
+                (player.CalcDamage(target, Damage.DamageType.Physical, Wdmg(target)) > target.Health ||
+                 player.HealthPercent < 10))
             {
-                W.Cast(target, config.Item("packets").GetValue<bool>());  
+                W.Cast(target, config.Item("packets").GetValue<bool>());
             }
-            if (config.Item("usee").GetValue<bool>() && E.CanCast(target) && ((config.Item("useenotccd").GetValue<bool>() && (!target.HasBuffOfType(BuffType.Snare) && !target.HasBuffOfType(BuffType.Slow) && !target.HasBuffOfType(BuffType.Stun) && !target.HasBuffOfType(BuffType.Suppression))) || !config.Item("useenotccd").GetValue<bool>()))
+            if (config.Item("usee").GetValue<bool>() && E.CanCast(target) &&
+                ((config.Item("useenotccd").GetValue<bool>() &&
+                  (!target.HasBuffOfType(BuffType.Snare) && !target.HasBuffOfType(BuffType.Slow) &&
+                   !target.HasBuffOfType(BuffType.Stun) && !target.HasBuffOfType(BuffType.Suppression))) ||
+                 !config.Item("useenotccd").GetValue<bool>()))
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (R.IsReady() && player.HealthPercent>20 && ((config.Item("user").GetValue<bool>() && player.Distance(target) < 200 && ComboDamage(target) + R.GetDamage(target) * 10 > target.Health && ComboDamage(target) < target.Health) || (config.Item("usertf").GetValue<Slider>().Value <= player.CountEnemiesInRange(300))))
+            if (R.IsReady() && player.HealthPercent > 20 &&
+                ((config.Item("user").GetValue<bool>() && player.Distance(target) < 200 &&
+                  ComboDamage(target) + R.GetDamage(target) * 10 > target.Health && ComboDamage(target) < target.Health) ||
+                 (config.Item("usertf").GetValue<Slider>().Value <= player.CountEnemiesInRange(300))))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());
             }
-            var ignitedmg = (float)player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite && !W.CanCast(target))
+            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
+                !W.CanCast(target))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
         }
+
         private static bool QEnabled
         {
-            get
-            { return player.Buffs.Any(buff => buff.Name == "VolibearQ"); }
+            get { return player.Buffs.Any(buff => buff.Name == "VolibearQ"); }
         }
+
         private static bool CanW
         {
-            get
-            { return player.Buffs.Any(buff => buff.Name == "volibearwparticle"); }
+            get { return player.Buffs.Any(buff => buff.Name == "volibearwparticle"); }
         }
+
         private void Game_OnDraw(EventArgs args)
         {
             float msBonus = 1f;
             if (Q.IsReady() && !QEnabled)
             {
-                if (ObjectManager.Get<Obj_AI_Hero>().FirstOrDefault(h => h.IsEnemy && player.Distance(h) < 2000 && player.IsFacing(h)) != null)
+                if (
+                    ObjectManager.Get<Obj_AI_Hero>()
+                        .FirstOrDefault(h => h.IsEnemy && player.Distance(h) < 2000 && player.IsFacing(h)) != null)
                 {
-                    msBonus += MsBuff[Q.Level - 1]; 
+                    msBonus += MsBuff[Q.Level - 1];
                 }
                 else
                 {
                     msBonus += 0.15f;
-                }  
+                }
             }
             DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), (player.MoveSpeed * msBonus) * 4.0f);
             DrawHelper.DrawCircle(config.Item("drawww", true).GetValue<Circle>(), W.Range);
@@ -185,7 +222,8 @@ namespace UnderratedAIO.Champions
             }
             DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), 300);
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
-            Helpers.Jungle.ShowSmiteStatus(config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
+            Helpers.Jungle.ShowSmiteStatus(
+                config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
         }
 
         private void DrawPassive()
@@ -196,7 +234,7 @@ namespace UnderratedAIO.Champions
                 var time = Game.Time - passivetime;
                 if (time <= 6f)
                 {
-                    baseTime =baseTime - time * 0.05f;
+                    baseTime = baseTime - time * 0.05f;
                 }
                 else
                 {
@@ -206,13 +244,18 @@ namespace UnderratedAIO.Champions
             var percentHealth = Math.Max(0, player.MaxHealth - player.Health) / player.MaxHealth;
             var barPos = player.HPBarPosition;
             var xPos = barPos.X + 36 + 103 * (1 - percentHealth);
-            Drawing.DrawLine(xPos, barPos.Y + 9, xPos, barPos.Y + 17, -105f * baseTime, config.Item("drawpass").GetValue<Circle>().Color);
+            Drawing.DrawLine(
+                xPos, barPos.Y + 9, xPos, barPos.Y + 17, -105f * baseTime,
+                config.Item("drawpass").GetValue<Circle>().Color);
         }
 
         public static double Wdmg(Obj_AI_Base target)
         {
-            return (new double[] { 80, 125, 170, 215, 260 }[W.Level - 1] + ((player.MaxHealth - (498.48f + (86 * (player.Level-1))))*0.15 )) * ((target.MaxHealth - target.Health) / target.MaxHealth + 1);
+            return (new double[] { 80, 125, 170, 215, 260 }[W.Level - 1] +
+                    ((player.MaxHealth - (498.48f + (86 * (player.Level - 1)))) * 0.15)) *
+                   ((target.MaxHealth - target.Health) / target.MaxHealth + 1);
         }
+
         private void InitVolibear()
         {
             Q = new Spell(SpellSlot.Q);
@@ -220,6 +263,7 @@ namespace UnderratedAIO.Champions
             E = new Spell(SpellSlot.E, 400);
             R = new Spell(SpellSlot.R);
         }
+
         private static float ComboDamage(Obj_AI_Hero hero)
         {
             double damage = 0;
@@ -227,7 +271,7 @@ namespace UnderratedAIO.Champions
             {
                 damage += Damage.GetSpellDamage(player, hero, SpellSlot.Q);
             }
-            if (W.IsReady()||player.GetSpell(SpellSlot.W).State==SpellState.Surpressed)
+            if (W.IsReady() || player.GetSpell(SpellSlot.W).State == SpellState.Surpressed)
             {
                 damage += player.CalcDamage(hero, Damage.DamageType.Physical, Wdmg(hero));
             }
@@ -240,13 +284,15 @@ namespace UnderratedAIO.Champions
             {
                 damage = (damage * 1.2);
             }
-            if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready && hero.Health < damage + player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite))
+            if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready &&
+                hero.Health < damage + player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite))
             {
                 damage += player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
             }
             damage += ItemHandler.GetItemsDamage(hero);
-            return (float)damage;
+            return (float) damage;
         }
+
         private void InitMenu()
         {
             config = new Menu("Volibear", "Volibear", true);
@@ -260,11 +306,16 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuOrb);
             // Draw settings
             Menu menuD = new Menu("Drawings ", "dsettings");
-            menuD.AddItem(new MenuItem("drawqq", "Draw Q range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
-            menuD.AddItem(new MenuItem("drawww", "Draw W range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
-            menuD.AddItem(new MenuItem("drawee", "Draw E range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
-            menuD.AddItem(new MenuItem("drawrr", "Draw R range", true)).SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
-            menuD.AddItem(new MenuItem("drawpass", "Draw passive")).SetValue(new Circle(true, Color.FromArgb(140, 30, 197, 22)));
+            menuD.AddItem(new MenuItem("drawqq", "Draw Q range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawww", "Draw W range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawee", "Draw E range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawrr", "Draw R range", true))
+                .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawpass", "Draw passive"))
+                .SetValue(new Circle(true, Color.FromArgb(140, 30, 197, 22)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage")).SetValue(true);
             config.AddSubMenu(menuD);
             // Combo settings
@@ -299,7 +350,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
 
             menuM = Jungle.addJungleOptions(menuM);
-            
+
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);

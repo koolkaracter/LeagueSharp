@@ -721,7 +721,8 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useekill", "   Only for kill", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useemin", "   Or AOE min", true)).SetValue(new Slider(1, 1, 5));
             menuC.AddItem(new MenuItem("useEkey", "   Manual cast", true))
-                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press));
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuC.AddItem(new MenuItem("eType", "   E type", true))
                 .SetValue(new StringList(new[] { "Cast on Edge", "Trap the enemy" }, 0));
             menuC.AddItem(new MenuItem("predType", "   Prediction", true))
@@ -790,8 +791,7 @@ namespace UnderratedAIO.Champions
                     E.SetSkillshot(0.5f, 50f, float.MaxValue, false, SkillshotType.SkillshotCircle);
                     break;
             }
-            config.Item("predType", true).ValueChanged+=OnValueChanged;
-
+            config.Item("predType", true).ValueChanged += OnValueChanged;
         }
 
         private void OnValueChanged(object sender, OnValueChangeEventArgs onValueChangeEventArgs)
