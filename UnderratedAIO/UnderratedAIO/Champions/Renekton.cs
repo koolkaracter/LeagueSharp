@@ -84,7 +84,12 @@ namespace UnderratedAIO.Champions
                     ItemHandler.castHydra((Obj_AI_Hero) target);
                 }
             }
-            if (unit.IsMe && target is Obj_AI_Hero &&
+            if (unit.IsMe && target is Obj_AI_Hero && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
+                config.Item("usew", true).GetValue<bool>() && checkFuryMode(SpellSlot.W, (Obj_AI_Base) target))
+            {
+                W.Cast(config.Item("packets").GetValue<bool>());
+            }
+            if (unit.IsMe && target is Obj_AI_Hero && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed &&
                 config.Item("useCH", true).GetValue<StringList>().SelectedIndex == 0)
             {
                 if (W.IsReady())
@@ -425,6 +430,10 @@ namespace UnderratedAIO.Champions
             if (Damage.GetSpellDamage(player, target, spellSlot) > target.Health)
             {
                 return true;
+            }
+            if (!fury && player.Mana > 45)
+            {
+                return false;
             }
             if (!fury)
             {
