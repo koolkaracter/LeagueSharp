@@ -431,7 +431,7 @@ namespace UnderratedAIO.Champions
             {
                 return true;
             }
-            if (!fury && player.Mana > 45)
+            if (canBeOpWIthQ(player.Position))
             {
                 return false;
             }
