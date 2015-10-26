@@ -577,10 +577,7 @@ index = 15
             JeonAutoJungleMenu.AddToMainMenu();
             setSmiteSlot();
             #region 스펠설정
-            Q = new Spell(SpellSlot.Q, GetSpellRange(Qdata));
-            W = new Spell(SpellSlot.W, GetSpellRange(Wdata));
-            E = new Spell(SpellSlot.E, GetSpellRange(Edata));
-            R = new Spell(SpellSlot.R, GetSpellRange(Rdata));
+            SetSpells();
             #endregion
             #region 지점 설정
             if (Player.Team.ToString() == "Chaos")
@@ -696,6 +693,77 @@ index = 15
             Obj_AI_Base.OnProcessSpellCast += OnSpell;
             if (smiteSlot == SpellSlot.Unknown)
                 Game.PrintChat("YOU ARE NOT JUNGLER(NO SMITE)");
+        }
+
+        private static void SetSpells()
+        {
+            if (Player.ChampionName.ToUpper() == "NUNU")
+            {
+                Q = new Spell(SpellSlot.Q, 125);
+                Q.SetTargetted(0.5f, float.MaxValue);
+                W = new Spell(SpellSlot.W, 700);
+                W.SetTargetted(0.5f, float.MaxValue);
+                E = new Spell(SpellSlot.E, 550);
+                E.SetTargetted(0.5f, 1200f);
+                R = new Spell(SpellSlot.R, 650);
+            }
+            else if (Player.ChampionName.ToUpper() == "CHOGATH")
+            {
+                Q = new Spell(SpellSlot.Q, 950);
+                Q.SetSkillshot(0.5f, 175f, 625f, false, SkillshotType.SkillshotCircle);
+                W = new Spell(SpellSlot.W, 650);
+                W.SetSkillshot(0.25f, 250f, float.MaxValue, false, SkillshotType.SkillshotCone);
+                E = new Spell(SpellSlot.E, 500);
+                E.SetSkillshot(
+                    E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false, SkillshotType.SkillshotLine);
+                R = new Spell(SpellSlot.R, 175);
+                R.SetTargetted(0.5f, float.MaxValue);
+            }
+            else if (Player.ChampionName.ToUpper() == "WARWICK")
+            {
+                Q = new Spell(SpellSlot.Q, 400, TargetSelector.DamageType.Magical);
+                Q.SetTargetted(0.5f, float.MaxValue);
+                W = new Spell(SpellSlot.W, 1250);
+                E = new Spell(SpellSlot.E, GetSpellRange(Edata));
+                R = new Spell(SpellSlot.R, 700, TargetSelector.DamageType.Magical);
+                R.SetTargetted(0.5f, float.MaxValue);
+            }
+            else if (Player.ChampionName.ToUpper() == "MASTERYI")
+            {
+                Q = new Spell(SpellSlot.Q, 600);
+                Q.SetTargetted(0.5f, float.MaxValue);
+                W = new Spell(SpellSlot.W, GetSpellRange(Wdata));
+                E = new Spell(SpellSlot.E, GetSpellRange(Edata));
+                R = new Spell(SpellSlot.R, GetSpellRange(Rdata));
+            }
+            else if (Player.ChampionName.ToUpper() == "MAOKAI")
+            {
+                Q = new Spell(SpellSlot.Q, 600);
+                Q.SetSkillshot(0.50f, 110f, 1200f, false, SkillshotType.SkillshotLine);
+                W = new Spell(SpellSlot.W, 500);
+                W.SetTargetted(0.5f, float.MaxValue);
+                E = new Spell(SpellSlot.E, 1100);
+                E.SetSkillshot(1f, 250f, 1500f, false, SkillshotType.SkillshotCircle);
+                R = new Spell(SpellSlot.R, 450);
+            }
+            else if (Player.ChampionName.ToUpper() == "NASUS")
+            {
+                Q = new Spell(SpellSlot.Q);
+                W = new Spell(SpellSlot.W, 550);
+                W.SetTargetted(0.5f, float.MaxValue);
+                E = new Spell(SpellSlot.E, 600);
+                E.SetSkillshot(
+                    E.Instance.SData.SpellCastTime, E.Instance.SData.LineWidth, E.Speed, false,
+                    SkillshotType.SkillshotCircle);
+                R = new Spell(SpellSlot.R, 350f);
+            }
+            else
+            {
+                Q = new Spell(SpellSlot.Q, GetSpellRange(Qdata));
+                W = new Spell(SpellSlot.W, GetSpellRange(Wdata));
+                E = new Spell(SpellSlot.E, GetSpellRange(Edata));
+                R = new Spell(SpellSlot.R, GetSpellRange(Rdata));
+            }
         }
         private static void Game_OnGameUpdate(EventArgs args)
         {
@@ -1082,7 +1150,7 @@ index = 15
         }
         public static void DoLaneClear()
         {
-            var mob1 = ObjectManager.Get<Obj_AI_Minion>().Where(t => t.IsEnemy & !t.IsDead && t.Distance(Player)<700).OrderBy(t => t.MaxHealth).FirstOrDefault();
+            var mob1 = MinionManager.GetMinions(700, MinionTypes.All, MinionTeam.NotAlly).Where(t =>t.IsValidTarget()).OrderBy(t => t.MaxHealth).FirstOrDefault();
             //if (Player.ChampionName.ToUpper() == "NUNU" && Q.IsReady()) // 누누 Q버그수정 - Fix nunu Q bug
             Player.IssueOrder(GameObjectOrder.MoveTo, mob1.ServerPosition.Extend(Player.ServerPosition, 10));
             if (mob1!=null)
@@ -1090,7 +1158,7 @@ index = 15
         }
         public static void DoCast()
         {
-            var mob1 = ObjectManager.Get<Obj_AI_Minion>().Where(t => t.IsEnemy & !t.IsDead && t.Distance(Player) < 700).OrderBy(t => t.MaxHealth).FirstOrDefault();
+            var mob1 = MinionManager.GetMinions(700, MinionTypes.All, MinionTeam.NotAlly).Where(t => t.IsValidTarget()).OrderBy(t => t.MaxHealth).FirstOrDefault();
             //if (Player.ChampionName.ToUpper() == "NUNU" && Q.IsReady()) // 누누 Q버그수정 - Fix nunu Q bug
             //Player.IssueOrder(GameObjectOrder.MoveTo, mob1.ServerPosition.Extend(Player.ServerPosition, 10));
             if (mob1 != null)
@@ -1110,6 +1178,10 @@ index = 15
         }
         public static void castspell(Obj_AI_Base mob1)
         {
+            if (Player.IsWindingUp)
+            {
+                return;
+            }
             if (Player.ChampionName.ToUpper() == "NUNU")
             {
                 if (Q.IsReady())
@@ -1140,13 +1212,17 @@ index = 15
             else if (Player.ChampionName.ToUpper() == "MASTERYI")
             {
                 if (Q.IsReady())
-                    Q.CastOnUnit(mob1); 
+                {
+                    Q.CastOnUnit(mob1);
+                }
+                  
                 if (W.IsReady() && Player.HealthPercent < JeonAutoJungleMenu.Item("yi_W").GetValue<Slider>().Value)
                     W.Cast();
                 if (E.IsReady())
                     E.Cast();
                 if (R.IsReady())
                     R.Cast();
+               
             }
             else if (Player.ChampionName.ToUpper() == "MAOKAI")
             {
