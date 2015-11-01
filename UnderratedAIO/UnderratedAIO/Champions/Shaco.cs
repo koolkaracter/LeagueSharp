@@ -74,7 +74,8 @@ namespace UnderratedAIO.Champions
             Obj_AI_Hero target = TargetSelector.GetTarget(
                 Q.Range + player.MoveSpeed * 3, TargetSelector.DamageType.Physical);
             if (ShacoStealth && target != null && target.Health > ComboDamage(target) &&
-                CombatHelper.IsFacing(target, player.Position))
+                CombatHelper.IsFacing(target, player.Position) &&
+                orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo)
             {
                 orbwalker.SetAttack(false);
             }
