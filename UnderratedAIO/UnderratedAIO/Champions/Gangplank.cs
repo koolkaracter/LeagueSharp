@@ -163,7 +163,7 @@ namespace UnderratedAIO.Champions
                             o =>
                                 o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
                                 o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
-                                KillableBarrel(o) && o.CountEnemiesInRange(BarrelExplosionRange) > 0);
+                                KillableBarrel(o) && o.CountEnemiesInRange(BarrelExplosionRange - 50) > 0);
 
                 if (barrel != null)
                 {
