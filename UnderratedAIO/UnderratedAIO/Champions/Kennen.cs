@@ -250,7 +250,8 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target));
             }
-            if (player.HasBuff("KennenLightningRush") && player.Health > target.Health && target.UnderTurret(true))
+            if (config.Item("usee", true).GetValue<bool>() && player.HasBuff("KennenLightningRush") &&
+                player.Health > target.Health && !target.UnderTurret(true) && target.Distance(Game.CursorPos) < 250f)
             {
                 orbwalker.SetMovement(false);
                 player.IssueOrder(GameObjectOrder.MoveTo, target);
@@ -362,7 +363,7 @@ namespace UnderratedAIO.Champions
         private int MarkOfStorm(Obj_AI_Base target)
         {
             var buff = target.GetBuff("kennenmarkofstorm");
-            if (buff!=null)
+            if (buff != null)
             {
                 if (buff.Count < 2)
                 {
