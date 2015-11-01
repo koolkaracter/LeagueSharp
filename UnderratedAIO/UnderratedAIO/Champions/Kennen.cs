@@ -361,9 +361,17 @@ namespace UnderratedAIO.Champions
 
         private int MarkOfStorm(Obj_AI_Base target)
         {
-            if (target.HasBuff("kennenmarkofstorm"))
+            var buff = target.GetBuff("kennenmarkofstorm");
+            if (buff!=null)
             {
-                return target.Buffs.First(a => a.Name == "kennenmarkofstorm").Count;
+                if (buff.Count < 2)
+                {
+                    return buff.Count + 1;
+                }
+                else
+                {
+                    return buff.Count;
+                }
             }
             return 0;
         }
