@@ -1078,7 +1078,6 @@ namespace JeonJunglePlay
                         }
                         if (gankTarget != null)
                         {
-                            Console.WriteLine(gankTarget.Name + ", " + (Environment.TickCount - junglingTime));
                             var gankPosition = GankPos.OrderBy(p => p.Distance(gankTarget.Position)).FirstOrDefault();
                             if (gankTarget.Distance(Player) > 2000 && gankPosition.IsValid() && GoodPath(gankPosition))
                             {
