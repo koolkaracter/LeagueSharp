@@ -579,6 +579,8 @@ namespace JeonJunglePlay
             {
                 JeonAutoJungleMenu.AddItem(new MenuItem("yi_W", "Cast MasterYi-W(%)").SetValue(new Slider(85, 0, 100)));
             }
+            JeonAutoJungleMenu.AddItem(new MenuItem("Gank", "Gank Lanes")).SetValue(true);
+            JeonAutoJungleMenu.AddItem(new MenuItem("GankRange", "Ganking range").SetValue(new Slider(8500, 0, 20000)));
             JeonAutoJungleMenu.AddToMainMenu();
             setSmiteSlot();
 
@@ -717,6 +719,7 @@ namespace JeonJunglePlay
             }
         }
 
+
         private static void SetSpells()
         {
             if (Player.ChampionName.ToUpper() == "NUNU")
@@ -788,6 +791,23 @@ namespace JeonJunglePlay
                 R = new Spell(SpellSlot.R, GetSpellRange(Rdata));
             }
         }
+
+        public static List<Vector3> GankPos = new List<Vector3>()
+        {
+            new Vector3(2918f, 11142f, -71.2406f),
+            //TopRiverBush
+            new Vector3(2247.295f, 9706.15f, 56.8484f), //TopTriBush
+            new Vector3(4462f, 11764f, 51.9751f), //TopTriBushD
+            new Vector3(6538f, 8312f, -71.2406f), //MidTopBush
+            new Vector3(8502f, 6548f, -71.2406f), //MidBottomBush
+            new Vector3(11900f, 3898f, -67.15347f), //BotRiverBush
+            new Vector3(10418f, 3050f, 50.23584f), //BotTriBush
+            new Vector3(9227.038f, 2201.226f, 54.70776f), //BotSideBushDown
+            new Vector3(5739.739f, 12759.03f, 52.83813f), //TopBushSide
+            new Vector3(12483.09f, 5221.66f, 51.72937f) //BotupperTriBush
+        };
+
+        public static float junglingTime;
 
         private static void Game_OnGameUpdate(EventArgs args)
         {
@@ -967,7 +987,7 @@ namespace JeonJunglePlay
                     {
                         now = 12;
                     }
-                    MonsterINFO target = MonsterList.First(t => t.order == now);
+                    MonsterINFO target = MonsterList.FirstOrDefault(t => t.order == now);
                     if (Player.IsMoving || Player.IsWindingUp || Player.IsRecalling() || Player.Level == 1)
                     {
                         fix = 0;
@@ -981,11 +1001,127 @@ namespace JeonJunglePlay
                         now++;
                         fix = 0;
                     }
+                    if (Environment.TickCount - junglingTime > 2000 &&
+                        MonsterList.Any(m => m.Position.Distance(Player.Position) < 1000) && !Player.InFountain() &&
+                        !recall && Player.CountEnemiesInRange(1500) == 0)
+                    {
+                        if (Player.HealthPercentage() < JeonAutoJungleMenu.Item("hpper").GetValue<Slider>().Value &&
+                            !Player.IsDead //hpper
+                            && JeonAutoJungleMenu.Item("autorecallheal").GetValue<Boolean>()) // HP LESS THAN 25%
+                        {
+                            Game.PrintChat("YOUR HP IS SO LOW. RECALL!");
+                            Player.Spellbook.CastSpell(SpellSlot.Recall);
+                            recall = true;
+                            recallhp = Player.Health;
+                        }
+                        else if (Player.Gold > buyThings.First().Price &&
+                                 JeonAutoJungleMenu.Item("autorecallitem").GetValue<Boolean>() &&
+                                 Player.InventoryItems.Length < 8) // HP LESS THAN 25%
+                        {
+                            Game.PrintChat("CAN BUY " + buyThings.First().item.ToString() + ". RECALL!");
+                            Player.Spellbook.CastSpell(SpellSlot.Recall);
+                            recall = true;
+                            recallhp = Player.Health;
+                        }
+                    }
+                    if (!Player.IsDead && Prediction.GetPrediction(Player, 0.5f).UnitPosition.UnderTurret(true))
+                    {
+                        Player.IssueOrder(GameObjectOrder.MoveTo, spawn);
+                        return;
+                    }
+                    if (JeonAutoJungleMenu.Item("Gank").GetValue<Boolean>() && Player.Level >= 3 && !recall &&
+                        Environment.TickCount - junglingTime > 2000)
+                    {
+                        var enemies = Player.CountEnemiesInRange(1500);
+                        Obj_AI_Hero gankTarget = null;
+                        foreach (var possibleTarget in
+                            HeroManager.Enemies.Where(
+                                e =>
+                                    e.Distance(Player) < JeonAutoJungleMenu.Item("GankRange").GetValue<Slider>().Value &&
+                                    e.HealthPercent < 90 && e.IsValidTarget() && !e.UnderTurret(true))
+                                .OrderBy(e => e.Distance(Player)))
+                        {
+                            var myDmg = GetComboDMG(Player, possibleTarget);
+                            if (Player.Level + 1 <= possibleTarget.Level && myDmg < possibleTarget.Health)
+                            {
+                                continue;
+                            }
+                            if (
+                                ObjectManager.Get<Obj_AI_Turret>()
+                                    .FirstOrDefault(
+                                        t => t.IsEnemy && t.IsValidTarget() && t.Distance(possibleTarget) < 1200) !=
+                                null)
+                            {
+                                continue;
+                            }
+                            if (possibleTarget.CountEnemiesInRange(1500) > possibleTarget.CountAlliesInRange(1500) + 1)
+                            {
+                                continue;
+                            }
+                            if (GetComboDMG(possibleTarget, Player) > Player.Health)
+                            {
+                                continue;
+                            }
+                            var ally =
+                                HeroManager.Allies.Where(a => !a.IsDead && a.Distance(possibleTarget) < 2000)
+                                    .OrderBy(a => a.Distance(possibleTarget))
+                                    .FirstOrDefault();
+                            var hp = possibleTarget.Health - myDmg;
+                            if (ally != null && hp > 0)
+                            {
+                                hp -= GetComboDMG(ally, possibleTarget);
+                            }
+                            if (hp < 0)
+                            {
+                                gankTarget = possibleTarget;
+                            }
+                        }
+                        if (gankTarget != null)
+                        {
+                            Console.WriteLine(gankTarget.Name + ", " + (Environment.TickCount - junglingTime));
+                            var gankPosition = GankPos.OrderBy(p => p.Distance(gankTarget.Position)).FirstOrDefault();
+                            if (gankTarget.Distance(Player) > 2000 && gankPosition.IsValid() && GoodPath(gankPosition))
+                            {
+                                Player.IssueOrder(GameObjectOrder.MoveTo, gankPosition);
+                                return;
+                            }
+                            if (gankTarget.Distance(Player) < 2000)
+                            {
+                                Player.IssueOrder(GameObjectOrder.AttackUnit, gankTarget);
+                                DoCast_Hero(gankTarget);
+                                return;
+                            }
+                        }
+                    }
+                    if (Player.CountEnemiesInRange(1500) > 0)
+                    {
+                        var tar =
+                            HeroManager.Enemies.Where(
+                                e => e.Distance(Player.Position) < 1500 && e.IsValidTarget() && !e.UnderTurret(true))
+                                .OrderBy(e => e.Health)
+                                .FirstOrDefault();
+                        if (tar != null)
+                        {
+                            var myhp = Player.Health - GetComboDMG(tar, Player);
+                            var enemyhp = Player.Health - GetComboDMG(Player, tar);
+                            if (myhp > enemyhp)
+                            {
+                                Player.IssueOrder(GameObjectOrder.AttackUnit, tar);
+                                DoCast_Hero(tar);
+                                return;
+                            }
+                            else if (myhp < 0)
+                            {
+                                //Player.IssueOrder(GameObjectOrder.MoveTo, spawn);
+                                //return;
+                            }
+                        }
+                    }
                     var crab =
                         ObjectManager.Get<Obj_AI_Base>()
                             .FirstOrDefault(m => m.Name.Contains("Crab") && m.IsValidTarget(1000));
                     var attackCrab = false;
-                    if (crab != null && !target.name.Contains("SRU_Dragon"))
+                    if (crab != null && target != null && !target.name.Contains("SRU_Dragon"))
                     {
                         Player.IssueOrder(GameObjectOrder.AttackUnit, crab);
                         DoCast();
@@ -999,7 +1135,7 @@ namespace JeonJunglePlay
                     {
                         if (!recall)
                         {
-                            if (Player.Position.Distance(target.Position) > Player.AttackRange)
+                            if (target != null && Player.Position.Distance(target.Position) > Player.AttackRange)
                             {
                                 if (target.name.Contains("Crab") && crab != null)
                                 {
@@ -1008,30 +1144,17 @@ namespace JeonJunglePlay
                                 }
                                 else if (!attackCrab)
                                 {
+                                    if (!GoodPath(target.Position))
+                                    {
+                                        next++;
+                                        return;
+                                    }
                                     Player.IssueOrder(GameObjectOrder.MoveTo, target.Position);
                                 }
 
                                 afktime = 0;
                             }
                             DoCast_Hero();
-                            if (Player.HealthPercentage() < JeonAutoJungleMenu.Item("hpper").GetValue<Slider>().Value &&
-                                !Player.IsDead //hpper
-                                && JeonAutoJungleMenu.Item("autorecallheal").GetValue<Boolean>()) // HP LESS THAN 25%
-                            {
-                                Game.PrintChat("YOUR HP IS SO LOW. RECALL!");
-                                Player.Spellbook.CastSpell(SpellSlot.Recall);
-                                recall = true;
-                                recallhp = Player.Health;
-                            }
-                            else if (Player.Gold > buyThings.First().Price &&
-                                     JeonAutoJungleMenu.Item("autorecallitem").GetValue<Boolean>() &&
-                                     Player.InventoryItems.Length < 8) // HP LESS THAN 25%
-                            {
-                                Game.PrintChat("CAN BUY " + buyThings.First().item.ToString() + ". RECALL!");
-                                Player.Spellbook.CastSpell(SpellSlot.Recall);
-                                recall = true;
-                                recallhp = Player.Health;
-                            }
                         }
                     }
                     else
@@ -1258,6 +1381,21 @@ namespace JeonJunglePlay
             #endregion
         }
 
+        private static bool GoodPath(Vector3 gankPosition)
+        {
+            return
+                Player.GetPath(gankPosition)
+                    .All(
+                        point =>
+                            !point.UnderTurret(true) && gankPosition.CountEnemiesInRange(1200) == 0 &&
+                            MinionManager.GetMinions(gankPosition, 1200, MinionTypes.All, MinionTeam.Enemy).Count == 0);
+        }
+
+        private static void Jungling()
+        {
+            junglingTime = Environment.TickCount;
+        }
+
         private static void OnCreate(GameObject sender, EventArgs args)
         {
             if (sender.IsValid<Obj_SpellMissile>())
@@ -1362,10 +1500,16 @@ namespace JeonJunglePlay
             {
                 castspell(mob1);
             }
+            Jungling();
         }
 
-        public static void DoCast_Hero()
+        public static void DoCast_Hero(Obj_AI_Hero trg = null)
         {
+            if (trg != null)
+            {
+                castspell_hero(trg);
+                return;
+            }
             if (ObjectManager.Get<Obj_AI_Hero>().Any(t => t.IsEnemy & !t.IsDead && Player.Distance(t.Position) <= 700))
             {
                 var target =
@@ -1544,7 +1688,7 @@ namespace JeonJunglePlay
                 {
                     Q.CastOnUnit(mob1);
                 }
-                if (W.IsReady())
+                if (W.IsReady() && Player.Distance(mob1) < 300)
                 {
                     W.Cast();
                 }
@@ -1833,20 +1977,9 @@ namespace JeonJunglePlay
                         minion =>
                             minion.IsValid && minion.IsEnemy && !minion.IsDead &&
                             MinionNames.Any(
-                                name => minion.Name.StartsWith(name) && Player.Distance(minion.Position) <= 1000));
-            var objAiMinions = minions as Obj_AI_Minion[] ?? minions.ToArray();
-            Obj_AI_Minion sMinion = objAiMinions.FirstOrDefault();
-            double? nearest = null;
-            foreach (Obj_AI_Minion minion in objAiMinions)
-            {
-                double distance = Vector3.Distance(pos, minion.Position);
-                if (nearest == null || nearest > distance)
-                {
-                    nearest = distance;
-                    sMinion = minion;
-                }
-            }
-            return sMinion;
+                                name => minion.Name.StartsWith(name) && Player.Distance(minion.Position) <= 1000))
+                    .OrderByDescending(m => m.MaxHealth);
+            return minions.FirstOrDefault();
         }
 
         public static Obj_AI_Base GetNearest_big(Vector3 pos)
@@ -1911,5 +2044,263 @@ namespace JeonJunglePlay
         }
 
         #endregion
+
+        public static float GetComboDMG(Obj_AI_Hero source, Obj_AI_Hero target)
+        {
+            double result = 0;
+            double basicDmg = 0;
+            int attacks = (int) Math.Floor(source.AttackSpeedMod * 5);
+            for (int i = 0; i < attacks; i++)
+            {
+                if (source.Crit > 0)
+                {
+                    basicDmg += source.GetAutoAttackDamage(target) * (1 + source.Crit / attacks);
+                }
+                else
+                {
+                    basicDmg += source.GetAutoAttackDamage(target);
+                }
+            }
+            result += basicDmg;
+            var spells = source.Spellbook.Spells;
+            foreach (var spell in spells)
+            {
+                var t = spell.CooldownExpires - Game.Time;
+                if (t < 0.5)
+                {
+                    switch (source.SkinName)
+                    {
+                        case "Ahri":
+                            if (spell.Slot == SpellSlot.Q)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot));
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot, 1));
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Akali":
+                            if (spell.Slot == SpellSlot.R)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot) * spell.Ammo);
+                            }
+                            else if (spell.Slot == SpellSlot.Q)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot));
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot, 1));
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Amumu":
+                            if (spell.Slot == SpellSlot.W)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot) * 5);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Cassiopeia":
+                            if (spell.Slot == SpellSlot.Q || spell.Slot == SpellSlot.E || spell.Slot == SpellSlot.W)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot) * 2);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Fiddlesticks":
+                            if (spell.Slot == SpellSlot.W || spell.Slot == SpellSlot.E)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot) * 5);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Garen":
+                            if (spell.Slot == SpellSlot.E)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot) * 3);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Irelia":
+                            if (spell.Slot == SpellSlot.W)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot) * attacks);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Karthus":
+                            if (spell.Slot == SpellSlot.Q)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot) * 4);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "KogMaw":
+                            if (spell.Slot == SpellSlot.W)
+                            {
+                                result += (Damage.GetSpellDamage(source, target, spell.Slot) * attacks);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "LeeSin":
+                            if (spell.Slot == SpellSlot.Q)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                                result += Damage.GetSpellDamage(source, target, spell.Slot, 1);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Lucian":
+                            if (spell.Slot == SpellSlot.R)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot) * 4;
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Nunu":
+                            if (spell.Slot != SpellSlot.R && spell.Slot != SpellSlot.Q)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "MasterYi":
+                            if (spell.Slot == SpellSlot.E)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot) * attacks;
+                            }
+                            else if (spell.Slot == SpellSlot.R)
+                            {
+                                result += basicDmg * 0.6f;
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "MonkeyKing":
+                            if (spell.Slot == SpellSlot.R)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot) * 4;
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Pantheon":
+                            if (spell.Slot == SpellSlot.E)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot) * 3;
+                            }
+                            else if (spell.Slot == SpellSlot.R)
+                            {
+                                result += 0;
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+
+                            break;
+                        case "Rammus":
+                            if (spell.Slot == SpellSlot.R)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot) * 6;
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Riven":
+                            if (spell.Slot == SpellSlot.Q)
+                            {
+                                result += RivenDamageQ(spell, source, target);
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Viktor":
+                            if (spell.Slot == SpellSlot.R)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                                result += Damage.GetSpellDamage(source, target, spell.Slot, 1) * 5;
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        case "Vladimir":
+                            if (spell.Slot == SpellSlot.E)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot) * 2;
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
+                        default:
+                            result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            break;
+                    }
+                }
+            }
+            if (source.Spellbook.CanUseSpell(target.GetSpellSlot("summonerdot")) == SpellState.Ready)
+            {
+                result += source.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
+            }
+            return (float) result;
+        }
+
+        private static float RivenDamageQ(SpellDataInst spell, Obj_AI_Hero src, Obj_AI_Hero dsc)
+        {
+            double dmg = 0;
+            if (spell.IsReady())
+            {
+                dmg += src.CalcDamage(
+                    dsc, Damage.DamageType.Physical,
+                    (-10 + (spell.Level * 20) +
+                     (0.35 + (spell.Level * 0.05)) * (src.FlatPhysicalDamageMod + src.BaseAttackDamage)) * 3);
+            }
+            return (float) dmg;
+        }
     }
 }
