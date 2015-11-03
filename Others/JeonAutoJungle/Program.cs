@@ -580,7 +580,9 @@ namespace JeonJunglePlay
                 JeonAutoJungleMenu.AddItem(new MenuItem("yi_W", "Cast MasterYi-W(%)").SetValue(new Slider(85, 0, 100)));
             }
             JeonAutoJungleMenu.AddItem(new MenuItem("Gank", "Gank Lanes")).SetValue(true);
-            JeonAutoJungleMenu.AddItem(new MenuItem("GankRange", "Ganking range").SetValue(new Slider(8500, 0, 20000)));
+            JeonAutoJungleMenu.AddItem(
+                new MenuItem("GankRange", "   Seeking range").SetValue(new Slider(6800, 0, 20000)));
+            JeonAutoJungleMenu.AddItem(new MenuItem("Minlevel", "   Min level").SetValue(new Slider(3, 0, 18)));
             JeonAutoJungleMenu.AddToMainMenu();
             setSmiteSlot();
 
@@ -1001,8 +1003,8 @@ namespace JeonJunglePlay
                         now++;
                         fix = 0;
                     }
-                    if (Environment.TickCount - junglingTime > 2000 &&
-                        MonsterList.Any(m => m.Position.Distance(Player.Position) < 1000) && !Player.InFountain() &&
+                    var anyMonsterCampAroundMe = MonsterList.Any(m => m.Position.Distance(Player.Position) < 1000);
+                    if (Environment.TickCount - junglingTime > 2000 && anyMonsterCampAroundMe && !Player.InFountain() &&
                         !recall && Player.CountEnemiesInRange(1500) == 0)
                     {
                         if (Player.HealthPercentage() < JeonAutoJungleMenu.Item("hpper").GetValue<Slider>().Value &&
@@ -1024,13 +1026,48 @@ namespace JeonJunglePlay
                             recallhp = Player.Health;
                         }
                     }
-                    if (!Player.IsDead && Prediction.GetPrediction(Player, 0.5f).UnitPosition.UnderTurret(true))
+                    if ((Dragon.Position.CountEnemiesInRange(800) > 0 || Dragon.Position.CountAlliesInRange(800) > 0))
                     {
-                        Player.IssueOrder(GameObjectOrder.MoveTo, spawn);
-                        return;
+                        var drake = GetNearest_big(Dragon.Position);
+                        if (drake != null && drake.Health < drake.MaxHealth - 300)
+                        {
+                            if (Player.Distance(Dragon.Position) > 500)
+                            {
+                                Player.IssueOrder(GameObjectOrder.MoveTo, Dragon.Position);
+                                return;
+                            }
+                            else
+                            {
+                                Player.IssueOrder(GameObjectOrder.AttackUnit, drake);
+                                DoCast();
+                                DoSmite();
+                                return;
+                            }
+                        }
                     }
-                    if (JeonAutoJungleMenu.Item("Gank").GetValue<Boolean>() && Player.Level >= 3 && !recall &&
-                        Environment.TickCount - junglingTime > 2000)
+                    if ((Baron.Position.CountEnemiesInRange(800) > 0 || Baron.Position.CountAlliesInRange(800) > 0))
+                    {
+                        var baron = GetNearest_big(Baron.Position);
+                        if (baron != null && baron.Health < baron.MaxHealth - 300)
+                        {
+                            if (Player.Distance(Baron.Position) > 500)
+                            {
+                                Player.IssueOrder(GameObjectOrder.MoveTo, Baron.Position);
+                                return;
+                            }
+                            else
+                            {
+                                Player.IssueOrder(GameObjectOrder.AttackUnit, baron);
+                                DoCast();
+                                DoSmite();
+                                return;
+                            }
+                        }
+                    }
+                    if (JeonAutoJungleMenu.Item("Gank").GetValue<Boolean>() &&
+                        Player.Level >= JeonAutoJungleMenu.Item("Minlevel").GetValue<Slider>().Value && !recall &&
+                        Environment.TickCount - junglingTime > 2000 && Player.CountEnemiesInRange(2000) == 0 &&
+                        Player.Mana > R.ManaCost)
                     {
                         var enemies = Player.CountEnemiesInRange(1500);
                         Obj_AI_Hero gankTarget = null;
@@ -1079,30 +1116,39 @@ namespace JeonJunglePlay
                         if (gankTarget != null)
                         {
                             var gankPosition = GankPos.OrderBy(p => p.Distance(gankTarget.Position)).FirstOrDefault();
-                            if (gankTarget.Distance(Player) > 2000 && gankPosition.IsValid() && GoodPath(gankPosition))
+                            if (gankTarget.Distance(Player) > 2000 && gankPosition.IsValid() && GoodPath(gankPosition) &&
+                                gankPosition.Distance(gankTarget.Position) < 2000 &&
+                                Player.Distance(gankTarget) > gankPosition.Distance(gankTarget.Position))
                             {
                                 Player.IssueOrder(GameObjectOrder.MoveTo, gankPosition);
                                 return;
                             }
-                            if (gankTarget.Distance(Player) < 2000)
+                            else if (gankTarget.Distance(Player) > 2000 && GoodPath(gankTarget.Position))
                             {
-                                Player.IssueOrder(GameObjectOrder.AttackUnit, gankTarget);
-                                DoCast_Hero(gankTarget);
+                                Player.IssueOrder(GameObjectOrder.MoveTo, gankTarget.Position);
                                 return;
                             }
                         }
                     }
-                    if (Player.CountEnemiesInRange(1500) > 0)
+                    if (Player.CountEnemiesInRange(2000) > 0)
                     {
                         var tar =
                             HeroManager.Enemies.Where(
-                                e => e.Distance(Player.Position) < 1500 && e.IsValidTarget() && !e.UnderTurret(true))
+                                e => e.Distance(Player.Position) < 2000 && e.IsValidTarget() && !e.UnderTurret(true))
                                 .OrderBy(e => e.Health)
                                 .FirstOrDefault();
                         if (tar != null)
                         {
+                            var ally =
+                                HeroManager.Allies.Where(a => !a.IsDead && a.Distance(tar) < 1500)
+                                    .OrderBy(a => a.Distance(tar))
+                                    .FirstOrDefault();
                             var myhp = Player.Health - GetComboDMG(tar, Player);
-                            var enemyhp = Player.Health - GetComboDMG(Player, tar);
+                            var enemyhp = tar.Health - GetComboDMG(Player, tar);
+                            if (ally != null && enemyhp > 0)
+                            {
+                                enemyhp -= GetComboDMG(ally, tar);
+                            }
                             if (myhp > enemyhp)
                             {
                                 Player.IssueOrder(GameObjectOrder.AttackUnit, tar);
@@ -1111,9 +1157,20 @@ namespace JeonJunglePlay
                             }
                             else if (myhp < 0)
                             {
-                                //Player.IssueOrder(GameObjectOrder.MoveTo, spawn);
-                                //return;
+                                Player.IssueOrder(GameObjectOrder.MoveTo, spawn);
+                                return;
                             }
+                        }
+                    }
+                    if (Player.CountEnemiesInRange(1500) == 0 && Player.CountAlliesInRange(1500) == 0 &&
+                        !anyMonsterCampAroundMe)
+                    {
+                        var mini = AtLane();
+                        if (mini != null)
+                        {
+                            Player.IssueOrder(GameObjectOrder.AttackUnit, mini);
+                            DoCast();
+                            return;
                         }
                     }
                     var crab =
@@ -1145,7 +1202,8 @@ namespace JeonJunglePlay
                                 {
                                     if (!GoodPath(target.Position))
                                     {
-                                        next++;
+                                        //Console.WriteLine("Skipped" + target.name);
+                                        now++;
                                         return;
                                     }
                                     Player.IssueOrder(GameObjectOrder.MoveTo, target.Position);
@@ -1378,6 +1436,16 @@ namespace JeonJunglePlay
             }
 
             #endregion
+        }
+
+        private static Obj_AI_Base AtLane()
+        {
+            return
+                MinionManager.GetMinions(Player.Position, 800, MinionTypes.All, MinionTeam.Enemy)
+                    .Where(m => m.IsValidTarget() && !m.UnderTurret())
+                    .OrderByDescending(m => m.Health < Player.GetAutoAttackDamage(m))
+                    .ThenBy(m => m.Distance(Player.Position))
+                    .FirstOrDefault();
         }
 
         private static bool GoodPath(Vector3 gankPosition)
