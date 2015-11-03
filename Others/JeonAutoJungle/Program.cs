@@ -442,7 +442,7 @@ namespace JeonJunglePlay
             },
             new ItemToShop()
             {
-                Price = 550 + 450 + 450,
+                Price = 600 + 450 + 450,
                 needItem = ItemId.Recurve_Bow,
                 item = ItemId.Wits_End,
                 index = 9
@@ -1115,28 +1115,34 @@ namespace JeonJunglePlay
                         }
                         if (gankTarget != null)
                         {
-                            var gankPosition = GankPos.OrderBy(p => p.Distance(gankTarget.Position)).FirstOrDefault();
-                            if (gankTarget.Distance(Player) > 2000 && gankPosition.IsValid() && GoodPath(gankPosition) &&
+                            var gankPosition =
+                                GankPos.Where(p => p.Distance(target.Position) < 2000)
+                                    .OrderBy(p => Player.Distance(gankTarget.Position))
+                                    .FirstOrDefault();
+                            if (gankTarget.Distance(Player) > 2000 && gankPosition.IsValid() && GoodPath(gankPosition, true) &&
                                 gankPosition.Distance(gankTarget.Position) < 2000 &&
                                 Player.Distance(gankTarget) > gankPosition.Distance(gankTarget.Position))
                             {
                                 Player.IssueOrder(GameObjectOrder.MoveTo, gankPosition);
                                 return;
                             }
-                            else if (gankTarget.Distance(Player) > 2000 && GoodPath(gankTarget.Position))
+                            else if (gankTarget.Distance(Player) > 2000 && GoodPath(gankTarget.Position, true))
                             {
                                 Player.IssueOrder(GameObjectOrder.MoveTo, gankTarget.Position);
                                 return;
                             }
                         }
                     }
-                    if (Player.CountEnemiesInRange(2000) > 0)
+                    if (Player.CountEnemiesInRange(2000) > 0 &&
+                        (Environment.TickCount - junglingTime > 2000 || Player.CountEnemiesInRange(700) > 0))
                     {
                         var tar =
                             HeroManager.Enemies.Where(
-                                e => e.Distance(Player.Position) < 2000 && e.IsValidTarget() && !e.UnderTurret(true))
-                                .OrderBy(e => e.Health)
-                                .FirstOrDefault();
+                                e =>
+                                    e.Distance(Player.Position) < 2000 && e.IsValidTarget() &&
+                                    (!e.UnderTurret(true) ||
+                                     (e.Health < Player.GetAutoAttackDamage(e) * 2 && e.Distance(Player) < 300 &&
+                                      Player.MoveSpeed > e.MoveSpeed))).OrderBy(e => e.Health).FirstOrDefault();
                         if (tar != null)
                         {
                             var ally =
@@ -1155,7 +1161,7 @@ namespace JeonJunglePlay
                                 DoCast_Hero(tar);
                                 return;
                             }
-                            else if (myhp < 0)
+                            if (myhp < 0)
                             {
                                 Player.IssueOrder(GameObjectOrder.MoveTo, spawn);
                                 return;
@@ -1163,7 +1169,8 @@ namespace JeonJunglePlay
                         }
                     }
                     if (Player.CountEnemiesInRange(1500) == 0 && Player.CountAlliesInRange(1500) == 0 &&
-                        !anyMonsterCampAroundMe)
+                        !anyMonsterCampAroundMe &&
+                        Player.HealthPercent > JeonAutoJungleMenu.Item("hpper").GetValue<Slider>().Value)
                     {
                         var mini = AtLane();
                         if (mini != null)
@@ -1197,12 +1204,13 @@ namespace JeonJunglePlay
                                 {
                                     Player.IssueOrder(GameObjectOrder.AttackUnit, crab);
                                     DoCast();
+                                    Jungling();
                                 }
                                 else if (!attackCrab)
                                 {
                                     if (!GoodPath(target.Position))
                                     {
-                                        //Console.WriteLine("Skipped" + target.name);
+                                        Console.WriteLine("Skipped" + target.name);
                                         now++;
                                         return;
                                     }
@@ -1448,14 +1456,14 @@ namespace JeonJunglePlay
                     .FirstOrDefault();
         }
 
-        private static bool GoodPath(Vector3 gankPosition)
+        private static bool GoodPath(Vector3 gankPosition, bool withoutHero=false)
         {
             return
                 Player.GetPath(gankPosition)
                     .All(
                         point =>
-                            !point.UnderTurret(true) && gankPosition.CountEnemiesInRange(1200) == 0 &&
-                            MinionManager.GetMinions(gankPosition, 1200, MinionTypes.All, MinionTeam.Enemy).Count == 0);
+                            !point.UnderTurret(true) && (gankPosition.CountEnemiesInRange(800) == 0 || withoutHero) &&
+                            MinionManager.GetMinions(gankPosition, 800, MinionTypes.All, MinionTeam.Enemy).Count == 0);
         }
 
         private static void Jungling()
@@ -2121,7 +2129,7 @@ namespace JeonJunglePlay
             {
                 if (source.Crit > 0)
                 {
-                    basicDmg += source.GetAutoAttackDamage(target) * (1 + source.Crit / attacks);
+                    basicDmg += source.GetAutoAttackDamage(target) * (1f + source.Crit / attacks);
                 }
                 else
                 {
