@@ -701,6 +701,12 @@ namespace UnderratedAIO.Helpers
                 input.CollisionObjects = colloObjects;
                 return Collision.GetCollision(new List<Vector3> { toPos }, input).Any();
         }
+        public static int GetCollisionCount(Obj_AI_Base from, Vector3 toPos, float spellWidth, CollisionableObjects[] colloObjects)
+        {
+            var input = new PredictionInput { Radius = spellWidth, Unit = from, };
+            input.CollisionObjects = colloObjects;
+            return Collision.GetCollision(new List<Vector3> { toPos }, input).Count();
+        }
         public static bool CheckInterrupt(Vector3 pos, float range)
         {
             return

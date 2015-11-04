@@ -73,6 +73,7 @@
     <Compile Include="Champions\Other.cs" />
     <Compile Include="Champions\Poppy.cs" />
     <Compile Include="Champions\Renekton.cs" />
+    <Compile Include="Champions\Rumble.cs" />
     <Compile Include="Champions\Sejuani.cs" />
     <Compile Include="Champions\Shaco.cs" />
     <Compile Include="Champions\Shen.cs" />

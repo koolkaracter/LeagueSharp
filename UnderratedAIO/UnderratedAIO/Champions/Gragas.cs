@@ -253,7 +253,7 @@ namespace UnderratedAIO.Champions
         {
             if (Q.IsReady() && savedQ != null &&
                 ((Environment.Minion.countMinionsInrange(savedQ.position, QExplosionRange) >
-                  config.Item("eMinHit", true).GetValue<Slider>().Value && savedQ.deltaT() > 2000) ||
+                  config.Item("qMinHit", true).GetValue<Slider>().Value && savedQ.deltaT() > 2000) ||
                  MinionManager.GetMinions(
                      ObjectManager.Player.ServerPosition, Q.Range, MinionTypes.All, MinionTeam.NotAlly)
                      .Count(m => HealthPrediction.GetHealthPrediction(m, 600) < 0 || m.Health < 35) > 0))
