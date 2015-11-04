@@ -92,7 +92,7 @@ namespace UnderratedAIO.Champions
                     break;
             }
             if (W.IsReady() && config.Item("usew", true).GetValue<bool>() &&
-                (preventSilence(W) || !config.Item("blockW", true).GetValue<bool>()) &&
+                (preventSilence(W) || (!config.Item("blockW", true).GetValue<bool>() && !preventSilence(W))) &&
                 (DamageTaken > getShield() * config.Item("shieldPercent", true).GetValue<Slider>().Value / 100 ||
                  config.Item("Aggro", true).GetValue<Slider>().Value <= DamageCount))
             {
@@ -212,7 +212,7 @@ namespace UnderratedAIO.Champions
             {
                 return true;
             }
-            return spell.ManaCost + player.Mana < 100;
+            return 20 + player.Mana < 100;
         }
 
         private void Combo()
@@ -253,7 +253,7 @@ namespace UnderratedAIO.Champions
             {
                 E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
             }
-            var canR = ComboDamage(target) > target.Health && qdmg > target.Health && target.Distance(player) < Q.Range &&
+            var canR = ComboDamage(target) > target.Health && qdmg < target.Health && target.Distance(player) < Q.Range &&
                        !Silenced;
             if (R.IsReady() &&
                 (((target.Health < getRdamage(target) * 3 && (target.Distance(player) > Q.Range)) ||
