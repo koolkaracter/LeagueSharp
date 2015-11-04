@@ -93,7 +93,6 @@ namespace RandomUlt.Helpers
                     config.AddItem(new MenuItem("CallBack", "Reduce time between hits")).SetValue(true);
                 }
                 config.AddItem(new MenuItem("Hitchance", "Hitchance")).SetValue(new Slider(3, 1, 5));
-                config.AddItem(new MenuItem("Info ", "--5 is the highest chance to hit"));
                 Menu DontUlt = new Menu("Don't Ult", "DontUltRandomUlt");
                 foreach (var e in HeroManager.Enemies)
                 {
@@ -107,7 +106,7 @@ namespace RandomUlt.Helpers
                 config.AddItem(new MenuItem("waitBeforeUlt", "Wait time before ults(ms)"))
                     .SetValue(new Slider(600, 0, 3000));
                 config.AddItem(new MenuItem("BaseUltFirst", "BaseUlt has higher priority")).SetValue(false);
-                config.AddItem(new MenuItem("InfoIII ", "--Let the kills for BaseUlt"));
+                config.AddItem(new MenuItem("Collision", "Calc damage reduction")).SetValue(true);
                 config.AddItem(new MenuItem("drawNotification", "Draw notification")).SetValue(true);
             }
             config.AddItem(new MenuItem("RandomUltDrawings", "Draw possible place")).SetValue(false);
@@ -479,7 +478,8 @@ namespace RandomUlt.Helpers
         {
             if (R.IsReady() && pos.Distance(positions.Player.Position) < 1200 &&
                 ObjectManager.Get<Obj_AI_Hero>()
-                    .Count(o => o.IsAlly && o.Distance(pos) < configMenu.Item("Alliesrange").GetValue<Slider>().Value) < 1)
+                    .Count(o => o.IsAlly && o.Distance(pos) < configMenu.Item("Alliesrange").GetValue<Slider>().Value) <
+                1)
             {
                 if (checkdmg(positions.Player, pos) && UltTime(pos) < positions.RecallData.GetRecallTime() &&
                     !isColliding(pos))
@@ -624,13 +624,14 @@ namespace RandomUlt.Helpers
         {
             var dmg = R.GetDamage(target);
             float bonuShieldNearTowers = 0f;
+            var collision = configMenu.Item("Collision").GetValue<bool>();
             if (CheckShieldTower(pos))
             {
                 bonuShieldNearTowers = 300f;
             }
             if (player.ChampionName == "Ezreal")
             {
-                if (dmg * 0.7 - 10 - bonuShieldNearTowers > target.Health)
+                if (dmg * (collision ? 0.7f : 1f) - 10 - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
@@ -641,7 +642,7 @@ namespace RandomUlt.Helpers
                 {
                     dmg = dmg * 2;
                 }
-                if (dmg * 0.8 - 10 - bonuShieldNearTowers > target.Health)
+                if (dmg * (collision ? 0.8f : 1f) - 10 - bonuShieldNearTowers > target.Health)
                 {
                     return true;
                 }
