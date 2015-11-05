@@ -1140,9 +1140,7 @@ namespace JeonJunglePlay
                             HeroManager.Enemies.Where(
                                 e =>
                                     e.Distance(Player.Position) < 2000 && e.IsValidTarget() &&
-                                    (!e.UnderTurret(true) ||
-                                     (e.Health < Player.GetAutoAttackDamage(e) * 2 && e.Distance(Player) < 300 &&
-                                      Player.MoveSpeed > e.MoveSpeed))).OrderBy(e => e.Health).FirstOrDefault();
+                                    !e.UnderTurret(true)).OrderBy(e => e.Health).FirstOrDefault();
                         if (tar != null)
                         {
                             var ally =
@@ -1161,7 +1159,7 @@ namespace JeonJunglePlay
                                 DoCast_Hero(tar);
                                 return;
                             }
-                            if (myhp < 0)
+                            if (myhp < 0 || (Player.CountEnemiesInRange(2000)>Player.CountAlliesInRange(2000)+1) && tar.HealthPercent>25)
                             {
                                 Player.IssueOrder(GameObjectOrder.MoveTo, spawn);
                                 return;
@@ -1666,11 +1664,11 @@ namespace JeonJunglePlay
                 {
                     W.Cast();
                 }
-                if (E.IsReady())
+                if (E.IsReady() && Player.Distance(mob1) < 300)
                 {
                     E.Cast();
                 }
-                if (R.IsReady())
+                if (R.IsReady() && Dragon.Position.Distance(Player.Position)<600)
                 {
                     R.Cast();
                 }
@@ -1782,11 +1780,11 @@ namespace JeonJunglePlay
                 {
                     W.Cast();
                 }
-                if (E.IsReady())
+                if (E.IsReady() && Player.Distance(mob1) < 300)
                 {
                     E.Cast();
                 }
-                if (R.IsReady())
+                if (R.IsReady() && Player.Distance(mob1) < 600)
                 {
                     R.Cast();
                 }
