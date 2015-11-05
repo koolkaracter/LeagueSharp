@@ -103,7 +103,7 @@ namespace UnderratedAIO.Champions
                 Obj_AI_Hero target = TargetSelector.GetTarget(1700, TargetSelector.DamageType.Magical, true);
                 if (target != null)
                 {
-                    HandeR(target, true);
+                    HandleR(target, true);
                 }
             }
         }
@@ -247,34 +247,50 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target) &&
                 (preventSilence(E) ||
-                 (target.Health < PassiveDmg(target) * 2) &&
-                 target.Distance(player) < Orbwalking.GetRealAutoAttackRange(target) || edmg > target.Health) &&
-                (!ActiveE || System.Environment.TickCount - lastE > config.Item("eDelay", true).GetValue<Slider>().Value))
+                 (target.Health < PassiveDmg(target) * 2 &&
+                  target.Distance(player) < Orbwalking.GetRealAutoAttackRange(target))) &&
+                (!ActiveE || System.Environment.TickCount - lastE > config.Item("eDelay", true).GetValue<Slider>().Value ||
+                 edmg > target.Health))
             {
                 E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+            }
+            if (W.IsReady() && config.Item("wSpeed", true).GetValue<bool>() && ActiveQ && preventSilence(W) &&
+                target.Distance(player) < Q.Range &&
+                Prediction.GetPrediction(target, 0.2f).UnitPosition.Distance(player.Position) > Q.Range)
+            {
+                W.Cast();
             }
             var canR = ComboDamage(target) > target.Health && qdmg < target.Health && target.Distance(player) < Q.Range &&
                        !Silenced;
             if (R.IsReady() &&
-                (((target.Health < getRdamage(target) * 3 && (target.Distance(player) > Q.Range)) ||
-                  (target.Distance(player) < Q.Range && target.Health < getRdamage(target) + edmg &&
+                (((target.Health <
+                   getRdamage(target) * ((target.CountAlliesInRange(600) > 0 && target.HealthPercent > 15) ? 5 : 3) &&
+                   target.Distance(player) > Q.Range) ||
+                  (target.Distance(player) < Q.Range && target.Health < getRdamage(target) * 3 + edmg &&
                    target.Health > qdmg)) ||
                  player.CountEnemiesInRange(R.Range) >= config.Item("Rmin", true).GetValue<Slider>().Value))
             {
-                HandeR(target, canR);
+                HandleR(target, canR);
             }
         }
 
-        private void HandeR(Obj_AI_Base target, bool manual = false)
+        private void HandleR(Obj_AI_Base target, bool manual = false)
         {
             var targE = R.GetPrediction(target);
             if ((config.Item("user", true).GetValue<bool>() && player.CountEnemiesInRange(R.Range + 175) <= 1) || manual)
             {
-                var pos = targE.CastPosition;
-                if (pos.IsValid() && pos.Distance(player.Position) < R.Range + 1000 &&
-                    targE.Hitchance >= HitChance.VeryHigh)
+                if (target.IsMoving)
                 {
-                    R.Cast(target.Position.Extend(pos, -target.MoveSpeed / 2), pos);
+                    var pos = targE.CastPosition;
+                    if (pos.IsValid() && pos.Distance(player.Position) < R.Range + 1000 &&
+                        targE.Hitchance >= HitChance.VeryHigh)
+                    {
+                        R.Cast(target.Position.Extend(pos, -target.MoveSpeed / 2), pos);
+                    }
+                }
+                else
+                {
+                    R.Cast(target.Position.Extend(player.Position, 500), target.Position);
                 }
             }
             else if (targE.Hitchance >= HitChance.VeryHigh)
@@ -431,6 +447,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("eDelay", "   Delay between E", true)).SetValue(new Slider(2000, 0, 2990));
+            menuC.AddItem(new MenuItem("wSpeed", "Use W to speed up", true)).SetValue(true);
             menuC.AddItem(new MenuItem("user", "Use R 1v1", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "Use R teamfigh", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("castR", "R manual cast", true))
