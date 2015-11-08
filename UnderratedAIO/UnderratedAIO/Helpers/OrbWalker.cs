@@ -138,7 +138,8 @@ namespace UnderratedAIO.Helpers
         {
             if (BeforeAttack != null)
             {
-                BeforeAttack(new BeforeAttackEventArgs { Target = target });
+                Utility.DelayAction.Add(
+                    _random.Next(0, 50), () => { BeforeAttack(new BeforeAttackEventArgs { Target = target }); });
             }
             else
             {
@@ -150,7 +151,7 @@ namespace UnderratedAIO.Helpers
         {
             if (OnAttack != null)
             {
-                OnAttack(unit, target);
+                Utility.DelayAction.Add(_random.Next(0, 50), () => { OnAttack(unit, target); });
             }
         }
 
@@ -158,7 +159,7 @@ namespace UnderratedAIO.Helpers
         {
             if (AfterAttack != null && target.IsValidTarget())
             {
-                AfterAttack(unit, target);
+                Utility.DelayAction.Add(_random.Next(0, 50), () => { AfterAttack(unit, target); });
             }
         }
 
@@ -411,7 +412,7 @@ namespace UnderratedAIO.Helpers
                 {
                     if (player.IsMelee() && meleePrediction && target != null &&
                         target.Position.Distance(player.Position) < GetAutoAttackRange(player, target) &&
-                        target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 150)
+                        target is Obj_AI_Hero && Game.CursorPos.Distance(target.Position) < 300)
                     {
                         Obj_AI_Hero tar = (Obj_AI_Hero) target;
                         var prediction = AutoAttack.GetPrediction((Obj_AI_Base) target);
@@ -474,7 +475,7 @@ namespace UnderratedAIO.Helpers
 
                 if (IsAutoAttackReset(spellName) && unit.IsMe)
                 {
-                    Utility.DelayAction.Add(250, ResetAutoAttackTimer);
+                    Utility.DelayAction.Add(_random.Next(250, 280), ResetAutoAttackTimer);
                 }
 
                 if (!IsAutoAttack(spellName))
