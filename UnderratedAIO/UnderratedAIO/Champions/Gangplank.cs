@@ -763,7 +763,7 @@ namespace UnderratedAIO.Champions
                 .SetValue(true);
             menuC.AddItem(new MenuItem("useeAOE", "   Put bonus barrel to AOE", true))
                 .SetTooltip(
-                    "If the target is near to a barrel, not necessary to put more, but this will put ONE to extend the AOE damage")
+                    "If the target is near to a barrel, not necessary to put more, but this will put ONE to increase AOE damage")
                 .SetValue(false);
 
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
