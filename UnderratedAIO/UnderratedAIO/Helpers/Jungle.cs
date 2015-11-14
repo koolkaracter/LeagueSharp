@@ -15,24 +15,20 @@ namespace UnderratedAIO.Helpers
             "TT_Spiderboss", "SRU_Blue", "SRU_Red", "SRU_Dragon",
             "SRU_Baron"
         };
-        public static readonly string[] bosses =
-        {
-            "TT_Spiderboss", "SRU_Dragon",
-            "SRU_Baron"
-        };
+
+        public static readonly string[] bosses = { "TT_Spiderboss", "SRU_Dragon", "SRU_Baron" };
         public static SpellSlot smiteSlot = SpellSlot.Unknown;
         public static Spell smite;
 
-        public static Obj_AI_Minion GetNearest(Vector3 pos, float range=1500f)
+        public static Obj_AI_Minion GetNearest(Vector3 pos, float range = 1500f)
         {
             return
                 ObjectManager.Get<Obj_AI_Minion>()
                     .FirstOrDefault(
-                        minion => minion.IsValidTarget() &&
-                            minion.IsValid && minion.Distance(pos) < range &&
-                            jungleMonsters.Any(name => minion.Name.StartsWith(name)) &&
-                            !jungleMonsters.Any(name => minion.Name.Contains("Mini")) &&
-                            !jungleMonsters.Any(name => minion.Name.Contains("Spawn")));
+                        minion =>
+                            minion.IsValidTarget() && minion.IsValid && minion.Distance(pos) < range &&
+                            jungleMonsters.Any(name => minion.Name.StartsWith(name)) && !minion.Name.Contains("Mini") &&
+                            !minion.Name.Contains("Spawn"));
         }
 
         public static double smiteDamage(Obj_AI_Base target)
@@ -45,7 +41,8 @@ namespace UnderratedAIO.Helpers
             var mConfig = config;
             Menu menuS = new Menu("Smite ", "Smitesettings");
             menuS.AddItem(new MenuItem("useSmite", "Use Smite"))
-                .SetValue(new KeyBind("M".ToCharArray()[0], KeyBindType.Toggle));
+                .SetValue(new KeyBind("M".ToCharArray()[0], KeyBindType.Toggle))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuS.AddItem(new MenuItem("smiteStatus", "Show status")).SetValue(false);
             mConfig.AddSubMenu(menuS);
             return mConfig;
@@ -95,7 +92,7 @@ namespace UnderratedAIO.Helpers
         //Kurisu
         private static readonly int[] SmitePurple = { 3713, 3726, 3725, 3724, 3723, 3933 };
         private static readonly int[] SmiteGrey = { 3711, 3722, 3721, 3720, 3719, 3932 };
-        private static readonly int[] SmiteRed = { 3715, 3718, 3717, 3716, 3714, 3931 };
+        private static readonly int[] SmiteRed = { 3715, 3718, 3717, 3716, 3714, 3931, 1415 };
         private static readonly int[] SmiteBlue = { 3706, 3710, 3709, 3708, 3707, 3930 };
 
         public static string smitetype()
@@ -121,10 +118,9 @@ namespace UnderratedAIO.Helpers
 
         public static void setSmiteSlot()
         {
-            foreach (
-                var spell in
-                    ObjectManager.Player.Spellbook.Spells.Where(
-                        spell => String.Equals(spell.Name, smitetype(), StringComparison.CurrentCultureIgnoreCase)))
+            foreach (var spell in
+                ObjectManager.Player.Spellbook.Spells.Where(
+                    spell => String.Equals(spell.Name, smitetype(), StringComparison.CurrentCultureIgnoreCase)))
             {
                 smiteSlot = spell.Slot;
                 smite = new Spell(smiteSlot, 700);
