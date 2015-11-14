@@ -10,6 +10,7 @@ using System.IO;
 using LeagueSharp;
 using LeagueSharp.Common;
 using SharpDX;
+using ItemData = LeagueSharp.Common.Data.ItemData;
 
 namespace JeonJunglePlay
 {
@@ -226,7 +227,13 @@ namespace JeonJunglePlay
                 item = ItemId.Rangers_Trailblazer,
                 index = 1
             },
-            new ItemToShop() { Price = 450, needItem = ItemId.Rangers_Trailblazer, item = ItemId.Dagger, index = 2 },
+            new ItemToShop()
+            {
+                Price = 450, 
+                needItem = ItemId.Rangers_Trailblazer, 
+                item = ItemId.Dagger,
+                index = 2
+            },
             new ItemToShop()
             {
                 Price = 1050,
@@ -392,23 +399,30 @@ namespace JeonJunglePlay
         {
             new ItemToShop()
             {
-                Price = 450,
+                Price = 350,
                 needItem = ItemId.Hunters_Machete,
-                item = ItemId.Rangers_Trailblazer,
-                index = 1
+                item = (ItemId)1041,
+                index = 0
             },
-            new ItemToShop() { Price = 450, needItem = ItemId.Rangers_Trailblazer, item = ItemId.Dagger, index = 2 },
             new ItemToShop()
             {
-                Price = 1050,
+                Price = 350,
+                needItem = (ItemId)1041,
+                item = (ItemId)3711,
+                index = 1
+            },
+            new ItemToShop() { Price = 300, needItem = (ItemId)3711, item = ItemId.Dagger, index = 2 },
+            new ItemToShop()
+            {
+                Price = 1100,
                 needItem = ItemId.Dagger,
-                item = ItemId.Rangers_Trailblazer_Enchantment_Devourer,
+                item = (ItemId)1411,
                 index = 3
             },
             new ItemToShop()
             {
                 Price = 325,
-                needItem = ItemId.Rangers_Trailblazer_Enchantment_Devourer,
+                needItem = (ItemId)1411,
                 item = ItemId.Boots_of_Speed,
                 index = 4
             },
@@ -564,6 +578,10 @@ namespace JeonJunglePlay
 
         private static void Game_OnGameLoad(EventArgs args)
         {
+
+            Game.PrintChat("JEON AUTOJUNGLE IS NOT SUPPORTED IN S6");
+            Game.PrintChat("A NEW ASSEMBLY WILL BE PUBLISHED SOON");
+            return;
             ////////////////////////////////////////////////
             JeonAutoJungleMenu = new Menu("JeonAutoJungle", "JeonAutoJungle", true);
             JeonAutoJungleMenu.AddItem(new MenuItem("isActive", "Activate")).SetValue(true);
@@ -857,7 +875,6 @@ namespace JeonJunglePlay
                 return;
             }
             pastTime = Environment.TickCount;
-
             #endregion
 
             #region InvadeEnemyJungle
@@ -990,6 +1007,7 @@ namespace JeonJunglePlay
                         now = 12;
                     }
                     MonsterINFO target = MonsterList.FirstOrDefault(t => t.order == now);
+                    Console.WriteLine("To: {0}, Fix: {1}, Afk: {2}", target.name, fix, afktime);
                     if (Player.IsMoving || Player.IsWindingUp || Player.IsRecalling() || Player.Level == 1)
                     {
                         fix = 0;
@@ -1425,6 +1443,7 @@ namespace JeonJunglePlay
                 if (Player.InventoryItems.Any(t => Convert.ToInt32(t.Id) == 2010))
                 {
                     item = ItemId.Unknown;
+
                 }
                 if (Player.InventoryItems.Any(t => (t.Id == ItemId.Health_Potion || Convert.ToInt32(t.Id) == 2010)))
                 {
