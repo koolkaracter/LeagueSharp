@@ -595,7 +595,7 @@ namespace JeonJunglePlay
                 new MenuItem("k_dragon", "Add Dragon to Route on Lv").SetValue(new Slider(10, 1, 18)));
             if (Player.ChampionName == "MasterYi")
             {
-                JeonAutoJungleMenu.AddItem(new MenuItem("yi_W", "Cast MasterYi-W(%)").SetValue(new Slider(85, 0, 100)));
+                JeonAutoJungleMenu.AddItem(new MenuItem("yi_W", "Cst MasterYi-W(%)").SetValue(new Slider(85, 0, 100)));
             }
             JeonAutoJungleMenu.AddItem(new MenuItem("Gank", "Gank Lanes")).SetValue(true);
             JeonAutoJungleMenu.AddItem(
