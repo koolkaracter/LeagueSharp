@@ -35,6 +35,16 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
+            
+            if (GarenE)
+            {
+                orbwalker.SetMovement(false);
+                player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+            }
+            else
+            {
+                orbwalker.SetMovement(true);
+            }
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -176,6 +186,16 @@ namespace UnderratedAIO.Champions
             Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo").GetValue<bool>();
+            if (R.IsReady() && config.Item("drawrkillable", true).GetValue<bool>())
+            {
+                foreach (var e in HeroManager.Enemies.Where(e => e.IsValid && e.IsHPBarRendered))
+                {
+                    if (e.Health < getRDamage(e))
+                    {
+                        Render.Circle.DrawCircle(e.Position, 157, Color.Gold, 12);
+                    }
+                }   
+            }
         }
 
         private float ComboDamage(Obj_AI_Hero hero)
@@ -314,6 +334,7 @@ namespace UnderratedAIO.Champions
             menuD.AddItem(new MenuItem("drawrr", "Draw R range", true))
                 .SetValue(new Circle(false, Color.FromArgb(180, 109, 111, 126)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage")).SetValue(true);
+            menuD.AddItem(new MenuItem("drawrkillable", "Show if killable with R", true)).SetValue(true);
             config.AddSubMenu(menuD);
             // Combo Settings
             Menu menuC = new Menu("Combo ", "csettings");
