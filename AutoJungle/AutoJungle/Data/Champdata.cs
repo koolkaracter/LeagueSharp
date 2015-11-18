@@ -111,7 +111,7 @@ namespace AutoJungle
             {
                 R.CastIfHitchanceEquals(targetHero, HitChance.VeryHigh);
             }
-            
+
             Hero.IssueOrder(GameObjectOrder.AttackUnit, targetHero);
             return false;
         }
@@ -129,7 +129,7 @@ namespace AutoJungle
                 Hero.IssueOrder(GameObjectOrder.AttackUnit, structure);
                 return false;
             }
-            if (targetMob==null)
+            if (targetMob == null)
             {
                 return false;
             }
@@ -164,7 +164,7 @@ namespace AutoJungle
             }
             if (Program.menu.Item("ComboSmite").GetValue<Boolean>())
             {
-                Jungle.CastSmiteHero((Obj_AI_Hero)targetHero);
+                Jungle.CastSmiteHero((Obj_AI_Hero) targetHero);
             }
             if (Hero.IsWindingUp)
             {
@@ -217,7 +217,8 @@ namespace AutoJungle
             {
                 Q.CastOnUnit(targetMob);
             }
-            if (W.IsReady() && Hero.Distance(targetMob) < 300 && Program._GameInfo.SmiteableMob != null)
+            if (W.IsReady() && Hero.Distance(targetMob) < 300 && (Program._GameInfo.SmiteableMob != null) ||
+                Program._GameInfo.MinionsAround > 3)
             {
                 W.Cast();
             }

@@ -206,6 +206,16 @@ namespace AutoJungle
                     _GameInfo.Champdata.JungleClear();
                     UsePotions();
                     break;
+                case State.Objective:
+                    if (_GameInfo.Target is Obj_AI_Hero)
+                    {
+                        _GameInfo.Champdata.Combo();
+                    }
+                    else
+                    {
+                        _GameInfo.Champdata.JungleClear();
+                    }
+                    break;
                 default:
                     break;
             }
@@ -319,12 +329,13 @@ namespace AutoJungle
             switch (_GameInfo.GameState)
             {
                 case State.Objective:
-                    if (_GameInfo.SmiteableMob != null &&
-                        (_GameInfo.SmiteableMob.Name.Contains("Dragon") || _GameInfo.SmiteableMob.Name.Contains("Baron")) &&
-                        HealthPrediction.GetHealthPrediction(_GameInfo.SmiteableMob, 3000) + 500 <
-                        Jungle.smiteDamage(_GameInfo.SmiteableMob))
+                    var obj = Helpers.GetNearest(player.Position, 1500f);
+                    if (obj != null &&
+                        (obj.Name.Contains("Dragon") || obj.Name.Contains("Baron")) &&
+                        (HealthPrediction.GetHealthPrediction(obj, 3000) + 500 <
+                        Jungle.smiteDamage(obj) || _GameInfo.EnemiesAround == 0))
                     {
-                        return _GameInfo.SmiteableMob;
+                        return obj;
                     }
                     else
                     {
@@ -427,6 +438,16 @@ namespace AutoJungle
                     }
                 }
             }
+            if (Jungle.SmiteReady() && player.Level >= 9 && player.Distance(Camps.Dragon.Position) < 1500)
+            {
+                var drake = Helpers.GetNearest(player.Position, 1500);
+                if (drake != null && drake.Name.Contains("Dragon"))
+                {
+                    _GameInfo.CurrentMonster = 13;
+                    _GameInfo.MoveTo = drake.Position;
+                    return true;
+                }
+            }
             return false;
         }
 
@@ -452,6 +473,10 @@ namespace AutoJungle
                         ObjectManager.Get<Obj_AI_Turret>()
                             .FirstOrDefault(t => t.IsEnemy && t.IsValidTarget() && t.Distance(possibleTarget) < 1200) !=
                         null)
+                    {
+                        continue;
+                    }
+                    if (possibleTarget.CountAlliesInRange(1500)+1<possibleTarget.CountEnemiesInRange(1500))
                     {
                         continue;
                     }
@@ -664,10 +689,9 @@ namespace AutoJungle
                 }
             }
             //follow minis
-            var minis = Helpers.getAllyMobs(player.Position, 1200);
-            if (minis.Count >= 7 && player.Level >= 8 && Helpers.getMobs(player.Position, 1500).Count == 0)
+            var minis = Helpers.getAllyMobs(player.Position, 1000);
+            if (minis.Count >= 7 && player.Level >= 8 && Helpers.getMobs(player.Position, 1000).Count == 0)
             {
-                Console.WriteLine("1");
                 var objAiBase = minis.OrderBy(m => m.Distance(_GameInfo.SpawnPointEnemy)).FirstOrDefault();
                 if (objAiBase != null)
                 {
@@ -682,7 +706,7 @@ namespace AutoJungle
                     ObjectManager.Get<Obj_AI_Minion>()
                         .Where(
                             m =>
-                                (m.CountEnemiesInRange(1500) == 0 || m.Distance(_GameInfo.SpawnPoint) < 7000) &&
+                                ((m.CountEnemiesInRange(1500) == 0 || (m.CountAlliesInRange(1500)+1>=m.CountEnemiesInRange(1500))) || m.Distance(_GameInfo.SpawnPoint) < 7000) &&
                                 Helpers.getMobs(m.Position, 1200).Count >= 6)
                         .OrderByDescending(m => m.Distance(_GameInfo.SpawnPoint) < 7000)
                         .ThenBy(m => m.Distance(player))
@@ -764,7 +788,6 @@ namespace AutoJungle
                 case State.Objective:
                     return _GameInfo.MoveTo;
                     break;
-
                 case State.Grouping:
                     return _GameInfo.MoveTo;
                     break;

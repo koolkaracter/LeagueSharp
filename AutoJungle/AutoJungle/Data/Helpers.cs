@@ -113,15 +113,16 @@ namespace AutoJungle.Data
                     .FirstOrDefault();
         }
 
-        public static Obj_AI_Base GetNearest(Vector3 pos)
+        public static Obj_AI_Base GetNearest(Vector3 pos, float dist = 700f)
         {
             var minions =
                 ObjectManager.Get<Obj_AI_Minion>()
                     .Where(
                         minion =>
                             minion.IsValid && minion.IsEnemy && !minion.IsDead &&
-                            Camps.BigMobs.Any(
-                                name => minion.Name.StartsWith(name) && Program.player.Distance(minion.Position) <= 700))
+                                    !minion.Name.Contains("Mini") && 
+                            Camps.BigMobs.Any(name=>minion.Name.StartsWith(name) &&
+                                    Program.player.Distance(minion.Position) <= dist))
                     .OrderByDescending(m => m.MaxHealth);
             return minions.FirstOrDefault();
         }
@@ -135,7 +136,7 @@ namespace AutoJungle.Data
             {
                 if (source.Crit > 0)
                 {
-                    basicDmg += source.GetAutoAttackDamage(target,true) * (1f + source.Crit / attacks);
+                    basicDmg += source.GetAutoAttackDamage(target, true) * (1f + source.Crit / attacks);
                 }
                 else
                 {

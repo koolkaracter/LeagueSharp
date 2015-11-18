@@ -65,7 +65,7 @@ namespace AutoJungle.Data
                 if (target != null)
                 {
                     if (smite.CanCast(target) && smiteReady && player.Distance(target.Position) <= smite.Range &&
-                        target.Health > Helpers.GetComboDMG(player, target) &&
+                        target.Health > Helpers.GetComboDMG(player, target)*0.7f &&
                         player.Distance(target) < Orbwalking.GetRealAutoAttackRange(target) &&
                         Program._GameInfo.SmiteableMob == null)
                     {
@@ -75,9 +75,9 @@ namespace AutoJungle.Data
             }
         }
 
-        public static bool SmiteReady(bool enabled)
+        public static bool SmiteReady()
         {
-            if (enabled && smiteSlot != SpellSlot.Unknown)
+            if (smiteSlot != SpellSlot.Unknown)
             {
                 return ObjectManager.Player.Spellbook.CanUseSpell(smiteSlot) == SpellState.Ready;
             }
