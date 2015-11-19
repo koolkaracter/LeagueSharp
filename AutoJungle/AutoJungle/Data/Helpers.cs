@@ -435,7 +435,7 @@ namespace AutoJungle.Data
                 HeroManager.AllHeroes.Where(h => !h.IsDead && h.IsAlly == ally && pos.Distance(h.Position) < GameInfo.ChampionRange)
                     .Sum(h => h.Health);
         }
-        internal static int AlliesThere(Vector3 pos, float range)
+        internal static int AlliesThere(Vector3 pos, float range = GameInfo.ChampionRange)
         {
             return HeroManager.Allies.Count(h => !h.IsDead && !h.IsMe && pos.Distance(h.Position) < range);
         }

@@ -176,7 +176,10 @@ namespace AutoJungle
             }
             if (W.IsReady() && Hero.Distance(targetHero) < 300)
             {
-                W.Cast();
+                if (Hero.Mana > Q.ManaCost + W.ManaCost || Hero.HealthPercent > 70)
+                {
+                    W.Cast();
+                }
             }
             if (R.IsReady() && R.CanCast(targetHero) && !targetHero.MagicImmune)
             {
@@ -220,7 +223,10 @@ namespace AutoJungle
             if (W.IsReady() && Hero.Distance(targetMob) < 300 && (Program._GameInfo.SmiteableMob != null) ||
                 Program._GameInfo.MinionsAround > 3)
             {
-                W.Cast();
+                if (Hero.Mana>Q.ManaCost+W.ManaCost || Hero.HealthPercent>70)
+                {
+                    W.Cast();
+                }
             }
             if (E.IsReady() && Hero.Spellbook.GetSpell(SpellSlot.E).ToggleState != 1 && Hero.Distance(targetMob) < 500)
             {

@@ -96,7 +96,7 @@ namespace AutoJungle
             {
                 _GameInfo.afk++;
             }
-            if (_GameInfo.afk > 30 && !player.InFountain())
+            if (_GameInfo.afk > 15 && !player.InFountain())
             {
                 player.Spellbook.CastSpell(SpellSlot.Recall);
                 return true;
@@ -352,7 +352,7 @@ namespace AutoJungle
                     break;
                 case State.LaneClear:
                     return
-                        Helpers.getMobs(player.Position, 700)
+                        Helpers.getMobs(player.Position, GameInfo.ChampionRange)
                             .Where(m => !m.UnderTurret(true))
                             .OrderByDescending(m => player.GetAutoAttackDamage(m, true) > m.Health)
                             .ThenBy(m => m.Distance(player))
@@ -453,16 +453,20 @@ namespace AutoJungle
 
         private static bool CheckGanking()
         {
-            if (player.Level >= menu.Item("GankLevel").GetValue<Slider>().Value &&
+            Obj_AI_Hero gankTarget = null;
+            if (_GameInfo.Target != null && _GameInfo.Target is Obj_AI_Hero && _GameInfo.GameState==State.Ganking)
+            {
+                gankTarget = (Obj_AI_Hero)_GameInfo.Target;
+            }else if (player.Level >= menu.Item("GankLevel").GetValue<Slider>().Value &&
                 ((player.Mana > _GameInfo.Champdata.R.ManaCost && player.MaxMana > 100) || player.MaxMana <= 100))
             {
-                Obj_AI_Hero gankTarget = null;
                 foreach (var possibleTarget in
                     HeroManager.Enemies.Where(
                         e =>
-                            e.Distance(player) < menu.Item("GankRange").GetValue<Slider>().Value && e.HealthPercent < 90 &&
-                            e.IsValidTarget() && !e.UnderTurret(true) && !CheckForRetreat(e, player.Position))
-                        .OrderBy(e => e.Distance(player)))
+                            e.Distance(player) < menu.Item("GankRange").GetValue<Slider>().Value && e.IsValidTarget() &&
+                            !e.UnderTurret(true) && !CheckForRetreat(e, player.Position))
+                        .OrderByDescending(e => _GameInfo.Target!=null && e.NetworkId == _GameInfo.Target.NetworkId)
+                        .ThenBy(e => e.Distance(player)))
                 {
                     var myDmg = Helpers.GetComboDMG(player, possibleTarget);
                     if (player.Level + 1 <= possibleTarget.Level)
@@ -476,8 +480,8 @@ namespace AutoJungle
                     {
                         continue;
                     }
-                    if (possibleTarget.CountAlliesInRange(GameInfo.ChampionRange) + 1 <
-                        possibleTarget.CountEnemiesInRange(GameInfo.ChampionRange))
+                    if (Helpers.AlliesThere(possibleTarget.Position) + 1 <
+                        possibleTarget.Position.CountEnemiesInRange(GameInfo.ChampionRange))
                     {
                         continue;
                     }
@@ -500,24 +504,29 @@ namespace AutoJungle
                         gankTarget = possibleTarget;
                     }
                 }
-                if (gankTarget != null)
+            }
+            if (gankTarget != null)
+            {
+                var gankPosition =
+                    Helpers.GankPos.Where(p => p.Distance(gankTarget.Position) < 2000)
+                        .OrderBy(p => player.Distance(gankTarget.Position))
+                        .FirstOrDefault();
+                if (gankTarget.Distance(player) > 2000 && gankPosition.IsValid() &&
+                    gankPosition.Distance(gankTarget.Position) < 2000 &&
+                    player.Distance(gankTarget) > gankPosition.Distance(gankTarget.Position))
                 {
-                    var gankPosition =
-                        Helpers.GankPos.Where(p => p.Distance(gankTarget.Position) < 2000)
-                            .OrderBy(p => player.Distance(gankTarget.Position))
-                            .FirstOrDefault();
-                    if (gankTarget.Distance(player) > 2000 && gankPosition.IsValid() &&
-                        gankPosition.Distance(gankTarget.Position) < 2000 &&
-                        player.Distance(gankTarget) > gankPosition.Distance(gankTarget.Position))
-                    {
-                        _GameInfo.MoveTo = gankPosition;
-                        return true;
-                    }
-                    else if (gankTarget.Distance(player) <= 2000)
-                    {
-                        _GameInfo.MoveTo = gankTarget.Position;
-                        return true;
-                    }
+                    _GameInfo.MoveTo = gankPosition;
+                    return true;
+                }
+                else if (gankTarget.Distance(player) <= 2000)
+                {
+                    _GameInfo.MoveTo = gankTarget.Position;
+                    return true;
+                }
+                else if (!gankPosition.IsValid())
+                {
+                    _GameInfo.MoveTo = gankTarget.Position;
+                    return true;
                 }
             }
             return false;
@@ -575,12 +584,7 @@ namespace AutoJungle
             {
                 tempstate = State.Jungling;
             }
-            if (tempstate == State.Null &&
-                (_GameInfo.AlliesAround == 0 || _GameInfo.AlliesAround >= 2 ||
-                 player.Distance(_GameInfo.SpawnPoint) < 6000 || player.Distance(_GameInfo.SpawnPointEnemy) < 6000) &&
-                _GameInfo.EnemiesAround == 0 && _GameInfo.MinionsAround > 0 &&
-                !_GameInfo.MonsterList.Any(m => m.Position.Distance(player.Position) < 600) &&
-                _GameInfo.SmiteableMob == null && _GameInfo.GameState != State.Retreat)
+            if (tempstate == State.Null && CheckLaneClear(player.Position))
             {
                 tempstate = State.LaneClear;
             }
@@ -601,6 +605,16 @@ namespace AutoJungle
             {
                 return _GameInfo.GameState;
             }
+        }
+
+        private static bool CheckLaneClear(Vector3 pos)
+        {
+            return (Helpers.AlliesThere(pos) == 0 || Helpers.AlliesThere(pos) >= 2 ||
+                    player.Distance(_GameInfo.SpawnPoint) < 6000 || player.Distance(_GameInfo.SpawnPointEnemy) < 6000) &&
+                   pos.CountEnemiesInRange(GameInfo.ChampionRange) == 0 &&
+                   Helpers.getMobs(pos, GameInfo.ChampionRange).Count > 0 &&
+                   !_GameInfo.MonsterList.Any(m => m.Position.Distance(pos) < 600) && _GameInfo.SmiteableMob == null &&
+                   _GameInfo.GameState != State.Retreat;
         }
 
         private static bool CheckForRetreat(Obj_AI_Base enemy, Vector3 pos)
@@ -667,6 +681,10 @@ namespace AutoJungle
                     s => s.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value))
             {
                 var aMinis = Helpers.getAllyMobs(vector, GameInfo.ChampionRange);
+                if (!CheckLaneClear(vector))
+                {
+                    continue;
+                }
                 if (vector.CountAlliesInRange(GameInfo.ChampionRange) + 1 >
                     vector.CountEnemiesInRange(GameInfo.ChampionRange) && aMinis.Count > 3)
                 {
@@ -699,6 +717,10 @@ namespace AutoJungle
                     s => s.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value))
             {
                 var eMinis = Helpers.getMobs(vector, GameInfo.ChampionRange);
+                if (!CheckLaneClear(vector))
+                {
+                    continue;
+                }
                 if (vector.CountAlliesInRange(GameInfo.ChampionRange) + 1 >
                     vector.CountEnemiesInRange(GameInfo.ChampionRange) && eMinis.Count > 3)
                 {
@@ -755,7 +777,7 @@ namespace AutoJungle
                         .ThenBy(m => m.Distance(player))
                         .FirstOrDefault();
                 if (miniwave != null && Helpers.CheckPath(player.GetPath(miniwave.Position)) &&
-                    !CheckForRetreat(null, player.Position))
+                    !CheckForRetreat(null, player.Position) && CheckLaneClear(miniwave.Position))
                 {
                     _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
                     return true;
@@ -774,7 +796,7 @@ namespace AutoJungle
                         .ThenBy(m => m.Distance(player))
                         .FirstOrDefault();
                 if (miniwave != null && Helpers.CheckPath(player.GetPath(miniwave.Position)) &&
-                    !CheckForRetreat(null, player.Position))
+                    !CheckForRetreat(null, player.Position) && CheckLaneClear(miniwave.Position))
                 {
                     _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
                     return true;
@@ -940,6 +962,10 @@ namespace AutoJungle
         private static bool WaitOnFountain()
         {
             if (!player.InFountain())
+            {
+                return false;
+            }
+            if (player.InFountain() && player.IsRecalling())
             {
                 return false;
             }
