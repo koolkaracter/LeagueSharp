@@ -436,7 +436,7 @@ namespace AutoJungle
 
         private static bool CheckObjective(Vector3 pos)
         {
-            if ((pos.CountEnemiesInRange(800) > 0 || pos.CountAlliesInRange(800) > 0))
+            if ((pos.CountEnemiesInRange(800) > 0 || pos.CountAlliesInRange(800) > 0) && !CheckForRetreat(null, pos))
             {
                 var obj = Helpers.GetNearest(pos);
                 if (obj != null && obj.Health < obj.MaxHealth - 300)
