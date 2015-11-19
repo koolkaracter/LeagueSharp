@@ -108,12 +108,23 @@ namespace AutoJungle
         {
             if (_GameInfo.GameState == State.Positioning)
             {
-                if (_GameInfo.MoveTo.Distance(player.Position) < 200 && _GameInfo.MinionsAround == 0 && player.Level > 1)
+                if (Helpers.GetRealDistance(player, _GameInfo.MoveTo) < 900 && _GameInfo.MinionsAround == 0 &&
+                    player.Level > 1)
                 {
                     _GameInfo.CurrentMonster++;
                     if (Debug)
                     {
                         Console.WriteLine("MoveTo: CurrentMonster++1");
+                    }
+                }
+
+                var probablySkippedMob = Helpers.GetNearest(player.Position, 1000);
+                if (probablySkippedMob != null && probablySkippedMob.Distance(_GameInfo.MoveTo) > 200)
+                {
+                    var monster = _GameInfo.MonsterList.FirstOrDefault(m => probablySkippedMob.Name.Contains(m.name));
+                    if (monster != null && monster.Index < 13)
+                    {
+                        _GameInfo.MoveTo = probablySkippedMob.Position;
                     }
                 }
             }
@@ -250,7 +261,7 @@ namespace AutoJungle
             {
                 return;
             }
-            if (_GameInfo.MoveTo.Distance(_GameInfo.LastClick) > 150 || (!player.IsMoving && _GameInfo.afk > 10))
+            if (_GameInfo.MoveTo.IsValid() && (_GameInfo.MoveTo.Distance(_GameInfo.LastClick) > 150 || (!player.IsMoving && _GameInfo.afk > 10)))
             {
                 player.IssueOrder(GameObjectOrder.MoveTo, _GameInfo.MoveTo);
             }
@@ -348,7 +359,7 @@ namespace AutoJungle
                     return null;
                     break;
                 case State.Jungling:
-                    return Helpers.getMobs(player.Position, 700).OrderByDescending(m => m.MaxHealth).FirstOrDefault();
+                    return Helpers.getMobs(player.Position, 1000).OrderByDescending(m => m.MaxHealth).FirstOrDefault();
                     break;
                 case State.LaneClear:
                     return
@@ -454,18 +465,20 @@ namespace AutoJungle
         private static bool CheckGanking()
         {
             Obj_AI_Hero gankTarget = null;
-            if (_GameInfo.Target != null && _GameInfo.Target is Obj_AI_Hero && _GameInfo.GameState==State.Ganking)
+            if (_GameInfo.Target != null && _GameInfo.Target is Obj_AI_Hero && _GameInfo.GameState == State.Ganking)
             {
-                gankTarget = (Obj_AI_Hero)_GameInfo.Target;
-            }else if (player.Level >= menu.Item("GankLevel").GetValue<Slider>().Value &&
-                ((player.Mana > _GameInfo.Champdata.R.ManaCost && player.MaxMana > 100) || player.MaxMana <= 100))
+                gankTarget = (Obj_AI_Hero) _GameInfo.Target;
+            }
+            else if (player.Level >= menu.Item("GankLevel").GetValue<Slider>().Value &&
+                     ((player.Mana > _GameInfo.Champdata.R.ManaCost && player.MaxMana > 100) || player.MaxMana <= 100))
             {
                 foreach (var possibleTarget in
                     HeroManager.Enemies.Where(
                         e =>
-                            e.Distance(player) < menu.Item("GankRange").GetValue<Slider>().Value && e.IsValidTarget() &&
-                            !e.UnderTurret(true) && !CheckForRetreat(e, player.Position))
-                        .OrderByDescending(e => _GameInfo.Target!=null && e.NetworkId == _GameInfo.Target.NetworkId)
+                            e.Distance(player) < menu.Item("GankRange").GetValue<Slider>().Value &&
+                            e.IsValidTarget() && !e.UnderTurret(true) && !CheckForRetreat(e, player.Position))
+                        .OrderByDescending(
+                            e => _GameInfo.Target != null && e.NetworkId == _GameInfo.Target.NetworkId)
                         .ThenBy(e => e.Distance(player)))
                 {
                     var myDmg = Helpers.GetComboDMG(player, possibleTarget);
@@ -475,8 +488,8 @@ namespace AutoJungle
                     }
                     if (
                         ObjectManager.Get<Obj_AI_Turret>()
-                            .FirstOrDefault(t => t.IsEnemy && t.IsValidTarget() && t.Distance(possibleTarget) < 1200) !=
-                        null)
+                            .FirstOrDefault(
+                                t => t.IsEnemy && t.IsValidTarget() && t.Distance(possibleTarget) < 1200) != null)
                     {
                         continue;
                     }
@@ -493,7 +506,8 @@ namespace AutoJungle
                         HeroManager.Allies.Where(a => !a.IsDead && a.Distance(possibleTarget) < 2000)
                             .OrderBy(a => a.Distance(possibleTarget))
                             .FirstOrDefault();
-                    var hp = possibleTarget.Health - myDmg * menu.Item("GankFrequency").GetValue<Slider>().Value / 100;
+                    var hp = possibleTarget.Health -
+                             myDmg * menu.Item("GankFrequency").GetValue<Slider>().Value / 100;
                     if (ally != null)
                     {
                         hp -= Helpers.GetComboDMG(ally, possibleTarget) *
@@ -815,6 +829,7 @@ namespace AutoJungle
                             .FirstOrDefault(t => t.IsEnemy && !t.IsDead && t.Distance(player) < 2000);
                     var allyTurret =
                         ObjectManager.Get<Obj_AI_Turret>()
+                        .OrderBy(t=>t.Distance(player))
                             .FirstOrDefault(
                                 t =>
                                     t.IsAlly && !t.IsDead && t.Distance(player) < 4000 &&
@@ -830,23 +845,15 @@ namespace AutoJungle
                         if (!nextPost.UnitPosition.UnderTurret(true))
                         {
                             return nextPost.UnitPosition;
-                        }
+                        }else
                         {
                             return _GameInfo.SpawnPoint;
                         }
                     }
                     if (allyTurret != null &&
-                        player.GetPath(allyTurret.Position)
-                            .All(p => (enemy == null || p.Distance(enemy.Position) > enemy.Distance(player))) &&
                         player.Distance(_GameInfo.SpawnPoint) > player.Distance(allyTurret))
                     {
                         return allyTurret.Position.Extend(_GameInfo.SpawnPoint, 300);
-                    }
-                    if (enemy != null &&
-                        player.GetPath(_GameInfo.SpawnPoint)
-                            .All(p => p.Distance(enemy.Position) > enemy.Distance(player)))
-                    {
-                        return _GameInfo.SpawnPoint;
                     }
                     return _GameInfo.SpawnPoint;
                     break;
@@ -971,6 +978,10 @@ namespace AutoJungle
             }
             if (player.HealthPercent < 90 || (player.ManaPercent < 90 && player.MaxMana > 100))
             {
+                if (player.IsMoving)
+                {
+                    player.IssueOrder(GameObjectOrder.HoldPosition, player.Position);
+                }
                 return true;
             }
             return false;

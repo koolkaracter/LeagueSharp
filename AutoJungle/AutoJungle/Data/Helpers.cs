@@ -105,8 +105,8 @@ namespace AutoJungle.Data
                     e =>
                         e.IsValidTarget() &&
                         (!e.UnderTurret(true) ||
-                         e.Health < e.GetAutoAttackDamage(e, true) * 2 &&
-                         e.Distance(Program.player) > Orbwalking.GetRealAutoAttackRange(e)) &&
+                         (e.Health < e.GetAutoAttackDamage(e, true) * 2 &&
+                         e.Distance(Program.player) > Orbwalking.GetRealAutoAttackRange(e))) &&
                         e.Distance(Program.player) < GameInfo.ChampionRange)
                     .OrderByDescending(e => GetComboDMG(Program.player, e) > e.Health)
                     .ThenBy(e => e.Distance(Program.player))
@@ -119,10 +119,10 @@ namespace AutoJungle.Data
                 ObjectManager.Get<Obj_AI_Minion>()
                     .Where(
                         minion =>
-                            minion.IsValid && minion.IsEnemy && !minion.IsDead &&
+                            minion.IsValidTarget() && minion.IsEnemy && !minion.IsDead &&
                                     !minion.Name.Contains("Mini") && 
                             Camps.BigMobs.Any(name=>minion.Name.StartsWith(name) &&
-                                    Program.player.Distance(minion.Position) <= dist))
+                                    pos.Distance(minion.Position) <= dist))
                     .OrderByDescending(m => m.MaxHealth);
             return minions.FirstOrDefault();
         }
@@ -438,6 +438,18 @@ namespace AutoJungle.Data
         internal static int AlliesThere(Vector3 pos, float range = GameInfo.ChampionRange)
         {
             return HeroManager.Allies.Count(h => !h.IsDead && !h.IsMe && pos.Distance(h.Position) < range);
+        }
+        internal static float GetRealDistance(Obj_AI_Hero hero, Vector3 b)
+        {
+            var path = hero.GetPath(b);
+            var lastPoint = path[0];
+            var distance = 0f;
+            foreach (var point in path.Where(point => !point.Equals(lastPoint)))
+            {
+                distance += lastPoint.Distance(point);
+                lastPoint = point;
+            }
+            return distance;
         }
     }
 }
