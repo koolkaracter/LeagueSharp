@@ -34,6 +34,7 @@ namespace AutoJungle
         public IEnumerable<Vector3> AllyStructures=new List<Vector3>();
         public IEnumerable<Vector3> EnemyStructures = new List<Vector3>();
         public Vector3 ClosestWardPos = Vector3.Zero;
+        public const int ChampionRange = 1300;
         public GameInfo()
         {
             NextItemPrice = 350;
@@ -100,12 +101,12 @@ namespace AutoJungle
 
         public int EnemiesAround
         {
-            get { return Champdata.Hero.CountEnemiesInRange(1500); }
+            get { return Champdata.Hero.CountEnemiesInRange(ChampionRange); }
         }
 
         public int AlliesAround
         {
-            get { return Champdata.Hero.CountAlliesInRange(1500); }
+            get { return Champdata.Hero.CountAlliesInRange(ChampionRange); }
         }
 
 
@@ -187,6 +188,7 @@ namespace AutoJungle
         Positioning,
         FightIng,
         Objective,
-        Retreat
+        Retreat,
+        Null
     }
 }

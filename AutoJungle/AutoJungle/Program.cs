@@ -329,11 +329,10 @@ namespace AutoJungle
             switch (_GameInfo.GameState)
             {
                 case State.Objective:
-                    var obj = Helpers.GetNearest(player.Position, 1500f);
-                    if (obj != null &&
-                        (obj.Name.Contains("Dragon") || obj.Name.Contains("Baron")) &&
-                        (HealthPrediction.GetHealthPrediction(obj, 3000) + 500 <
-                        Jungle.smiteDamage(obj) || _GameInfo.EnemiesAround == 0))
+                    var obj = Helpers.GetNearest(player.Position, GameInfo.ChampionRange);
+                    if (obj != null && (obj.Name.Contains("Dragon") || obj.Name.Contains("Baron")) &&
+                        (HealthPrediction.GetHealthPrediction(obj, 3000) + 500 < Jungle.smiteDamage(obj) ||
+                         _GameInfo.EnemiesAround == 0))
                     {
                         return obj;
                     }
@@ -379,7 +378,7 @@ namespace AutoJungle
                         return enemyTurret;
                     }
                     var mob =
-                        Helpers.getMobs(player.Position, 1500)
+                        Helpers.getMobs(player.Position, GameInfo.ChampionRange)
                             .OrderBy(m => m.UnderTurret(true))
                             .ThenByDescending(m => player.GetAutoAttackDamage(m, true) > m.Health)
                             .ThenBy(m => m.Distance(player))
@@ -400,7 +399,7 @@ namespace AutoJungle
                         return enemyDef;
                     }
                     var mobDef =
-                        Helpers.getMobs(player.Position, 1500)
+                        Helpers.getMobs(player.Position, GameInfo.ChampionRange)
                             .OrderByDescending(m => m.CountEnemiesInRange(500) == 0)
                             .ThenByDescending(m => player.GetAutoAttackDamage(m, true) > m.Health)
                             .ThenBy(m => m.CountEnemiesInRange(500))
@@ -438,9 +437,10 @@ namespace AutoJungle
                     }
                 }
             }
-            if (Jungle.SmiteReady() && player.Level >= 9 && player.Distance(Camps.Dragon.Position) < 1500)
+            if (Jungle.SmiteReady() && player.Level >= 9 &&
+                player.Distance(Camps.Dragon.Position) < GameInfo.ChampionRange)
             {
-                var drake = Helpers.GetNearest(player.Position, 1500);
+                var drake = Helpers.GetNearest(player.Position, GameInfo.ChampionRange);
                 if (drake != null && drake.Name.Contains("Dragon"))
                 {
                     _GameInfo.CurrentMonster = 13;
@@ -476,7 +476,8 @@ namespace AutoJungle
                     {
                         continue;
                     }
-                    if (possibleTarget.CountAlliesInRange(1500)+1<possibleTarget.CountEnemiesInRange(1500))
+                    if (possibleTarget.CountAlliesInRange(GameInfo.ChampionRange) + 1 <
+                        possibleTarget.CountEnemiesInRange(GameInfo.ChampionRange))
                     {
                         continue;
                     }
@@ -525,62 +526,81 @@ namespace AutoJungle
         private static State SetGameState()
         {
             var enemy = Helpers.GetTargetEnemy();
+            State tempstate = State.Null;
             if (CheckForRetreat(enemy, player.Position))
             {
-                return State.Retreat;
+                tempstate = State.Retreat;
             }
-            if (_GameInfo.EnemiesAround == 0 &&
+            if (tempstate == State.Null && _GameInfo.EnemiesAround == 0 &&
                 (CheckObjective(Camps.Baron.Position) || CheckObjective(Camps.Dragon.Position)))
             {
-                return State.Objective;
+                tempstate = State.Objective;
             }
-            if (player.Level >= 6 && CheckForGrouping())
+            if (tempstate == State.Null && player.Level >= 6 && CheckForGrouping())
             {
-                if (_GameInfo.MoveTo.Distance(player.Position) <= 1500)
+                if (_GameInfo.MoveTo.Distance(player.Position) <= GameInfo.ChampionRange)
                 {
                     if (
                         ObjectManager.Get<Obj_AI_Turret>()
-                            .FirstOrDefault(t => t.Distance(_GameInfo.MoveTo) < 1500 && t.IsAlly) != null &&
-                        (_GameInfo.GameState == State.Grouping || _GameInfo.GameState == State.Defending))
+                            .FirstOrDefault(t => t.Distance(_GameInfo.MoveTo) < GameInfo.ChampionRange && t.IsAlly) !=
+                        null && (_GameInfo.GameState == State.Grouping || _GameInfo.GameState == State.Defending))
                     {
-                        return State.Defending;
+                        tempstate = State.Defending;
                     }
                     else if (_GameInfo.GameState == State.Grouping || _GameInfo.GameState == State.Pushing)
                     {
-                        return State.Pushing;
+                        tempstate = State.Pushing;
                     }
                 }
-                if (_GameInfo.MoveTo.Distance(player.Position) > 1500 &&
+                if (_GameInfo.MoveTo.Distance(player.Position) > GameInfo.ChampionRange &&
                     (_GameInfo.GameState == State.Positioning || _GameInfo.GameState == State.Grouping))
                 {
-                    return State.Grouping;
+                    tempstate = State.Grouping;
                 }
             }
-            if (enemy != null && _GameInfo.GameState != State.Retreat && _GameInfo.GameState != State.Pushing &&
-                _GameInfo.GameState != State.Defending)
+            if (tempstate == State.Null && enemy != null && _GameInfo.GameState != State.Retreat &&
+                _GameInfo.GameState != State.Pushing && _GameInfo.GameState != State.Defending &&
+                !CheckForRetreat(enemy, enemy.Position))
             {
-                return State.FightIng;
+                tempstate = State.FightIng;
             }
-            if (_GameInfo.EnemiesAround == 0 && CheckGanking() &&
+            if (tempstate == State.Null && _GameInfo.EnemiesAround == 0 && CheckGanking() &&
                 (_GameInfo.GameState == State.Ganking || _GameInfo.GameState == State.Positioning))
             {
-                return State.Ganking;
+                tempstate = State.Ganking;
             }
-            if (_GameInfo.MinionsAround > 0 &&
+            if (tempstate == State.Null && _GameInfo.MinionsAround > 0 &&
                 (_GameInfo.MonsterList.Any(m => m.Position.Distance(player.Position) < 700) ||
                  _GameInfo.SmiteableMob != null) && _GameInfo.GameState != State.Retreat)
             {
-                return State.Jungling;
+                tempstate = State.Jungling;
             }
-            if ((_GameInfo.AlliesAround == 0 || _GameInfo.AlliesAround >= 2) && _GameInfo.EnemiesAround == 0 &&
-                _GameInfo.MinionsAround > 0 &&
+            if (tempstate == State.Null &&
+                (_GameInfo.AlliesAround == 0 || _GameInfo.AlliesAround >= 2 ||
+                 player.Distance(_GameInfo.SpawnPoint) < 6000 || player.Distance(_GameInfo.SpawnPointEnemy) < 6000) &&
+                _GameInfo.EnemiesAround == 0 && _GameInfo.MinionsAround > 0 &&
                 !_GameInfo.MonsterList.Any(m => m.Position.Distance(player.Position) < 600) &&
                 _GameInfo.SmiteableMob == null && _GameInfo.GameState != State.Retreat)
             {
-                return State.LaneClear;
+                tempstate = State.LaneClear;
             }
-
-            return State.Positioning;
+            if (tempstate == State.Null)
+            {
+                tempstate = State.Positioning;
+            }
+            if (tempstate == _GameInfo.GameState)
+            {
+                return tempstate;
+            }
+            else if (Environment.TickCount - GameStateChanging > 3000)
+            {
+                GameStateChanging = Environment.TickCount;
+                return tempstate;
+            }
+            else
+            {
+                return _GameInfo.GameState;
+            }
         }
 
         private static bool CheckForRetreat(Obj_AI_Base enemy, Vector3 pos)
@@ -589,14 +609,17 @@ namespace AutoJungle
             {
                 return false;
             }
-            var indanger = ((Helpers.GetHealth(true, pos) + player.Distance(pos) < 1500 ? 0 : player.Health) * 1.3f <
-                            Helpers.GetHealth(false, pos) && pos.CountEnemiesInRange(1500) > 0 &&
-                            pos.CountAlliesInRange(500) == 0) ||
+            var indanger = ((Helpers.GetHealth(true, pos) +
+                             ((player.Distance(pos) < GameInfo.ChampionRange) ? 0 : player.Health)) * 1.3f <
+                            Helpers.GetHealth(false, pos) && pos.CountEnemiesInRange(GameInfo.ChampionRange) > 0 &&
+                            Helpers.AlliesThere(pos, 500) == 0) ||
                            player.HealthPercent < menu.Item("HealtToBack").GetValue<Slider>().Value;
             if (indanger || _GameInfo.AttackedByTurret)
             {
-                if ((enemy != null && enemy.CountEnemiesInRange(1500) >= enemy.CountAlliesInRange(1500) + 1 &&
-                     enemy.CountAlliesInRange(500) == 0) || indanger)
+                if ((enemy != null &&
+                     enemy.CountEnemiesInRange(GameInfo.ChampionRange) >=
+                     enemy.CountAlliesInRange(GameInfo.ChampionRange) + 1 && Helpers.AlliesThere(pos, 500) == 0) ||
+                    indanger)
                 {
                     return true;
                 }
@@ -618,23 +641,36 @@ namespace AutoJungle
             //Checking grouping allies
             var ally =
                 HeroManager.Allies.FirstOrDefault(
-                    a => a.CountAlliesInRange(1500) >= 2 && a.Distance(_GameInfo.SpawnPointEnemy) < 7000);
-            if (ally != null && Helpers.CheckPath(player.GetPath(ally.Position)) &&
+                    a =>
+                        a.CountAlliesInRange(GameInfo.ChampionRange) >= 2 &&
+                        a.Distance(_GameInfo.SpawnPointEnemy) < 7000);
+            if (ally != null && Helpers.CheckPath(player.GetPath(ally.Position), true) &&
                 !CheckForRetreat(null, player.Position))
             {
                 _GameInfo.MoveTo = ally.Position.Extend(player.Position, 200);
                 return true;
             }
-
+            //Checknig base after recall
+            if (player.Distance(_GameInfo.SpawnPoint) < 5000)
+            {
+                var mobs =
+                    MinionManager.GetBestCircularFarmLocation(
+                        Helpers.getMobs(_GameInfo.SpawnPoint, 5000).Select(m => m.Position.To2D()).ToList(), 500, 5000);
+                if (Helpers.CheckPath(player.GetPath(mobs.Position.To3D())) && !CheckForRetreat(null, player.Position))
+                {
+                    _GameInfo.MoveTo = mobs.Position.To3D();
+                }
+            }
             //Checknig enemy turrets
             foreach (var vector in
                 _GameInfo.EnemyStructures.Where(
                     s => s.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value))
             {
-                var aMinis = Helpers.getAllyMobs(vector, 1500);
-                if (vector.CountAlliesInRange(1500) + 1 > vector.CountEnemiesInRange(1500) && aMinis.Count > 3)
+                var aMinis = Helpers.getAllyMobs(vector, GameInfo.ChampionRange);
+                if (vector.CountAlliesInRange(GameInfo.ChampionRange) + 1 >
+                    vector.CountEnemiesInRange(GameInfo.ChampionRange) && aMinis.Count > 3)
                 {
-                    var eMinis = Helpers.getMobs(vector, 1500).Select(e => e.Position.To2D()).ToList();
+                    var eMinis = Helpers.getMobs(vector, GameInfo.ChampionRange).Select(e => e.Position.To2D()).ToList();
                     if (eMinis.Any())
                     {
                         var pos =
@@ -662,8 +698,9 @@ namespace AutoJungle
                 _GameInfo.AllyStructures.Where(
                     s => s.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value))
             {
-                var eMinis = Helpers.getMobs(vector, 1500);
-                if (vector.CountAlliesInRange(1500) + 1 > vector.CountEnemiesInRange(1500) && eMinis.Count > 3)
+                var eMinis = Helpers.getMobs(vector, GameInfo.ChampionRange);
+                if (vector.CountAlliesInRange(GameInfo.ChampionRange) + 1 >
+                    vector.CountEnemiesInRange(GameInfo.ChampionRange) && eMinis.Count > 3)
                 {
                     var temp = eMinis.Select(e => e.Position.To2D()).ToList();
                     if (temp.Any())
@@ -690,10 +727,13 @@ namespace AutoJungle
             }
             //follow minis
             var minis = Helpers.getAllyMobs(player.Position, 1000);
-            if (minis.Count >= 7 && player.Level >= 8 && Helpers.getMobs(player.Position, 1000).Count == 0)
+            if (minis.Count >= 7 && player.Level >= 8)
             {
                 var objAiBase = minis.OrderBy(m => m.Distance(_GameInfo.SpawnPointEnemy)).FirstOrDefault();
-                if (objAiBase != null)
+                if (objAiBase != null &&
+                    (objAiBase.CountAlliesInRange(GameInfo.ChampionRange) == 0 ||
+                     objAiBase.CountAlliesInRange(GameInfo.ChampionRange) >= 2) &&
+                    Helpers.getMobs(objAiBase.Position, 1000).Count == 0)
                 {
                     _GameInfo.MoveTo = objAiBase.Position.Extend(player.Position, 200);
                     return true;
@@ -706,7 +746,10 @@ namespace AutoJungle
                     ObjectManager.Get<Obj_AI_Minion>()
                         .Where(
                             m =>
-                                ((m.CountEnemiesInRange(1500) == 0 || (m.CountAlliesInRange(1500)+1>=m.CountEnemiesInRange(1500))) || m.Distance(_GameInfo.SpawnPoint) < 7000) &&
+                                ((m.CountEnemiesInRange(GameInfo.ChampionRange) == 0 ||
+                                  (m.CountAlliesInRange(GameInfo.ChampionRange) + 1 >=
+                                   m.CountEnemiesInRange(GameInfo.ChampionRange))) ||
+                                 m.Distance(_GameInfo.SpawnPoint) < 7000) &&
                                 Helpers.getMobs(m.Position, 1200).Count >= 6)
                         .OrderByDescending(m => m.Distance(_GameInfo.SpawnPoint) < 7000)
                         .ThenBy(m => m.Distance(player))
@@ -879,7 +922,7 @@ namespace AutoJungle
                 }
                 return true;
             }
-            if (_GameInfo.GameState == State.Retreat && player.CountEnemiesInRange(1500) == 1)
+            if (_GameInfo.GameState == State.Retreat && player.CountEnemiesInRange(GameInfo.ChampionRange) == 1)
             {
                 if (Debug)
                 {
@@ -921,15 +964,7 @@ namespace AutoJungle
             {
                 return true;
             }
-            if (player.InFountain() && player.IsRecalling())
-            {
-                player.IssueOrder(
-                    GameObjectOrder.MoveTo,
-                    _GameInfo.SpawnPoint.Extend(
-                        new Vector3(_GameInfo.SpawnPoint.X + 60, _GameInfo.SpawnPoint.Y + 60, _GameInfo.SpawnPoint.Z),
-                        60));
-            }
-            if (player.IsRecalling())
+            if (player.IsRecalling() && !player.InFountain())
             {
                 return true;
             }

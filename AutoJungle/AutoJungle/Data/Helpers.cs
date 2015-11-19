@@ -85,7 +85,7 @@ namespace AutoJungle.Data
                 list.All(
                     point =>
                         !point.UnderTurret(true) && !AvoidLane(point) &&
-                        (point.CountEnemiesInRange(1500) == 0 || withoutChamps));
+                        (point.CountEnemiesInRange(GameInfo.ChampionRange) == 0 || withoutChamps));
         }
 
 
@@ -107,7 +107,7 @@ namespace AutoJungle.Data
                         (!e.UnderTurret(true) ||
                          e.Health < e.GetAutoAttackDamage(e, true) * 2 &&
                          e.Distance(Program.player) > Orbwalking.GetRealAutoAttackRange(e)) &&
-                        e.Distance(Program.player) < 1500)
+                        e.Distance(Program.player) < GameInfo.ChampionRange)
                     .OrderByDescending(e => GetComboDMG(Program.player, e) > e.Health)
                     .ThenBy(e => e.Distance(Program.player))
                     .FirstOrDefault();
@@ -391,7 +391,7 @@ namespace AutoJungle.Data
                 ObjectManager.Get<Obj_AI_Turret>()
                     .FirstOrDefault(
                         t =>
-                            t.IsValidTarget() && Program.player.Distance(t) < 1500 &&
+                            t.IsValidTarget() && Program.player.Distance(t) < GameInfo.ChampionRange &&
                             getAllyMobs(t.Position, 1100).Count > 1);
             if (turret != null)
             {
@@ -423,7 +423,7 @@ namespace AutoJungle.Data
                         ObjectManager.Get<Obj_AI_Base>()
                             .FirstOrDefault(
                                 o =>
-                                    o.Distance(w) < 1500 && o.Health > 0 && o.Name.ToLower().Contains("ward") &&
+                                    o.Distance(w) < GameInfo.ChampionRange && o.Health > 0 && o.Name.ToLower().Contains("ward") &&
                                     !o.Name.ToLower().Contains("corpse")) == null)
                     .OrderBy(w => w.Distance(Program.player.Position))
                     .FirstOrDefault();
@@ -432,8 +432,12 @@ namespace AutoJungle.Data
         internal static float GetHealth(bool ally, Vector3 pos)
         {
             return
-                HeroManager.AllHeroes.Where(h => !h.IsDead && h.IsAlly == ally && pos.Distance(h.Position) < 1500)
+                HeroManager.AllHeroes.Where(h => !h.IsDead && h.IsAlly == ally && pos.Distance(h.Position) < GameInfo.ChampionRange)
                     .Sum(h => h.Health);
+        }
+        internal static int AlliesThere(Vector3 pos, float range)
+        {
+            return HeroManager.Allies.Count(h => !h.IsDead && !h.IsMe && pos.Distance(h.Position) < range);
         }
     }
 }

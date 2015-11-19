@@ -106,8 +106,8 @@ namespace AutoJungle
                 E.Cast(targetHero);
             }
             if (R.IsReady() && Hero.Mana == 100 &&
-                targetHero.CountEnemiesInRange(1500) <= targetHero.CountAlliesInRange(1500) &&
-                !Hero.Position.Extend(targetHero.Position, 1500).UnderTurret(true))
+                targetHero.CountEnemiesInRange(GameInfo.ChampionRange) <= targetHero.CountAlliesInRange(GameInfo.ChampionRange) &&
+                !Hero.Position.Extend(targetHero.Position, GameInfo.ChampionRange).UnderTurret(true))
             {
                 R.CastIfHitchanceEquals(targetHero, HitChance.VeryHigh);
             }
