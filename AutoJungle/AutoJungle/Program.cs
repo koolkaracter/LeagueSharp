@@ -1140,7 +1140,7 @@ namespace AutoJungle
             if (menu.Item("AutoClose").GetValue<Boolean>())
             {
                 Console.WriteLine("END");
-                Thread.Sleep(10000);
+                Thread.Sleep(Random.Next(10000,13000));
                 Game.Quit();
             }
         }
