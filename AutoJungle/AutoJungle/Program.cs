@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using AutoJungle.Data;
 using LeagueSharp;
 using LeagueSharp.Common;
@@ -108,7 +109,7 @@ namespace AutoJungle
         {
             if (_GameInfo.GameState == State.Positioning)
             {
-                if (Helpers.GetRealDistance(player, _GameInfo.MoveTo) < 900 && _GameInfo.MinionsAround == 0 &&
+                if (Helpers.GetRealDistance(player, _GameInfo.MoveTo) < 500 && _GameInfo.MinionsAround == 0 &&
                     player.Level > 1)
                 {
                     _GameInfo.CurrentMonster++;
@@ -173,6 +174,10 @@ namespace AutoJungle
         {
             if ((_GameInfo.GameState != State.Positioning && _GameInfo.GameState != State.Retreat) ||
                 !_GameInfo.MonsterList.Any(m => m.Position.Distance(player.Position) < 800))
+            {
+                return false;
+            }
+            if (Helpers.getMobs(player.Position,1300).Count>0)
             {
                 return false;
             }
@@ -261,7 +266,8 @@ namespace AutoJungle
             {
                 return;
             }
-            if (_GameInfo.MoveTo.IsValid() && (_GameInfo.MoveTo.Distance(_GameInfo.LastClick) > 150 || (!player.IsMoving && _GameInfo.afk > 10)))
+            if (_GameInfo.MoveTo.IsValid() &&
+                (_GameInfo.MoveTo.Distance(_GameInfo.LastClick) > 150 || (!player.IsMoving && _GameInfo.afk > 10)))
             {
                 player.IssueOrder(GameObjectOrder.MoveTo, _GameInfo.MoveTo);
             }
@@ -465,21 +471,21 @@ namespace AutoJungle
         private static bool CheckGanking()
         {
             Obj_AI_Hero gankTarget = null;
-            if (_GameInfo.Target != null && _GameInfo.Target is Obj_AI_Hero && _GameInfo.GameState == State.Ganking)
+            if (player.Level >= menu.Item("GankLevel").GetValue<Slider>().Value &&
+                ((player.Mana > _GameInfo.Champdata.R.ManaCost && player.MaxMana > 100) || player.MaxMana <= 100))
             {
-                gankTarget = (Obj_AI_Hero) _GameInfo.Target;
-            }
-            else if (player.Level >= menu.Item("GankLevel").GetValue<Slider>().Value &&
-                     ((player.Mana > _GameInfo.Champdata.R.ManaCost && player.MaxMana > 100) || player.MaxMana <= 100))
-            {
-                foreach (var possibleTarget in
+                var heroes =
                     HeroManager.Enemies.Where(
                         e =>
-                            e.Distance(player) < menu.Item("GankRange").GetValue<Slider>().Value &&
-                            e.IsValidTarget() && !e.UnderTurret(true) && !CheckForRetreat(e, player.Position))
-                        .OrderByDescending(
-                            e => _GameInfo.Target != null && e.NetworkId == _GameInfo.Target.NetworkId)
-                        .ThenBy(e => e.Distance(player)))
+                            e.Distance(player) < menu.Item("GankRange").GetValue<Slider>().Value && e.IsValidTarget() &&
+                            !e.UnderTurret(true) && !CheckForRetreat(e, e.Position))
+                        .OrderBy(
+                            e =>
+                                _GameInfo.MoveTo.IsValid()
+                                    ? _GameInfo.MoveTo.Distance(e.Position)
+                                    : e.CountEnemiesInRange(1300))
+                        .ThenBy(e => e.Distance(player));
+                foreach (var possibleTarget in heroes)
                 {
                     var myDmg = Helpers.GetComboDMG(player, possibleTarget);
                     if (player.Level + 1 <= possibleTarget.Level)
@@ -488,8 +494,8 @@ namespace AutoJungle
                     }
                     if (
                         ObjectManager.Get<Obj_AI_Turret>()
-                            .FirstOrDefault(
-                                t => t.IsEnemy && t.IsValidTarget() && t.Distance(possibleTarget) < 1200) != null)
+                            .FirstOrDefault(t => t.IsEnemy && t.IsValidTarget() && t.Distance(possibleTarget) < 1200) !=
+                        null)
                     {
                         continue;
                     }
@@ -506,8 +512,7 @@ namespace AutoJungle
                         HeroManager.Allies.Where(a => !a.IsDead && a.Distance(possibleTarget) < 2000)
                             .OrderBy(a => a.Distance(possibleTarget))
                             .FirstOrDefault();
-                    var hp = possibleTarget.Health -
-                             myDmg * menu.Item("GankFrequency").GetValue<Slider>().Value / 100;
+                    var hp = possibleTarget.Health - myDmg * menu.Item("GankFrequency").GetValue<Slider>().Value / 100;
                     if (ally != null)
                     {
                         hp -= Helpers.GetComboDMG(ally, possibleTarget) *
@@ -673,7 +678,7 @@ namespace AutoJungle
                         a.CountAlliesInRange(GameInfo.ChampionRange) >= 2 &&
                         a.Distance(_GameInfo.SpawnPointEnemy) < 7000);
             if (ally != null && Helpers.CheckPath(player.GetPath(ally.Position), true) &&
-                !CheckForRetreat(null, player.Position))
+                !CheckForRetreat(null, ally.Position))
             {
                 _GameInfo.MoveTo = ally.Position.Extend(player.Position, 200);
                 return true;
@@ -684,7 +689,8 @@ namespace AutoJungle
                 var mobs =
                     MinionManager.GetBestCircularFarmLocation(
                         Helpers.getMobs(_GameInfo.SpawnPoint, 5000).Select(m => m.Position.To2D()).ToList(), 500, 5000);
-                if (Helpers.CheckPath(player.GetPath(mobs.Position.To3D())) && !CheckForRetreat(null, player.Position))
+                if (Helpers.CheckPath(player.GetPath(mobs.Position.To3D())) &&
+                    !CheckForRetreat(null, mobs.Position.To3D()))
                 {
                     _GameInfo.MoveTo = mobs.Position.To3D();
                 }
@@ -709,7 +715,7 @@ namespace AutoJungle
                             (Vector3)
                                 MinionManager.GetBestCircularFarmLocation(
                                     eMinis, 500, menu.Item("GankRange").GetValue<Slider>().Value).Position;
-                        if (Helpers.CheckPath(player.GetPath(pos)) && !CheckForRetreat(null, player.Position))
+                        if (Helpers.CheckPath(player.GetPath(pos)) && !CheckForRetreat(null, pos))
                         {
                             _GameInfo.MoveTo = pos;
                             return true;
@@ -717,7 +723,7 @@ namespace AutoJungle
                     }
                     else
                     {
-                        if (Helpers.CheckPath(player.GetPath(vector)) && !CheckForRetreat(null, player.Position))
+                        if (Helpers.CheckPath(player.GetPath(vector)) && !CheckForRetreat(null, vector))
                         {
                             _GameInfo.MoveTo = vector;
                             return true;
@@ -745,7 +751,7 @@ namespace AutoJungle
                             (Vector3)
                                 MinionManager.GetBestCircularFarmLocation(
                                     temp, 500, menu.Item("GankRange").GetValue<Slider>().Value).Position;
-                        if (Helpers.CheckPath(player.GetPath(pos)) && !CheckForRetreat(null, player.Position))
+                        if (Helpers.CheckPath(player.GetPath(pos)) && !CheckForRetreat(null, pos))
                         {
                             _GameInfo.MoveTo = pos;
                             return true;
@@ -753,7 +759,7 @@ namespace AutoJungle
                     }
                     else
                     {
-                        if (Helpers.CheckPath(player.GetPath(vector)) && !CheckForRetreat(null, player.Position))
+                        if (Helpers.CheckPath(player.GetPath(vector)) && !CheckForRetreat(null, vector))
                         {
                             _GameInfo.MoveTo = vector;
                             return true;
@@ -763,7 +769,7 @@ namespace AutoJungle
             }
             //follow minis
             var minis = Helpers.getAllyMobs(player.Position, 1000);
-            if (minis.Count >= 7 && player.Level >= 8)
+            if (minis.Count >= 6 && player.Level >= 8)
             {
                 var objAiBase = minis.OrderBy(m => m.Distance(_GameInfo.SpawnPointEnemy)).FirstOrDefault();
                 if (objAiBase != null &&
@@ -771,7 +777,7 @@ namespace AutoJungle
                      objAiBase.CountAlliesInRange(GameInfo.ChampionRange) >= 2) &&
                     Helpers.getMobs(objAiBase.Position, 1000).Count == 0)
                 {
-                    _GameInfo.MoveTo = objAiBase.Position.Extend(player.Position, 200);
+                    _GameInfo.MoveTo = player.Position.Extend(objAiBase.Position, GameInfo.ChampionRange+100);
                     return true;
                 }
             }
@@ -791,7 +797,7 @@ namespace AutoJungle
                         .ThenBy(m => m.Distance(player))
                         .FirstOrDefault();
                 if (miniwave != null && Helpers.CheckPath(player.GetPath(miniwave.Position)) &&
-                    !CheckForRetreat(null, player.Position) && CheckLaneClear(miniwave.Position))
+                    !CheckForRetreat(null, miniwave.Position) && CheckLaneClear(miniwave.Position))
                 {
                     _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
                     return true;
@@ -810,7 +816,7 @@ namespace AutoJungle
                         .ThenBy(m => m.Distance(player))
                         .FirstOrDefault();
                 if (miniwave != null && Helpers.CheckPath(player.GetPath(miniwave.Position)) &&
-                    !CheckForRetreat(null, player.Position) && CheckLaneClear(miniwave.Position))
+                    !CheckForRetreat(null, miniwave.Position) && CheckLaneClear(miniwave.Position))
                 {
                     _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
                     return true;
@@ -829,7 +835,7 @@ namespace AutoJungle
                             .FirstOrDefault(t => t.IsEnemy && !t.IsDead && t.Distance(player) < 2000);
                     var allyTurret =
                         ObjectManager.Get<Obj_AI_Turret>()
-                        .OrderBy(t=>t.Distance(player))
+                            .OrderBy(t => t.Distance(player))
                             .FirstOrDefault(
                                 t =>
                                     t.IsAlly && !t.IsDead && t.Distance(player) < 4000 &&
@@ -845,13 +851,13 @@ namespace AutoJungle
                         if (!nextPost.UnitPosition.UnderTurret(true))
                         {
                             return nextPost.UnitPosition;
-                        }else
+                        }
+                        else
                         {
                             return _GameInfo.SpawnPoint;
                         }
                     }
-                    if (allyTurret != null &&
-                        player.Distance(_GameInfo.SpawnPoint) > player.Distance(allyTurret))
+                    if (allyTurret != null && player.Distance(_GameInfo.SpawnPoint) > player.Distance(allyTurret))
                     {
                         return allyTurret.Position.Extend(_GameInfo.SpawnPoint, 300);
                     }
@@ -951,7 +957,7 @@ namespace AutoJungle
                 }
                 return true;
             }
-            if (_GameInfo.GameState == State.Retreat && player.CountEnemiesInRange(GameInfo.ChampionRange) == 1)
+            if (_GameInfo.GameState == State.Retreat && player.CountEnemiesInRange(GameInfo.ChampionRange) == 0)
             {
                 if (Debug)
                 {
@@ -1126,6 +1132,16 @@ namespace AutoJungle
             Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnNewPath += Obj_AI_Base_OnNewPath;
+            Game.OnEnd += Game_OnEnd;
+        }
+
+        private static void Game_OnEnd(GameEndEventArgs args)
+        {
+            if (menu.Item("AutoClose").GetValue<Boolean>())
+            {
+                Console.WriteLine("END");
+                Game.Quit();
+            }
         }
 
         private static void CreateMenu()
@@ -1149,6 +1165,7 @@ namespace AutoJungle
             menuG.AddItem(new MenuItem("ComboSmite", "Use Smite")).SetValue(true);
             menu.AddSubMenu(menuG);
             menu.AddItem(new MenuItem("Enabled", "Enabled")).SetValue(true);
+            menu.AddItem(new MenuItem("AutoClose", "Close at the end")).SetValue(true);
             menu.AddItem(
                 new MenuItem(
                     "AutoJungle",
