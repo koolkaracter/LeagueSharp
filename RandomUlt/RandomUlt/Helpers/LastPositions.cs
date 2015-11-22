@@ -328,19 +328,19 @@ namespace RandomUlt.Helpers
                         }
                         break;
                     case 3:
-                        if (trueDist > 800 && !enemy.Player.IsVisible)
+                        if (trueDist > 850 && !enemy.Player.IsVisible)
                         {
                             continue;
                         }
                         break;
                     case 4:
-                        if (trueDist > 650 && !enemy.Player.IsVisible)
+                        if (trueDist > 700 && !enemy.Player.IsVisible)
                         {
                             continue;
                         }
                         break;
                     case 5:
-                        if (trueDist > 400 && !enemy.Player.IsVisible)
+                        if (trueDist > 500 && !enemy.Player.IsVisible)
                         {
                             continue;
                         }
