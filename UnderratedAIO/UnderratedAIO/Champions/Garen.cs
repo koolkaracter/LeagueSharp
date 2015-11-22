@@ -39,7 +39,10 @@ namespace UnderratedAIO.Champions
             if (GarenE)
             {
                 orbwalker.SetMovement(false);
-                player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                if (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.None)
+                {
+                    player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                }  
             }
             else
             {
