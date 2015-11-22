@@ -1125,7 +1125,6 @@ namespace AutoJungle
             }
 
             ItemHandler = new ItemHandler(_GameInfo.Champdata.Type);
-
             CreateMenu();
 
             Game.OnUpdate += Game_OnGameUpdate;
