@@ -88,7 +88,7 @@ namespace AutoJungle
             {
                 return false;
             }
-            if (W.IsReady() && Hero.Distance(targetHero) < W.Range)
+            if (W.IsReady() && Hero.Distance(targetHero) < W.Range + 100)
             {
                 W.Cast();
             }
@@ -106,7 +106,8 @@ namespace AutoJungle
                 E.Cast(targetHero);
             }
             if (R.IsReady() && Hero.Mana == 100 &&
-                targetHero.CountEnemiesInRange(GameInfo.ChampionRange) <= targetHero.CountAlliesInRange(GameInfo.ChampionRange) &&
+                targetHero.CountEnemiesInRange(GameInfo.ChampionRange) <=
+                targetHero.CountAlliesInRange(GameInfo.ChampionRange) &&
                 !Hero.Position.Extend(targetHero.Position, GameInfo.ChampionRange).UnderTurret(true))
             {
                 R.CastIfHitchanceEquals(targetHero, HitChance.VeryHigh);
@@ -133,7 +134,9 @@ namespace AutoJungle
             {
                 return false;
             }
-            if (W.IsReady() && Hero.Distance(targetMob) < W.Range && Helpers.getMobs(Hero.Position, W.Range).Count >= 2)
+            if (W.IsReady() && Hero.Distance(targetMob) < W.Range &&
+                (Helpers.getMobs(Hero.Position, W.Range).Count >= 2 ||
+                 targetMob.Health > W.GetDamage(targetMob) * 7 + Hero.GetAutoAttackDamage(targetMob, true) * 2))
             {
                 W.Cast();
             }
@@ -223,7 +226,7 @@ namespace AutoJungle
             if (W.IsReady() && Hero.Distance(targetMob) < 300 && (Program._GameInfo.SmiteableMob != null) ||
                 Program._GameInfo.MinionsAround > 3)
             {
-                if (Hero.Mana>Q.ManaCost+W.ManaCost || Hero.HealthPercent>70)
+                if (Hero.Mana > Q.ManaCost + W.ManaCost || Hero.HealthPercent > 70)
                 {
                     W.Cast();
                 }

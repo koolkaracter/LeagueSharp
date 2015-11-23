@@ -340,6 +340,16 @@ namespace AutoJungle.Data
                                 result += Damage.GetSpellDamage(source, target, spell.Slot);
                             }
                             break;
+                        case "Shyvana":
+                            if (spell.Slot == SpellSlot.W)
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot)*4;
+                            }
+                            else
+                            {
+                                result += Damage.GetSpellDamage(source, target, spell.Slot);
+                            }
+                            break;
                         case "Viktor":
                             if (spell.Slot == SpellSlot.R)
                             {
