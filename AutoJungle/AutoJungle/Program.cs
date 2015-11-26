@@ -177,7 +177,7 @@ namespace AutoJungle
             {
                 return false;
             }
-            if (Helpers.getMobs(player.Position,1300).Count>0)
+            if (Helpers.getMobs(player.Position, 1300).Count > 0)
             {
                 return false;
             }
@@ -483,8 +483,7 @@ namespace AutoJungle
                             e =>
                                 _GameInfo.MoveTo.IsValid()
                                     ? _GameInfo.MoveTo.Distance(e.Position)
-                                    : e.CountEnemiesInRange(1300))
-                        .ThenBy(e => e.Distance(player));
+                                    : e.CountEnemiesInRange(GameInfo.ChampionRange));
                 foreach (var possibleTarget in heroes)
                 {
                     var myDmg = Helpers.GetComboDMG(player, possibleTarget);
@@ -521,6 +520,7 @@ namespace AutoJungle
                     if (hp < 0)
                     {
                         gankTarget = possibleTarget;
+                        break;
                     }
                 }
             }
@@ -592,8 +592,8 @@ namespace AutoJungle
             {
                 tempstate = State.FightIng;
             }
-            if (tempstate == State.Null && _GameInfo.EnemiesAround == 0 && CheckGanking() &&
-                (_GameInfo.GameState == State.Ganking || _GameInfo.GameState == State.Positioning))
+            if (tempstate == State.Null && _GameInfo.EnemiesAround == 0 &&
+                (_GameInfo.GameState == State.Ganking || _GameInfo.GameState == State.Positioning) && CheckGanking())
             {
                 tempstate = State.Ganking;
             }
@@ -777,7 +777,7 @@ namespace AutoJungle
                      objAiBase.CountAlliesInRange(GameInfo.ChampionRange) >= 2) &&
                     Helpers.getMobs(objAiBase.Position, 1000).Count == 0)
                 {
-                    _GameInfo.MoveTo = player.Position.Extend(objAiBase.Position, GameInfo.ChampionRange+100);
+                    _GameInfo.MoveTo = player.Position.Extend(objAiBase.Position, GameInfo.ChampionRange + 100);
                     return true;
                 }
             }
@@ -847,7 +847,7 @@ namespace AutoJungle
                         {
                             return allyTurret.Position;
                         }
-                        var nextPost = Prediction.GetPrediction(player, 2000);
+                        var nextPost = Prediction.GetPrediction(player, 1);
                         if (!nextPost.UnitPosition.UnderTurret(true))
                         {
                             return nextPost.UnitPosition;
@@ -1139,7 +1139,7 @@ namespace AutoJungle
             if (menu.Item("AutoClose").GetValue<Boolean>())
             {
                 Console.WriteLine("END");
-                Thread.Sleep(Random.Next(10000,13000));
+                Thread.Sleep(Random.Next(10000, 13000));
                 Game.Quit();
             }
         }

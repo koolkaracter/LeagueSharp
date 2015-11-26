@@ -20,13 +20,6 @@ namespace AutoJungle.Data
             SummonersRift.TopLane.Contest_Zone
         };
 
-        public static List<Geometry.Polygon> LanesFull = new List<Geometry.Polygon>()
-        {
-            SummonersRift.MidLane.Contest_Zone,
-            SummonersRift.BottomLane.Contest_Zone,
-            SummonersRift.TopLane.Contest_Zone
-        };
-
         public static List<Vector3> GankPos = new List<Vector3>()
         {
             new Vector3(2918f, 11142f, -71.2406f),
@@ -98,6 +91,7 @@ namespace AutoJungle.Data
             {
                 return false;
             }
+            Lanes.Add(Program.player.Team==GameObjectTeam.Chaos?SummonersRift.MidLane.Blue_Zone:SummonersRift.MidLane.Red_Zone);
             return Lanes.Any(l => !l.IsInside(Program.player.Position) && l.IsInside(point));
         }
 
