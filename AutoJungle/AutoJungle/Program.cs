@@ -820,7 +820,7 @@ namespace AutoJungle
             //Checking free enemy minionwaves
             if (player.Level > 8)
             {
-                var miniwave =
+                var miniwaves =
                     ObjectManager.Get<Obj_AI_Minion>()
                         .Where(
                             m =>
@@ -829,16 +829,20 @@ namespace AutoJungle
                                 ((m.CountEnemiesInRange(GameInfo.ChampionRange) == 0 ||
                                   (m.CountAlliesInRange(GameInfo.ChampionRange) + 1 >=
                                    m.CountEnemiesInRange(GameInfo.ChampionRange))) ||
-                                 m.Distance(_GameInfo.SpawnPoint) < 7000) &&
-                                Helpers.getMobs(m.Position, 1200).Count >= 6)
+                                 m.Distance(_GameInfo.SpawnPoint) < 7000))
                         .OrderByDescending(m => m.Distance(_GameInfo.SpawnPoint) < 7000)
-                        .ThenBy(m => m.Distance(player))
-                        .FirstOrDefault();
-                if (miniwave != null && Helpers.CheckPath(player.GetPath(miniwave.Position)) &&
-                    !CheckForRetreat(null, miniwave.Position) && CheckLaneClear(miniwave.Position))
+                        .ThenBy(m => m.Distance(player));
+                foreach (var miniwave in miniwaves)
                 {
-                    _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
-                    return true;
+                    if (Helpers.getMobs(miniwave.Position, 1200).Count < 6)
+                    {
+                        continue;
+                    }
+                    if (!CheckForRetreat(null, miniwave.Position) && CheckLaneClear(miniwave.Position))
+                    {
+                        _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
+                        return true;
+                    }
                 }
             }
             //Checking ally mobs, pushing

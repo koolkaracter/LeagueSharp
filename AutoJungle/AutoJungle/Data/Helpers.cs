@@ -103,7 +103,7 @@ namespace AutoJungle.Data
                         e.IsValidTarget() &&
                         (!e.UnderTurret(true) ||
                          (e.Health < e.GetAutoAttackDamage(e, true) * 2 &&
-                          e.Distance(Program.player) > Orbwalking.GetRealAutoAttackRange(e))) &&
+                          e.Distance(Program.player) < Orbwalking.GetRealAutoAttackRange(e))) &&
                         e.Distance(Program.player) < GameInfo.ChampionRange)
                     .OrderByDescending(e => GetComboDMG(Program.player, e) > e.Health)
                     .ThenBy(e => e.Distance(Program.player))
