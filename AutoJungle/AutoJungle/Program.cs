@@ -269,7 +269,19 @@ namespace AutoJungle
             if (_GameInfo.MoveTo.IsValid() &&
                 (_GameInfo.MoveTo.Distance(_GameInfo.LastClick) > 150 || (!player.IsMoving && _GameInfo.afk > 10)))
             {
-                player.IssueOrder(GameObjectOrder.MoveTo, _GameInfo.MoveTo);
+                if (player.IsMoving)
+                {
+                    int x, y;
+                    x = (int) _GameInfo.MoveTo.X;
+                    y = (int) _GameInfo.MoveTo.Y;
+                    player.IssueOrder(
+                        GameObjectOrder.MoveTo,
+                        new Vector3(Random.Next(x, x + 30), Random.Next(y, y + 30), _GameInfo.MoveTo.Z));
+                }
+                else
+                {
+                    player.IssueOrder(GameObjectOrder.MoveTo, _GameInfo.MoveTo);
+                }
             }
         }
 
@@ -566,7 +578,7 @@ namespace AutoJungle
             }
             if (tempstate == State.Null && player.Level >= 6 && CheckForGrouping())
             {
-                if (_GameInfo.MoveTo.Distance(player.Position) <= GameInfo.ChampionRange)
+                if (_GameInfo.MoveTo.Distance(player.Position) < GameInfo.ChampionRange)
                 {
                     if (
                         ObjectManager.Get<Obj_AI_Turret>()
@@ -629,8 +641,8 @@ namespace AutoJungle
         private static bool CheckLaneClear(Vector3 pos)
         {
             return (Helpers.AlliesThere(pos) == 0 || Helpers.AlliesThere(pos) >= 2 ||
-                    player.Distance(_GameInfo.SpawnPoint) < 6000 || player.Distance(_GameInfo.SpawnPointEnemy) < 6000) &&
-                   pos.CountEnemiesInRange(GameInfo.ChampionRange) == 0 &&
+                    player.Distance(_GameInfo.SpawnPoint) < 6000 || player.Distance(_GameInfo.SpawnPointEnemy) < 6000 ||
+                    player.Level >= 16) && pos.CountEnemiesInRange(GameInfo.ChampionRange) == 0 &&
                    Helpers.getMobs(pos, GameInfo.ChampionRange).Count > 0 &&
                    !_GameInfo.MonsterList.Any(m => m.Position.Distance(pos) < 600) && _GameInfo.SmiteableMob == null &&
                    _GameInfo.GameState != State.Retreat;
@@ -649,12 +661,9 @@ namespace AutoJungle
                            player.HealthPercent < menu.Item("HealtToBack").GetValue<Slider>().Value;
             if (indanger || _GameInfo.AttackedByTurret)
             {
-                if ((enemy != null &&
-                     enemy.CountEnemiesInRange(GameInfo.ChampionRange) >=
-                     enemy.CountAlliesInRange(GameInfo.ChampionRange) + 1 && Helpers.AlliesThere(pos, 500) == 0) ||
-                    indanger)
+                if (((enemy != null && Helpers.AlliesThere(pos, 600) > 0) && player.HealthPercent > 25))
                 {
-                    return true;
+                    return false;
                 }
                 if (_GameInfo.AttackedByTurret)
                 {
@@ -671,28 +680,39 @@ namespace AutoJungle
 
         private static bool CheckForGrouping()
         {
+/*
             //Checking grouping allies
             var ally =
                 HeroManager.Allies.FirstOrDefault(
                     a =>
-                        a.CountAlliesInRange(GameInfo.ChampionRange) >= 2 &&
-                        a.Distance(_GameInfo.SpawnPointEnemy) < 7000);
-            if (ally != null && Helpers.CheckPath(player.GetPath(ally.Position), true) &&
-                !CheckForRetreat(null, ally.Position))
+                        a.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value &&
+                        Helpers.AlliesThere(a.Position) >= 2 && a.Distance(_GameInfo.SpawnPointEnemy) < 7000);
+            if (ally != null && !CheckForRetreat(null, ally.Position) &&
+                Helpers.CheckPath(player.GetPath(ally.Position)))
             {
                 _GameInfo.MoveTo = ally.Position.Extend(player.Position, 200);
+                if (Debug)
+                {
+                    Console.WriteLine("CheckForGrouping() - Checking grouping allies");
+                }
                 return true;
-            }
+            }*/
             //Checknig base after recall
             if (player.Distance(_GameInfo.SpawnPoint) < 5000)
             {
                 var mobs =
                     MinionManager.GetBestCircularFarmLocation(
                         Helpers.getMobs(_GameInfo.SpawnPoint, 5000).Select(m => m.Position.To2D()).ToList(), 500, 5000);
-                if (Helpers.CheckPath(player.GetPath(mobs.Position.To3D())) &&
+                if (mobs.Position.IsValid() && mobs.MinionsHit > 2 &&
+                    Helpers.CheckPath(player.GetPath(mobs.Position.To3D())) &&
                     !CheckForRetreat(null, mobs.Position.To3D()))
                 {
                     _GameInfo.MoveTo = mobs.Position.To3D();
+                    if (Debug)
+                    {
+                        Console.WriteLine("CheckForGrouping() - Checknig base after recall");
+                    }
+                    return true;
                 }
             }
             //Checknig enemy turrets
@@ -718,6 +738,10 @@ namespace AutoJungle
                         if (Helpers.CheckPath(player.GetPath(pos)) && !CheckForRetreat(null, pos))
                         {
                             _GameInfo.MoveTo = pos;
+                            if (Debug)
+                            {
+                                Console.WriteLine("CheckForGrouping() - Checknig enemy turrets 1");
+                            }
                             return true;
                         }
                     }
@@ -726,6 +750,10 @@ namespace AutoJungle
                         if (Helpers.CheckPath(player.GetPath(vector)) && !CheckForRetreat(null, vector))
                         {
                             _GameInfo.MoveTo = vector;
+                            if (Debug)
+                            {
+                                Console.WriteLine("CheckForGrouping() - Checknig enemy turrets 2");
+                            }
                             return true;
                         }
                     }
@@ -754,6 +782,10 @@ namespace AutoJungle
                         if (Helpers.CheckPath(player.GetPath(pos)) && !CheckForRetreat(null, pos))
                         {
                             _GameInfo.MoveTo = pos;
+                            if (Debug)
+                            {
+                                Console.WriteLine("CheckForGrouping() - Checknig ally turrets 1");
+                            }
                             return true;
                         }
                     }
@@ -762,6 +794,10 @@ namespace AutoJungle
                         if (Helpers.CheckPath(player.GetPath(vector)) && !CheckForRetreat(null, vector))
                         {
                             _GameInfo.MoveTo = vector;
+                            if (Debug)
+                            {
+                                Console.WriteLine("CheckForGrouping() - Checknig ally turrets 2");
+                            }
                             return true;
                         }
                     }
@@ -788,6 +824,8 @@ namespace AutoJungle
                     ObjectManager.Get<Obj_AI_Minion>()
                         .Where(
                             m =>
+                                m.IsEnemy &&
+                                m.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value &&
                                 ((m.CountEnemiesInRange(GameInfo.ChampionRange) == 0 ||
                                   (m.CountAlliesInRange(GameInfo.ChampionRange) + 1 >=
                                    m.CountEnemiesInRange(GameInfo.ChampionRange))) ||
@@ -840,7 +878,7 @@ namespace AutoJungle
                                 t =>
                                     t.IsAlly && !t.IsDead && t.Distance(player) < 4000 &&
                                     t.CountEnemiesInRange(1200) == 0);
-                    var enemy = Helpers.GetTargetEnemy();
+                    var enemy = _GameInfo.Target;
                     if (_GameInfo.AttackedByTurret && enemyTurret != null)
                     {
                         if (allyTurret != null)
@@ -850,7 +888,7 @@ namespace AutoJungle
                         var nextPost = Prediction.GetPrediction(player, 1);
                         if (!nextPost.UnitPosition.UnderTurret(true))
                         {
-                            return nextPost.UnitPosition;
+                            return nextPost.CastPosition;
                         }
                         else
                         {
