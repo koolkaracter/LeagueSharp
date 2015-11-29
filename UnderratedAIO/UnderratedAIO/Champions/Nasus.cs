@@ -123,6 +123,14 @@ namespace UnderratedAIO.Champions
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
+            if (config.Item("usew").GetValue<bool>() && W.CanCast(target))
+            {
+                if (((config.Item("keepManaForR").GetValue<bool>() && R.IsReady()) || !R.IsReady()) &&
+                    player.Mana > R.Instance.ManaCost + W.Instance.ManaCost)
+                {
+                    W.Cast(target, config.Item("packets").GetValue<bool>());
+                }
+            }
             if (((config.Item("keepManaForR").GetValue<bool>() && R.IsReady()) || !R.IsReady()) &&
                 (player.Mana > R.Instance.ManaCost + E.Instance.ManaCost ||
                  (E.IsReady() && E.GetDamage(target) > target.Health)))
@@ -147,14 +155,6 @@ namespace UnderratedAIO.Champions
                                 config.Item("packets").GetValue<bool>());
                         }
                     }
-                }
-            }
-            if (config.Item("usew").GetValue<bool>() && W.CanCast(target))
-            {
-                if (((config.Item("keepManaForR").GetValue<bool>() && R.IsReady()) || !R.IsReady()) &&
-                    player.Mana > R.Instance.ManaCost + W.Instance.ManaCost)
-                {
-                    W.Cast(target, config.Item("packets").GetValue<bool>());
                 }
             }
         }
