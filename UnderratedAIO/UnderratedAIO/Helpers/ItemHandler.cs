@@ -46,7 +46,8 @@ namespace UnderratedAIO.Helpers
         private static readonly Random _random = new Random(DateTime.Now.Millisecond);
 
         public static Spell Q, W, E, R;
-        public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg = 0f, bool cleanseSpell=false)
+
+        public static void UseItems(Obj_AI_Hero target, Menu config, float comboDmg = 0f, bool cleanseSpell = false)
         {
             if (config.Item("hyd").GetValue<bool>() && player.BaseSkinName != "Renekton")
             {
@@ -81,8 +82,8 @@ namespace UnderratedAIO.Helpers
                     }
                 }
                 else if (player.CountEnemiesInRange(odins.Range) >= config.Item("odinmin").GetValue<Slider>().Value ||
-                         (Math.Max(comboDmg, odinDmg) > target.Health && player.HealthPercent<30 && player.Distance(target) < odins.Range &&
-                          !CombatHelper.CheckCriticalBuffs(target)))
+                         (Math.Max(comboDmg, odinDmg) > target.Health && player.HealthPercent < 30 &&
+                          player.Distance(target) < odins.Range && !CombatHelper.CheckCriticalBuffs(target)))
                 {
                     odins.Cast();
                 }
@@ -224,7 +225,7 @@ namespace UnderratedAIO.Helpers
             }
             if (config.Item("QSSEnabled").GetValue<bool>())
             {
-                UseCleanse(config, cleanseSpell); 
+                UseCleanse(config, cleanseSpell);
             }
         }
 
@@ -237,7 +238,7 @@ namespace UnderratedAIO.Helpers
 
         public static void castHydra(Obj_AI_Hero target)
         {
-            if (target != null && player.Distance(target) < hydra.Range && !LeagueSharp.Common.Orbwalking.CanAttack())
+            if (target != null && player.Distance(target) < hydra.Range && !player.IsWindingUp)
             {
                 if (Items.HasItem(tiamat.Id) && Items.CanUseItem(tiamat.Id))
                 {
@@ -246,7 +247,7 @@ namespace UnderratedAIO.Helpers
                 if (Items.HasItem(hydra.Id) && Items.CanUseItem(hydra.Id))
                 {
                     Items.UseItem(hydra.Id);
-                } 
+                }
             }
         }
 
@@ -351,14 +352,14 @@ namespace UnderratedAIO.Helpers
             return mConfig;
         }
 
-        static void Orbwalking_OnAttack(AttackableUnit unit, AttackableUnit target)
+        private static void Orbwalking_OnAttack(AttackableUnit unit, AttackableUnit target)
         {
             if (useHydra && unit.IsMe && target.NetworkId == hydraTarget.NetworkId && !player.HasBuff("GarenQ"))
             {
                 if (Items.HasItem(titanic.Id) && Items.CanUseItem(titanic.Id))
                 {
                     titanic.Cast();
-                }  
+                }
             }
         }
 
@@ -472,7 +473,7 @@ namespace UnderratedAIO.Helpers
             }
         }
 
-        private static void Cleanse(Items.Item Item, Menu config, bool useSpell=false)
+        private static void Cleanse(Items.Item Item, Menu config, bool useSpell = false)
         {
             var delay = config.Item("QSSdelay").GetValue<Slider>().Value + _random.Next(0, 120);
             foreach (var buff in player.Buffs)
@@ -559,11 +560,12 @@ namespace UnderratedAIO.Helpers
             QssUsed = true;
             if (player.ChampionName == "Gangplank" && W.IsReady())
             {
-                Utility.DelayAction.Add(delay, () =>
-                {
-                    W.Cast();
-                    QssUsed = false;
-                });
+                Utility.DelayAction.Add(
+                    delay, () =>
+                    {
+                        W.Cast();
+                        QssUsed = false;
+                    });
                 return;
             }
             else
