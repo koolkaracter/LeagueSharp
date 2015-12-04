@@ -475,13 +475,12 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun) ||
-                target.HasBuffOfType(BuffType.Suppression) ||
-                target.HasBuffOfType(BuffType.Knockup) && !target.HasBuffOfType(BuffType.Knockback) && !target.IsMoving &&
-                !target.IsDashing() && !justE)
+            if ((target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun) ||
+                 target.HasBuffOfType(BuffType.Suppression) || target.HasBuffOfType(BuffType.Knockup)) &&
+                !target.HasBuffOfType(BuffType.Knockback) && !target.IsDashing())
             {
-                var pred = Prediction.GetPrediction(target, 1000f);
-                var cast = pred.UnitPosition.Extend(toVector3, -200);
+                var pred = R.GetPrediction(target);
+                var cast = pred.UnitPosition.Extend(toVector3, -100);
                 if (player.Distance(cast) < R.Range && checkBuffs(target, player.Distance(cast)) &&
                     pred.UnitPosition.Distance(target.Position) < 15 &&
                     ((!CombatHelper.CheckWalls(target.Position, toVector3)) ||
