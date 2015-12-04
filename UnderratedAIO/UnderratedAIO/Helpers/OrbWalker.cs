@@ -562,7 +562,7 @@ namespace UnderratedAIO.Helpers
                 /* Misc options */
                 var misc = new Menu("Misc", "Misc");
                 misc.AddItem(
-                    new MenuItem("HoldPosRadius", "Hold Position Radius").SetShared().SetValue(new Slider(90, 0, 150)));
+                    new MenuItem("HoldPosRadiusS", "Hold Position Radius").SetShared().SetValue(new Slider(90, 0, 150)));
                 misc.AddItem(new MenuItem("PriorizeFarm", "Priorize farm over harass").SetShared().SetValue(true));
                 misc.AddItem(
                     new MenuItem("LastHitDmg", "Percentage of damage for lasthit").SetShared()
@@ -873,7 +873,7 @@ namespace UnderratedAIO.Helpers
                     Orbwalk(
                         target, (_orbwalkingPoint.To2D().IsValid()) ? _orbwalkingPoint : Game.CursorPos,
                         _config.Item("ExtraWindup").GetValue<Slider>().Value,
-                        _config.Item("HoldPosRadius").GetValue<Slider>().Value, true, true,
+                        _config.Item("HoldPosRadiusS").GetValue<Slider>().Value, true, true,
                         _config.Item("AutoWindup").GetValue<bool>(), _config.Item("ComboMelee").GetValue<bool>(),
                         this.ActiveMode, _config.Item("ComboMovement").GetValue<bool>(),
                         _config.Item("ClearMovement").GetValue<bool>());
@@ -905,7 +905,7 @@ namespace UnderratedAIO.Helpers
                 if (_config.Item("HoldZone").GetValue<Circle>().Active)
                 {
                     Render.Circle.DrawCircle(
-                        Player.Position, _config.Item("HoldPosRadius").GetValue<Slider>().Value,
+                        Player.Position, _config.Item("HoldPosRadiusS").GetValue<Slider>().Value,
                         _config.Item("HoldZone").GetValue<Circle>().Color);
                 }
             }
