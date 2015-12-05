@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using AutoJungle.Data;
 using LeagueSharp;
@@ -600,7 +602,8 @@ namespace AutoJungle
             }
             if (tempstate == State.Null && enemy != null && _GameInfo.GameState != State.Retreat &&
                 _GameInfo.GameState != State.Pushing && _GameInfo.GameState != State.Defending &&
-                !CheckForRetreat(enemy, enemy.Position))
+                !CheckForRetreat(enemy, enemy.Position) &&
+                Helpers.GetRealDistance(player, enemy.Position) < GameInfo.ChampionRange)
             {
                 tempstate = State.FightIng;
             }
@@ -642,7 +645,7 @@ namespace AutoJungle
         {
             return (Helpers.AlliesThere(pos) == 0 || Helpers.AlliesThere(pos) >= 2 ||
                     player.Distance(_GameInfo.SpawnPoint) < 6000 || player.Distance(_GameInfo.SpawnPointEnemy) < 6000 ||
-                    player.Level >= 16) && pos.CountEnemiesInRange(GameInfo.ChampionRange) == 0 &&
+                    player.Level >= 14) && pos.CountEnemiesInRange(GameInfo.ChampionRange) == 0 &&
                    Helpers.getMobs(pos, GameInfo.ChampionRange).Count > 0 &&
                    !_GameInfo.MonsterList.Any(m => m.Position.Distance(pos) < 600) && _GameInfo.SmiteableMob == null &&
                    _GameInfo.GameState != State.Retreat;
@@ -674,6 +677,10 @@ namespace AutoJungle
                         return true;
                     }
                 }
+                if (indanger)
+                {
+                    return true;
+                }
             }
             return false;
         }
@@ -700,14 +707,14 @@ namespace AutoJungle
             //Checknig base after recall
             if (player.Distance(_GameInfo.SpawnPoint) < 5000)
             {
-                var mobs =
-                    MinionManager.GetBestCircularFarmLocation(
-                        Helpers.getMobs(_GameInfo.SpawnPoint, 5000).Select(m => m.Position.To2D()).ToList(), 500, 5000);
-                if (mobs.Position.IsValid() && mobs.MinionsHit > 2 &&
-                    Helpers.CheckPath(player.GetPath(mobs.Position.To3D())) &&
-                    !CheckForRetreat(null, mobs.Position.To3D()))
+                var mob =
+                    Helpers.getMobs(_GameInfo.SpawnPoint, 5000)
+                        .OrderByDescending(m => Helpers.getMobs(m.Position, 300).Count)
+                        .FirstOrDefault();
+                if (mob != null && Helpers.getMobs(mob.Position, 300).Count > 700 &&
+                    Helpers.CheckPath(player.GetPath(mob.Position)) && !CheckForRetreat(null, mob.Position))
                 {
-                    _GameInfo.MoveTo = mobs.Position.To3D();
+                    _GameInfo.MoveTo = mob.Position;
                     if (Debug)
                     {
                         Console.WriteLine("CheckForGrouping() - Checknig base after recall");
@@ -718,23 +725,21 @@ namespace AutoJungle
             //Checknig enemy turrets
             foreach (var vector in
                 _GameInfo.EnemyStructures.Where(
-                    s => s.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value))
+                    s =>
+                        s.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value &&
+                        CheckLaneClear(s)))
             {
                 var aMinis = Helpers.getAllyMobs(vector, GameInfo.ChampionRange);
-                if (!CheckLaneClear(vector))
-                {
-                    continue;
-                }
                 if (vector.CountAlliesInRange(GameInfo.ChampionRange) + 1 >
                     vector.CountEnemiesInRange(GameInfo.ChampionRange) && aMinis.Count > 3)
                 {
-                    var eMinis = Helpers.getMobs(vector, GameInfo.ChampionRange).Select(e => e.Position.To2D()).ToList();
-                    if (eMinis.Any())
+                    var eMinis =
+                        Helpers.getMobs(vector, GameInfo.ChampionRange)
+                            .OrderByDescending(m => Helpers.getMobs(m.Position, 300).Count)
+                            .FirstOrDefault();
+                    if (eMinis != null)
                     {
-                        var pos =
-                            (Vector3)
-                                MinionManager.GetBestCircularFarmLocation(
-                                    eMinis, 500, menu.Item("GankRange").GetValue<Slider>().Value).Position;
+                        var pos = eMinis.Position;
                         if (Helpers.CheckPath(player.GetPath(pos)) && !CheckForRetreat(null, pos))
                         {
                             _GameInfo.MoveTo = pos;
@@ -772,13 +777,10 @@ namespace AutoJungle
                 if (vector.CountAlliesInRange(GameInfo.ChampionRange) + 1 >
                     vector.CountEnemiesInRange(GameInfo.ChampionRange) && eMinis.Count > 3)
                 {
-                    var temp = eMinis.Select(e => e.Position.To2D()).ToList();
-                    if (temp.Any())
+                    var temp = eMinis.OrderByDescending(m => Helpers.getMobs(m.Position, 300).Count).FirstOrDefault();
+                    if (temp != null)
                     {
-                        var pos =
-                            (Vector3)
-                                MinionManager.GetBestCircularFarmLocation(
-                                    temp, 500, menu.Item("GankRange").GetValue<Slider>().Value).Position;
+                        var pos = temp.Position;
                         if (Helpers.CheckPath(player.GetPath(pos)) && !CheckForRetreat(null, pos))
                         {
                             _GameInfo.MoveTo = pos;
@@ -821,28 +823,23 @@ namespace AutoJungle
             if (player.Level > 8)
             {
                 var miniwaves =
-                    ObjectManager.Get<Obj_AI_Minion>()
+                    Helpers.getMobs(player.Position, menu.Item("GankRange").GetValue<Slider>().Value)
                         .Where(
                             m =>
-                                m.IsEnemy &&
-                                m.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value &&
                                 ((m.CountEnemiesInRange(GameInfo.ChampionRange) == 0 ||
                                   (m.CountAlliesInRange(GameInfo.ChampionRange) + 1 >=
                                    m.CountEnemiesInRange(GameInfo.ChampionRange))) ||
                                  m.Distance(_GameInfo.SpawnPoint) < 7000))
                         .OrderByDescending(m => m.Distance(_GameInfo.SpawnPoint) < 7000)
-                        .ThenBy(m => m.Distance(player));
-                foreach (var miniwave in miniwaves)
+                        .ThenByDescending(m => m.Distance(player) < 2000)
+                        .ThenByDescending(m => Helpers.getMobs(m.Position, 1200).Count);
+                foreach (var miniwave in
+                    miniwaves.Where(miniwave => Helpers.getMobs(miniwave.Position, 1200).Count >= 6)
+                        .Where(
+                            miniwave => !CheckForRetreat(null, miniwave.Position) && CheckLaneClear(miniwave.Position)))
                 {
-                    if (Helpers.getMobs(miniwave.Position, 1200).Count < 6)
-                    {
-                        continue;
-                    }
-                    if (!CheckForRetreat(null, miniwave.Position) && CheckLaneClear(miniwave.Position))
-                    {
-                        _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
-                        return true;
-                    }
+                    _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
+                    return true;
                 }
             }
             //Checking ally mobs, pushing

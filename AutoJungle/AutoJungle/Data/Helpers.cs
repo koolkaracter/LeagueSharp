@@ -54,14 +54,20 @@ namespace AutoJungle.Data
                 MinionManager.GetMinions(pos, range, MinionTypes.All, MinionTeam.NotAlly)
                     .Where(
                         m =>
-                            !Jungle.bosses.Any(n => m.Name.Contains(n)) && m.IsValidTarget() &&
+                            m.IsValidTarget() && !Jungle.bosses.Any(n => m.Name.Contains(n)) && m.IsValidTarget() &&
                             !m.Name.Contains("barrel"))
+                    .OrderBy(m => m.Distance(Program.player))
+                    .Take(25)
                     .ToList();
         }
 
         public static List<Obj_AI_Base> getAllyMobs(Vector3 pos, float range)
         {
-            return MinionManager.GetMinions(pos, range, MinionTypes.All, MinionTeam.Ally).ToList();
+            return
+                MinionManager.GetMinions(pos, range, MinionTypes.All, MinionTeam.Ally)
+                    .OrderBy(m => m.Distance(Program.player))
+                    .Take(25)
+                    .ToList();
         }
 
         internal static bool CheckPath(Vector3[] vectors, bool withoutChamps = false)
@@ -91,7 +97,10 @@ namespace AutoJungle.Data
             {
                 return false;
             }
-            Lanes.Add(Program.player.Team==GameObjectTeam.Chaos?SummonersRift.MidLane.Blue_Zone:SummonersRift.MidLane.Red_Zone);
+            Lanes.Add(
+                Program.player.Team == GameObjectTeam.Chaos
+                    ? SummonersRift.MidLane.Blue_Zone
+                    : SummonersRift.MidLane.Red_Zone);
             return Lanes.Any(l => !l.IsInside(Program.player.Position) && l.IsInside(point));
         }
 
@@ -337,7 +346,7 @@ namespace AutoJungle.Data
                         case "Shyvana":
                             if (spell.Slot == SpellSlot.W)
                             {
-                                result += Damage.GetSpellDamage(source, target, spell.Slot)*4;
+                                result += Damage.GetSpellDamage(source, target, spell.Slot) * 4;
                             }
                             else
                             {
