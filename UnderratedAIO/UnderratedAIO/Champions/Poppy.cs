@@ -386,7 +386,7 @@ namespace UnderratedAIO.Champions
             menuC.AddItem(new MenuItem("usew", "Use W", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usee", "Use E", true)).SetValue(true);
             menuC.AddItem(new MenuItem("useewall", "Use E only near walls", true)).SetValue(true);
-            menuC.AddItem(new MenuItem("useeflash", "Use flash to positioning", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("useeflash", "Use flash to positioning", true)).SetValue(false);
             menuC.AddItem(new MenuItem("useeflashforced", "Forced flash+E if possible", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
                 .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
