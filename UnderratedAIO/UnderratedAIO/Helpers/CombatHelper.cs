@@ -870,6 +870,10 @@ namespace UnderratedAIO.Helpers
 
         public bool IsReady(Obj_AI_Hero enemy)
         {
+            if (Slot == SpellSlot.Unknown)
+            {
+                return true;
+            }
             return enemy.Spellbook.GetSpell(Slot).CooldownExpires - Game.Time < 0.5f;
         }
     }
