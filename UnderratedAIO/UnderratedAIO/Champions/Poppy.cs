@@ -17,6 +17,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static Spell Q, W, E, R;
         public static double[] eSecond = new double[5] { 75, 125, 175, 225, 275 };
+        public static List<string> NotDash = new List<string>() { "Udyr", "Malphite", };
         public static AutoLeveler autoLeveler;
 
         public Poppy()
@@ -89,14 +90,14 @@ namespace UnderratedAIO.Champions
                 foreach (var dashingEnemy in
                     HeroManager.Enemies.Where(
                         e =>
-                            e.IsValidTarget() && (e.IsDashing() || e.HasBuffOfType(BuffType.Knockback)) &&
-                            !e.HasBuffOfType(BuffType.SpellShield) &&
+                            e.IsValidTarget() && e.IsDashing() && !e.HasBuffOfType(BuffType.SpellShield) &&
                             config.Item("useAutoW" + e.SkinName, true).GetValue<bool>() && !e.HasBuff("poppyepushenemy"))
                     )
                 {
                     var nextpos = Prediction.GetPrediction(dashingEnemy, 0.1f).UnitPosition;
                     if (dashingEnemy.Distance(player) <= W.Range &&
-                        (nextpos.Distance(player.Position) > W.Range || (player.Distance(dashingEnemy) < W.Range - 100)))
+                        (nextpos.Distance(player.Position) > W.Range || (player.Distance(dashingEnemy) < W.Range - 100)) &&
+                        dashingEnemy.IsTargetable && !NotDash.Contains(dashingEnemy.ChampionName))
                     {
                         W.Cast();
                     }
@@ -166,84 +167,63 @@ namespace UnderratedAIO.Champions
                 Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
             }
 
-            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
-            var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
-            if (config.Item("useIgnite").GetValue<bool>() && ignitedmg > target.Health && hasIgnite &&
-                !E.CanCast(target) && !Q.CanCast(target))
+            bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready &&
+                             config.Item("useIgnite").GetValue<bool>();
+            var ignitedmg = hasIgnite ? (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite) : 0f;
+            if (ignitedmg > target.Health && hasIgnite && !E.CanCast(target) && !Q.CanCast(target) &&
+                (player.Distance(target) > Q.Range || player.HealthPercent < 30))
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-            var ShouldRCauseW = player.HasBuff("poppywzone") &&
-                                CombatHelper.GetBuffTime(player.GetBuff("poppywzone")) < 1f;
-            if (config.Item("userindanger", true).GetValue<bool>() && R.IsReady() && player.CountEnemiesInRange(800) > 2 &&
-                player.CountEnemiesInRange(800) >= player.CountAlliesInRange(1500))
+            if (config.Item("userindanger", true).GetValue<bool>() && R.IsReady() &&
+                (player.CountEnemiesInRange(800) >= 2 &&
+                 player.CountEnemiesInRange(800) > player.CountAlliesInRange(1500) + 1) ||
+                (player.Health < target.Health && player.HealthPercent < 35 &&
+                 player.CountAlliesInRange(1000) + 1 < player.CountEnemiesInRange(1000)))
             {
                 var targ =
-                    HeroManager.Enemies.Where(e => e.IsValidTarget() && R.CanCast(e))
-                        .OrderBy(e => TargetSelector.GetPriority(target))
-                        .ThenByDescending(e => e.MaxHealth)
+                    HeroManager.Enemies.Where(
+                        e =>
+                            e.IsValidTarget() && R.CanCast(e) &&
+                            (player.HealthPercent < 60 || e.CountEnemiesInRange(300) > 2) &&
+                            HeroManager.Enemies.Count(h => h.Distance(e) < 400 && e.HealthPercent < 35) == 0)
+                        .OrderByDescending(e => R.GetPrediction(e).CastPosition.CountEnemiesInRange(400))
+                        .ThenByDescending(e => e.Distance(target))
                         .FirstOrDefault();
                 if (!R.IsCharging && targ != null)
                 {
                     R.StartCharging();
                 }
-                if (R.IsCharging && targ != null && R.CanCast(targ) && R.Range < 500)
+                if (R.IsCharging && targ != null && R.CanCast(targ) && R.Range > 1300 && R.Range > targ.Distance(player))
                 {
-                    R.CastIfHitchanceEquals(targ, HitChance.VeryHigh, config.Item("packets").GetValue<bool>());
+                    R.CastIfHitchanceEquals(targ, HitChance.Medium, config.Item("packets").GetValue<bool>());
                 }
-                if (R.IsCharging && ShouldRCauseW)
-                {
-                    if (targ != null && W.IsInRange(targ))
-                    {
-                        R.CastIfHitchanceEquals(targ, HitChance.VeryHigh, config.Item("packets").GetValue<bool>());
-                        return;
-                    }
-                    if (target != null && W.IsInRange(target))
-                    {
-                        R.CastIfHitchanceEquals(target, HitChance.VeryHigh, config.Item("packets").GetValue<bool>());
-                    }
-                }
-                if (targ != null && R.Range < 700)
+                if (R.IsCharging && targ != null && R.Range < 1300)
                 {
                     return;
                 }
             }
-            if (config.Item("user", true).GetValue<bool>() && R.IsReady() && player.Distance(target) < 1000 &&
-                target.UnderTurret(true))
+            if (config.Item("user", true).GetValue<bool>() && R.IsReady() && player.Distance(target) < 1400 &&
+                !target.UnderTurret(true))
             {
-                if (!R.IsCharging &&
-                    ((cmbdmg < target.Health && cmbdmg + R.GetDamage(target) > target.Health) ||
-                     (target.Distance(player) > E.Range && R.GetDamage(target) > target.Health &&
-                      target.Distance(player) < R.ChargedMaxRange - 300)) && !Q.IsReady())
+                var cond = ((Rdmg(target) < target.Health && ignitedmg + Rdmg(target) > target.Health &&
+                             player.Distance(target) < 600) ||
+                            (target.Distance(player) > E.Range && Rdmg(target) > target.Health &&
+                             target.Distance(player) < R.ChargedMaxRange - 300));
+                if (!R.IsCharging && cond && !Q.IsReady() && player.HealthPercent < 40)
                 {
                     R.StartCharging();
                 }
-                if (!R.IsCharging && target.HealthPercent < 40 && target.Distance(player) < W.Range && !Q.IsReady())
+                if (R.IsCharging && R.CanCast(target) && R.Range > target.Distance(player) && cond)
                 {
-                    if (W.IsReady())
+                    R.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                    if (hasIgnite && cmbdmg > target.Health && cmbdmg - Rdmg(target) < target.Health)
                     {
-                        W.Cast();
-                        return;
+                        if (!target.HasBuff("summonerdot"))
+                        {
+                            player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
+                        }
                     }
-                    if (player.HasBuff("poppywzone"))
-                    {
-                        R.StartCharging();
-                    }
-                }
-                if (R.IsCharging && ShouldRCauseW)
-                {
-                    if (target != null && W.IsInRange(target))
-                    {
-                        R.CastIfHitchanceEquals(target, HitChance.VeryHigh, config.Item("packets").GetValue<bool>());
-                    }
-                }
-                if (R.IsCharging && R.CanCast(target))
-                {
-                    if (hasIgnite && cmbdmg > target.Health && cmbdmg - R.GetDamage(target) < target.Health)
-                    {
-                        player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
-                    }
-                    R.CastIfHitchanceEquals(target, HitChance.VeryHigh, config.Item("packets").GetValue<bool>());
                 }
             }
         }
@@ -303,12 +283,6 @@ namespace UnderratedAIO.Champions
             {
                 E.CastOnUnit(gapcloser.Sender, config.Item("packets").GetValue<bool>());
             }
-            if (W.IsReady() && config.Item("useAutoW" + gapcloser.Sender.SkinName, true).GetValue<bool>() &&
-                gapcloser.End.Distance(player.Position) <= W.Range &&
-                gapcloser.Sender.Distance(player.Position) <= W.Range)
-            {
-                W.Cast();
-            }
         }
 
         public static bool CheckWalls(Obj_AI_Base player, Obj_AI_Base enemy)
@@ -340,12 +314,25 @@ namespace UnderratedAIO.Champions
             {
                 damage = (float) (damage * 1.2);
             }
-            if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready)
+            if (player.Spellbook.CanUseSpell(player.GetSpellSlot("summonerdot")) == SpellState.Ready &&
+                player.Distance(hero) < 500)
             {
                 damage += (float) player.GetSummonerSpellDamage(hero, Damage.SummonerSpell.Ignite);
             }
+            if (R.IsReady() || R.IsCharging)
+            {
+                damage += (float) Rdmg(hero);
+            }
             damage += ItemHandler.GetItemsDamage(hero);
             return (float) damage;
+        }
+
+        public static double Rdmg(Obj_AI_Base target)
+        {
+            return Damage.CalcDamage(
+                player, target, Damage.DamageType.Physical,
+                (new double[] { 200, 300, 400 }[R.Level - 1] +
+                 0.9f * (player.BaseAttackDamage + player.FlatPhysicalDamageMod)));
         }
 
         private static void Initpoppy()
@@ -355,8 +342,8 @@ namespace UnderratedAIO.Champions
             W = new Spell(SpellSlot.W, 400);
             E = new Spell(SpellSlot.E, 500);
             R = new Spell(SpellSlot.R);
-            R.SetSkillshot(0, 90f, 1400, true, SkillshotType.SkillshotLine);
-            R.SetCharged("PoppyR", "PoppyR", 425, 1400, 1.1f);
+            R.SetSkillshot(0.5f, 90f, 1400, true, SkillshotType.SkillshotLine);
+            R.SetCharged("PoppyR", "PoppyR", 425, 1400, 1.0f);
         }
 
         private static void InitMenu()
