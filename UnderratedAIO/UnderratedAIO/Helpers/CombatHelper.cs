@@ -69,6 +69,39 @@ namespace UnderratedAIO.Helpers
                     "alistartrample", "NocturneShroudofDarknessShield", "SpellShield"
                 });
 
+        public static List<DashData> DashDatas =
+            new List<DashData>(
+                new DashData[]
+                {
+                    new DashData("Aatrox", SpellSlot.Q), new DashData("Ahri", SpellSlot.R),
+                    new DashData("Akali", SpellSlot.R), new DashData("Alistar", SpellSlot.W),
+                    new DashData("Amumu", SpellSlot.Q), new DashData("Azir", SpellSlot.E),
+                    new DashData("Braum", SpellSlot.W), new DashData("Caitlyn", SpellSlot.E),
+                    new DashData("Corki", SpellSlot.W), new DashData("Diana", SpellSlot.R),
+                    new DashData("Ekko", SpellSlot.E), new DashData("Elise", SpellSlot.Q),
+                    new DashData("Fiora ", SpellSlot.Q), new DashData("Fizz", SpellSlot.Q),
+                    new DashData("Gnar", SpellSlot.E), new DashData("Gragas", SpellSlot.E),
+                    new DashData("Graves", SpellSlot.E), new DashData("Hecarim", SpellSlot.E),
+                    new DashData("Illaoi", SpellSlot.W), new DashData("Irelia", SpellSlot.Q),
+                    new DashData("JarvanIV", SpellSlot.Q), new DashData("JarvanIV", SpellSlot.E),
+                    new DashData("Jax", SpellSlot.Q), new DashData("Jayce", SpellSlot.Q),
+                    new DashData("Kalista", SpellSlot.Unknown), new DashData("KhaZix", SpellSlot.E),
+                    new DashData("Kindred", SpellSlot.Q), new DashData("LeBlanc", SpellSlot.E),
+                    new DashData("Jax", SpellSlot.Q), new DashData("LeeSin", SpellSlot.Q),
+                    new DashData("LeeSin", SpellSlot.W), new DashData("Lucian", SpellSlot.E),
+                    new DashData("Nautilus", SpellSlot.Q), new DashData("Nidalee", SpellSlot.W),
+                    new DashData("Pantheon", SpellSlot.W), new DashData("Poppy", SpellSlot.E),
+                    new DashData("Quinn", SpellSlot.E), new DashData("Renekton", SpellSlot.E),
+                    new DashData("Rengar", SpellSlot.Unknown), new DashData("Riven", SpellSlot.Q),
+                    new DashData("Riven", SpellSlot.E), new DashData("Quinn", SpellSlot.E),
+                    new DashData("Sejuani", SpellSlot.Q), new DashData("Shyvana", SpellSlot.R),
+                    new DashData("Thresh", SpellSlot.Q), new DashData("Tristana", SpellSlot.W),
+                    new DashData("Tryndamere", SpellSlot.E), new DashData("Vi", SpellSlot.Q),
+                    new DashData("Wukong", SpellSlot.E), new DashData("XinZhao", SpellSlot.E),
+                    new DashData("Yasuo", SpellSlot.E), new DashData("Zac", SpellSlot.E),
+                    new DashData("Ziggs", SpellSlot.W)
+                });
+
         private static List<int> defItems =
             new List<int>(new int[] { ItemHandler.Qss.Id, ItemHandler.Qss.Id, ItemHandler.Dervish.Id });
 
@@ -661,7 +694,7 @@ namespace UnderratedAIO.Helpers
             return false;
         }
 
-        public static bool isTargetedCC(string Spellname, bool highDmgToo=true)
+        public static bool isTargetedCC(string Spellname, bool highDmgToo = true)
         {
             return TargetedCC.Contains(Spellname) || (TargetedDangerous.Contains(Spellname) && highDmgToo);
         }
@@ -695,18 +728,27 @@ namespace UnderratedAIO.Helpers
             }
             return false;
         }
-        public static bool IsCollidingWith(Obj_AI_Base from, Vector3 toPos, float spellWidth, CollisionableObjects[] colloObjects)
+
+        public static bool IsCollidingWith(Obj_AI_Base from,
+            Vector3 toPos,
+            float spellWidth,
+            CollisionableObjects[] colloObjects)
         {
-                var input = new PredictionInput { Radius = spellWidth, Unit = from, };
-                input.CollisionObjects = colloObjects;
-                return Collision.GetCollision(new List<Vector3> { toPos }, input).Any();
+            var input = new PredictionInput { Radius = spellWidth, Unit = from, };
+            input.CollisionObjects = colloObjects;
+            return Collision.GetCollision(new List<Vector3> { toPos }, input).Any();
         }
-        public static int GetCollisionCount(Obj_AI_Base from, Vector3 toPos, float spellWidth, CollisionableObjects[] colloObjects)
+
+        public static int GetCollisionCount(Obj_AI_Base from,
+            Vector3 toPos,
+            float spellWidth,
+            CollisionableObjects[] colloObjects)
         {
             var input = new PredictionInput { Radius = spellWidth, Unit = from, };
             input.CollisionObjects = colloObjects;
             return Collision.GetCollision(new List<Vector3> { toPos }, input).Count();
         }
+
         public static bool CheckInterrupt(Vector3 pos, float range)
         {
             return
@@ -756,7 +798,7 @@ namespace UnderratedAIO.Helpers
             Obj_AI_Hero sender,
             Vector3 end,
             float spellRange,
-            bool highDmg=true)
+            bool highDmg = true)
         {
             if (spellName == "CurseofTheSadMummy")
             {
@@ -812,6 +854,23 @@ namespace UnderratedAIO.Helpers
                 }
             }
             return false;
+        }
+    }
+
+    public class DashData
+    {
+        public string ChampionName;
+        public SpellSlot Slot;
+
+        public DashData(string name, SpellSlot slot)
+        {
+            ChampionName = name;
+            Slot = slot;
+        }
+
+        public bool IsReady(Obj_AI_Hero enemy)
+        {
+            return enemy.Spellbook.GetSpell(Slot).CooldownExpires - Game.Time < 0.5f;
         }
     }
 }

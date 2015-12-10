@@ -90,20 +90,28 @@ namespace UnderratedAIO.Champions
                 foreach (var dashingEnemy in
                     HeroManager.Enemies.Where(
                         e =>
-                            e.IsValidTarget() && e.IsDashing() && !e.HasBuffOfType(BuffType.SpellShield) &&
-                            config.Item("useAutoW" + e.SkinName, true).GetValue<bool>() && !e.HasBuff("poppyepushenemy"))
-                    )
+                            e.IsValidTarget() && e.Distance(player) < 1600 &&
+                            config.Item("useAutoW" + e.SkinName, true).GetValue<Slider>().Value > 0)
+                        .OrderByDescending(e => config.Item("useAutoW" + e.SkinName, true).GetValue<Slider>().Value))
                 {
                     var nextpos = Prediction.GetPrediction(dashingEnemy, 0.1f).UnitPosition;
-                    if (dashingEnemy.Distance(player) <= W.Range &&
+                    if (dashingEnemy.IsDashing() && !dashingEnemy.HasBuffOfType(BuffType.SpellShield) &&
+                        !dashingEnemy.HasBuff("poppyepushenemy") && dashingEnemy.Distance(player) <= W.Range &&
                         (nextpos.Distance(player.Position) > W.Range || (player.Distance(dashingEnemy) < W.Range - 100)) &&
                         dashingEnemy.IsTargetable && !NotDash.Contains(dashingEnemy.ChampionName))
                     {
                         W.Cast();
                     }
+                    if (
+                        CombatHelper.DashDatas.Any(
+                            d => d.ChampionName == dashingEnemy.ChampionName && d.IsReady(dashingEnemy)))
+                    {
+                        break;
+                    }
                 }
             }
         }
+
 
         private static void Combo()
         {
@@ -401,12 +409,12 @@ namespace UnderratedAIO.Champions
             menuME.AddItem(new MenuItem("useEint", "Use E interrupt", true)).SetValue(true);
             menuME.AddItem(new MenuItem("useEgap", "Use E on gapcloser near walls", true)).SetValue(true);
             menuM = Jungle.addJungleOptions(menuM);
-
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))
             {
-                menuMW.AddItem(new MenuItem("useAutoW" + hero.SkinName, hero.SkinName, true)).SetValue(true);
+                menuMW.AddItem(new MenuItem("useAutoW" + hero.SkinName, hero.SkinName, true))
+                    .SetValue(new Slider(5, 1, 5));
             }
-
+            menuMW.AddItem(new MenuItem("infoPAW", "0 is off"));
             menuM.AddSubMenu(menuMW);
             menuM.AddSubMenu(menuME);
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
