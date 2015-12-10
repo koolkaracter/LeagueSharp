@@ -202,11 +202,11 @@ namespace UnderratedAIO.Champions
                 {
                     R.StartCharging();
                 }
-                if (R.IsCharging && targ != null && R.CanCast(targ) && R.Range > 1300 && R.Range > targ.Distance(player))
+                if (R.IsCharging && targ != null && R.CanCast(targ) && R.Range > 1000 && R.Range > targ.Distance(player))
                 {
                     R.CastIfHitchanceEquals(targ, HitChance.Medium, config.Item("packets").GetValue<bool>());
                 }
-                if (R.IsCharging && targ != null && R.Range < 1300)
+                if (R.IsCharging && targ != null && R.Range < 1000)
                 {
                     return;
                 }
