@@ -92,7 +92,8 @@ namespace UnderratedAIO.Champions
                         e =>
                             e.IsValidTarget() && e.Distance(player) < 1600 &&
                             config.Item("useAutoW" + e.SkinName, true).GetValue<Slider>().Value > 0)
-                        .OrderByDescending(e => config.Item("useAutoW" + e.SkinName, true).GetValue<Slider>().Value))
+                        .OrderByDescending(e => config.Item("useAutoW" + e.SkinName, true).GetValue<Slider>().Value)
+                        .ThenBy(e => e.Distance(player)))
                 {
                     var nextpos = Prediction.GetPrediction(dashingEnemy, 0.1f).UnitPosition;
                     if (dashingEnemy.IsDashing() && !dashingEnemy.HasBuffOfType(BuffType.SpellShield) &&
@@ -186,7 +187,7 @@ namespace UnderratedAIO.Champions
             if (config.Item("userindanger", true).GetValue<bool>() && R.IsReady() &&
                 (player.CountEnemiesInRange(800) >= 2 &&
                  player.CountEnemiesInRange(800) > player.CountAlliesInRange(1500) + 1) ||
-                (player.Health < target.Health && player.HealthPercent < 35 &&
+                (player.Health < target.Health && player.HealthPercent < 40 &&
                  player.CountAlliesInRange(1000) + 1 < player.CountEnemiesInRange(1000)))
             {
                 var targ =
@@ -217,14 +218,10 @@ namespace UnderratedAIO.Champions
                 var cond = ((Rdmg(target) < target.Health && ignitedmg + Rdmg(target) > target.Health &&
                              player.Distance(target) < 600) ||
                             (target.Distance(player) > E.Range && Rdmg(target) > target.Health &&
-                             target.Distance(player) < R.ChargedMaxRange - 300));
+                             target.Distance(player) < 1100));
                 if (!R.IsCharging && cond && !Q.IsReady() && player.HealthPercent < 40)
                 {
                     R.StartCharging();
-                }
-                if (R.IsCharging && R.CanCast(target) && R.Range > target.Distance(player) && cond)
-                {
-                    R.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
                     if (hasIgnite && cmbdmg > target.Health && cmbdmg - Rdmg(target) < target.Health)
                     {
                         if (!target.HasBuff("summonerdot"))
@@ -232,6 +229,10 @@ namespace UnderratedAIO.Champions
                             player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
                         }
                     }
+                }
+                if (R.IsCharging && R.CanCast(target) && R.Range > target.Distance(player) && cond)
+                {
+                    R.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
                 }
             }
         }
@@ -412,7 +413,8 @@ namespace UnderratedAIO.Champions
             foreach (var hero in ObjectManager.Get<Obj_AI_Hero>().Where(hero => hero.IsEnemy))
             {
                 menuMW.AddItem(new MenuItem("useAutoW" + hero.SkinName, hero.SkinName, true))
-                    .SetValue(new Slider(5, 1, 5));
+                    .SetValue(
+                        new Slider(CombatHelper.DashDatas.Any(d => d.ChampionName == hero.ChampionName) ? 5 : 0, 0, 5));
             }
             menuMW.AddItem(new MenuItem("infoPAW", "0 is off"));
             menuM.AddSubMenu(menuMW);
