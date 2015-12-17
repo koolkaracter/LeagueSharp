@@ -136,17 +136,19 @@ namespace UnderratedAIO.Champions
                         HeroManager.Allies.OrderBy(a => a.Health)
                             .FirstOrDefault(
                                 a =>
-                                    enemy.Distance(a) < 700 && (CombatHelper.IsFacing(a, enemy.Position) ||
-                                    CombatHelper.IsFacing(enemy, a.Position)));
+                                    enemy.Distance(a) < 700 &&
+                                    (CombatHelper.IsFacing(a, enemy.Position) ||
+                                     CombatHelper.IsFacing(enemy, a.Position)));
                     if (ally != null)
                     {
                         var pos = Prediction.GetPrediction(enemy, 0.75f);
-                        if (!(CombatHelper.IsFacing(ally, enemy.Position) && CombatHelper.IsFacing(enemy, ally.Position)) &&
+                        if (
+                            !(CombatHelper.IsFacing(ally, enemy.Position) && CombatHelper.IsFacing(enemy, ally.Position)) &&
                             pos.CastPosition.Distance(enemy.Position) < 450 && pos.Hitchance >= HitChance.VeryHigh)
                         {
                             if (enemy.IsMoving)
                             {
-                                R.Cast(enemy.Position.Extend(pos.CastPosition,450));
+                                R.Cast(enemy.Position.Extend(pos.CastPosition, 450));
                             }
                             else
                             {
@@ -361,7 +363,7 @@ namespace UnderratedAIO.Champions
                                     .OrderByDescending(
                                         p => enemies.Count(e => e.UnitPosition.Distance(p) < BarrelExplosionRange))
                                     .FirstOrDefault();
-                            if (pos.IsValid() &&
+                            if (pos.IsValid() && pos.CountEnemiesInRange(BarrelExplosionRange) > 0 &&
                                 enemies.Count(e => e.UnitPosition.Distance(pos) < BarrelExplosionRange) > 0)
                             {
                                 E.Cast(pos);
@@ -377,12 +379,12 @@ namespace UnderratedAIO.Champions
                                     p.Distance(targPred.UnitPosition) < BarrelExplosionRange &&
                                     Qbarrel.Distance(p) < BarrelConnectionRange &&
                                     savedBarrels.Count(b => b.barrel.Position.Distance(p) < BarrelExplosionRange) < 1)
-                            .OrderBy(p => p.Distance(target.Position))
+                            .OrderBy(p => p.Distance(Prediction.GetPrediction(target, 1f).CastPosition))
                             .FirstOrDefault();
                     if (point.IsValid())
                     {
                         E.Cast(point);
-                        Utility.DelayAction.Add(10, () => Q.CastOnUnit(Qbarrel));
+                        Utility.DelayAction.Add(2, () => Q.CastOnUnit(Qbarrel));
                         return;
                     }
                 }
@@ -392,12 +394,10 @@ namespace UnderratedAIO.Champions
                     b =>
                         b.Health < 2 && KillableBarrel(b, true) &&
                         b.Distance(player) < Orbwalking.GetAutoAttackRange(player, b) &&
-                        HeroManager.Enemies
-                            .Count(
-                                o => o.IsValidTarget() &&
-                                    o.Distance(b) < BarrelExplosionRange &&
-                                    b.Distance(Prediction.GetPrediction(o, 500).UnitPosition) < BarrelExplosionRange) >
-                        0);
+                        HeroManager.Enemies.Count(
+                            o =>
+                                o.IsValidTarget() && o.Distance(b) < BarrelExplosionRange &&
+                                b.Distance(Prediction.GetPrediction(o, 500).UnitPosition) < BarrelExplosionRange) > 0);
             if (meleeRangeBarrel != null && !Q.IsReady() && !justQ)
             {
                 orbwalker.SetAttack(false);
@@ -789,12 +789,12 @@ namespace UnderratedAIO.Champions
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("AutoR", "Cast R to get assists", true)).SetValue(false);
-            menuM.AddItem(new MenuItem("Rhealt", "   Enemy health %", true)).SetTooltip(
-                "Max enemy healthpercent to cast R"
-                ).SetValue(new Slider(35, 0, 100));
-            menuM.AddItem(new MenuItem("RhealtMin", "   Enemy min health %", true)).SetTooltip(
-                "min enemy healthpercent to prevent KS or casting too late"
-                ).SetValue(new Slider(10, 0, 100));
+            menuM.AddItem(new MenuItem("Rhealt", "   Enemy health %", true))
+                .SetTooltip("Max enemy healthpercent to cast R")
+                .SetValue(new Slider(35, 0, 100));
+            menuM.AddItem(new MenuItem("RhealtMin", "   Enemy min health %", true))
+                .SetTooltip("min enemy healthpercent to prevent KS or casting too late")
+                .SetValue(new Slider(10, 0, 100));
             menuM.AddItem(new MenuItem("AutoW", "W with QSS options", true)).SetValue(true);
             menuM.AddItem(new MenuItem("AutoQBarrel", "AutoQ barrel near enemies", true)).SetValue(false);
             menuM = Jungle.addJungleOptions(menuM);
