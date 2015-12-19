@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using AutoJungle.Data;
 using LeagueSharp;
@@ -36,6 +34,7 @@ namespace AutoJungle
             {
                 Jungle.CastSmite(_GameInfo.SmiteableMob);
             }
+
             if (ShouldSkipUpdate())
             {
                 return;
@@ -50,6 +49,14 @@ namespace AutoJungle
             {
                 return;
             }
+            if (HighPriorityPositioning())
+            {
+                MoveToPos();
+                return;
+            }
+
+            //Check the camp, maybe its cleared
+            CheckCamp();
             if (Debug)
             {
                 Console.WriteLine("Items: ");
@@ -59,8 +66,6 @@ namespace AutoJungle
                 }
                 _GameInfo.Show();
             }
-            //Check the camp, maybe its cleared
-            CheckCamp();
             //Shopping
             if (Shopping())
             {
@@ -79,6 +84,25 @@ namespace AutoJungle
             MoveToPos();
 
             CastSpells();
+        }
+
+        private static bool HighPriorityPositioning()
+        {
+            if (player.ChampionName == "Skarner")
+            {
+                var capturablePoints =
+                    ObjectManager.Get<Obj_AI_Base>()
+                        .Where(o => o.Distance(player) < 700 && !o.IsAlly && o.Name == "SkarnerPassiveCrystal")
+                        .OrderBy(o => o.Distance(player))
+                        .FirstOrDefault();
+                if (capturablePoints != null)
+                {
+                    _GameInfo.MoveTo = capturablePoints.Position;
+                    _GameInfo.GameState = State.Positioning;
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void PlaceWard()
@@ -115,10 +139,14 @@ namespace AutoJungle
                     player.Level > 1)
                 {
                     _GameInfo.CurrentMonster++;
-                    if (Debug)
+                    var nextMob =
+                        _GameInfo.MonsterList.OrderBy(m => m.Index)
+                            .FirstOrDefault(m => m.Index == _GameInfo.CurrentMonster);
+                    if (nextMob != null)
                     {
-                        Console.WriteLine("MoveTo: CurrentMonster++1");
+                        _GameInfo.MoveTo = nextMob.Position;
                     }
+                    //Console.WriteLine("CheckCamp - MoveTo: CurrentMonster++");
                 }
 
                 var probablySkippedMob = Helpers.GetNearest(player.Position, 1000);
@@ -278,7 +306,7 @@ namespace AutoJungle
                     y = (int) _GameInfo.MoveTo.Y;
                     player.IssueOrder(
                         GameObjectOrder.MoveTo,
-                        new Vector3(Random.Next(x, x + 30), Random.Next(y, y + 30), _GameInfo.MoveTo.Z));
+                        new Vector3(Random.Next(x, x + 100), Random.Next(y, y + 100), _GameInfo.MoveTo.Z));
                 }
                 else
                 {
@@ -363,7 +391,11 @@ namespace AutoJungle
                     var obj = Helpers.GetNearest(player.Position, GameInfo.ChampionRange);
                     if (obj != null && (obj.Name.Contains("Dragon") || obj.Name.Contains("Baron")) &&
                         (HealthPrediction.GetHealthPrediction(obj, 3000) + 500 < Jungle.smiteDamage(obj) ||
-                         _GameInfo.EnemiesAround == 0))
+                         (_GameInfo.EnemiesAround == 0 && player.Level > 8 &&
+                          MinionManager.GetMinions(
+                              player.Position, GameInfo.ChampionRange, MinionTypes.All, MinionTeam.NotAlly)
+                              .Take(5)
+                              .FirstOrDefault(m => m.Name.Contains("Sru_Crab") && m.Health < m.MaxHealth) == null)))
                     {
                         return obj;
                     }
@@ -600,10 +632,11 @@ namespace AutoJungle
                     tempstate = State.Grouping;
                 }
             }
-            if (tempstate == State.Null && enemy != null && _GameInfo.GameState != State.Retreat &&
-                _GameInfo.GameState != State.Pushing && _GameInfo.GameState != State.Defending &&
-                !CheckForRetreat(enemy, enemy.Position) &&
-                Helpers.GetRealDistance(player, enemy.Position) < GameInfo.ChampionRange)
+            if (tempstate == State.Null && _GameInfo.GameState != State.Retreat && _GameInfo.GameState != State.Pushing &&
+                _GameInfo.GameState != State.Defending &&
+                ((enemy != null && !CheckForRetreat(enemy, enemy.Position) &&
+                  Helpers.GetRealDistance(player, enemy.Position) < GameInfo.ChampionRange)) ||
+                player.HasBuff("skarnerimpalevo"))
             {
                 tempstate = State.FightIng;
             }
@@ -646,7 +679,8 @@ namespace AutoJungle
             return (Helpers.AlliesThere(pos) == 0 || Helpers.AlliesThere(pos) >= 2 ||
                     player.Distance(_GameInfo.SpawnPoint) < 6000 || player.Distance(_GameInfo.SpawnPointEnemy) < 6000 ||
                     player.Level >= 14) && pos.CountEnemiesInRange(GameInfo.ChampionRange) == 0 &&
-                   Helpers.getMobs(pos, GameInfo.ChampionRange).Count > 0 &&
+                   Helpers.getMobs(pos, GameInfo.ChampionRange).Count +
+                   _GameInfo.EnemyStructures.Count(p => p.Distance(pos) < GameInfo.ChampionRange) > 0 &&
                    !_GameInfo.MonsterList.Any(m => m.Position.Distance(pos) < 600) && _GameInfo.SmiteableMob == null &&
                    _GameInfo.GameState != State.Retreat;
         }
@@ -672,7 +706,7 @@ namespace AutoJungle
                 {
                     if ((enemy != null &&
                          (enemy.Health > player.GetAutoAttackDamage(enemy, true) * 2 ||
-                          enemy.Distance(player) > Orbwalking.GetRealAutoAttackRange(enemy)) || enemy == null))
+                          enemy.Distance(player) > Orbwalking.GetRealAutoAttackRange(enemy) + 20) || enemy == null))
                     {
                         return true;
                     }
@@ -687,13 +721,10 @@ namespace AutoJungle
 
         private static bool CheckForGrouping()
         {
-/*
             //Checking grouping allies
             var ally =
                 HeroManager.Allies.FirstOrDefault(
-                    a =>
-                        a.Distance(player.Position) < menu.Item("GankRange").GetValue<Slider>().Value &&
-                        Helpers.AlliesThere(a.Position) >= 2 && a.Distance(_GameInfo.SpawnPointEnemy) < 7000);
+                    a => Helpers.AlliesThere(a.Position) >= 2 && a.Distance(_GameInfo.SpawnPointEnemy) < 7000);
             if (ally != null && !CheckForRetreat(null, ally.Position) &&
                 Helpers.CheckPath(player.GetPath(ally.Position)))
             {
@@ -703,7 +734,7 @@ namespace AutoJungle
                     Console.WriteLine("CheckForGrouping() - Checking grouping allies");
                 }
                 return true;
-            }*/
+            }
             //Checknig base after recall
             if (player.Distance(_GameInfo.SpawnPoint) < 5000)
             {
@@ -730,8 +761,7 @@ namespace AutoJungle
                         CheckLaneClear(s)))
             {
                 var aMinis = Helpers.getAllyMobs(vector, GameInfo.ChampionRange);
-                if (vector.CountAlliesInRange(GameInfo.ChampionRange) + 1 >
-                    vector.CountEnemiesInRange(GameInfo.ChampionRange) && aMinis.Count > 3)
+                if (Helpers.AlliesThere(vector) > vector.CountEnemiesInRange(1300) && aMinis.Count > 1)
                 {
                     var eMinis =
                         Helpers.getMobs(vector, GameInfo.ChampionRange)
@@ -807,15 +837,15 @@ namespace AutoJungle
             }
             //follow minis
             var minis = Helpers.getAllyMobs(player.Position, 1000);
-            if (minis.Count >= 6 && player.Level >= 8)
+            if (minis.Count >= 5 && player.Level >= 8)
             {
                 var objAiBase = minis.OrderBy(m => m.Distance(_GameInfo.SpawnPointEnemy)).FirstOrDefault();
                 if (objAiBase != null &&
                     (objAiBase.CountAlliesInRange(GameInfo.ChampionRange) == 0 ||
-                     objAiBase.CountAlliesInRange(GameInfo.ChampionRange) >= 2) &&
+                     objAiBase.CountAlliesInRange(GameInfo.ChampionRange) >= 2 || player.Level >= 14) &&
                     Helpers.getMobs(objAiBase.Position, 1000).Count == 0)
                 {
-                    _GameInfo.MoveTo = player.Position.Extend(objAiBase.Position, GameInfo.ChampionRange + 100);
+                    _GameInfo.MoveTo = objAiBase.Position.Extend(_GameInfo.SpawnPoint, 100);
                     return true;
                 }
             }
@@ -824,19 +854,16 @@ namespace AutoJungle
             {
                 var miniwaves =
                     Helpers.getMobs(player.Position, menu.Item("GankRange").GetValue<Slider>().Value)
-                        .Where(
-                            m =>
-                                ((m.CountEnemiesInRange(GameInfo.ChampionRange) == 0 ||
-                                  (m.CountAlliesInRange(GameInfo.ChampionRange) + 1 >=
-                                   m.CountEnemiesInRange(GameInfo.ChampionRange))) ||
-                                 m.Distance(_GameInfo.SpawnPoint) < 7000))
+                        .Where(m => Helpers.getMobs(m.Position, 1200).Count > 6 && CheckLaneClear(m.Position))
                         .OrderByDescending(m => m.Distance(_GameInfo.SpawnPoint) < 7000)
                         .ThenByDescending(m => m.Distance(player) < 2000)
                         .ThenByDescending(m => Helpers.getMobs(m.Position, 1200).Count);
                 foreach (var miniwave in
                     miniwaves.Where(miniwave => Helpers.getMobs(miniwave.Position, 1200).Count >= 6)
                         .Where(
-                            miniwave => !CheckForRetreat(null, miniwave.Position) && CheckLaneClear(miniwave.Position)))
+                            miniwave =>
+                                !CheckForRetreat(null, miniwave.Position) &&
+                                Helpers.CheckPath(player.GetPath(miniwave.Position))))
                 {
                     _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
                     return true;
@@ -1090,10 +1117,11 @@ namespace AutoJungle
         {
             if (Debug)
             {
+                /*
                 foreach (var m in Helpers.mod)
                 {
                     Render.Circle.DrawCircle(m, 50, Color.Crimson, 7);
-                }
+                }*/
                 if (_GameInfo.LastClick.IsValid())
                 {
                     Render.Circle.DrawCircle(_GameInfo.LastClick, 70, Color.Blue, 7);
@@ -1205,6 +1233,12 @@ namespace AutoJungle
             menu.AddSubMenu(menuG);
             menu.AddItem(new MenuItem("Enabled", "Enabled")).SetValue(true);
             menu.AddItem(new MenuItem("AutoClose", "Close at the end")).SetValue(true);
+            Menu menuChamps = new Menu("Supported champions", "supported");
+            menuChamps.AddItem(new MenuItem("supportedYi", "Master Yi"));
+            menuChamps.AddItem(new MenuItem("supportedWarwick", "Warwick"));
+            menuChamps.AddItem(new MenuItem("supportedShyvana", "Shyvana"));
+            //menuChamps.AddItem(new MenuItem("supportedSkarner", "Skarner"));
+            menu.AddSubMenu(menuChamps);
             menu.AddItem(
                 new MenuItem(
                     "AutoJungle",

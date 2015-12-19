@@ -75,10 +75,119 @@ namespace AutoJungle
 
                     Console.WriteLine("Shyvana added");
                     break;
+
+                case "SkarnerNOTWORKINGYET":
+                    Hero = ObjectManager.Player;
+                    Type = BuildType.AS;
+
+                    Q = new Spell(SpellSlot.Q, 325);
+                    W = new Spell(SpellSlot.W);
+                    E = new Spell(SpellSlot.E, 985);
+                    E.SetSkillshot(0.5f, 60, 1200, false, SkillshotType.SkillshotLine);
+                    R = new Spell(SpellSlot.R, 325);
+
+                    Autolvl = new AutoLeveler(new int[] { 0, 1, 2, 0, 0, 3, 0, 2, 0, 2, 3, 2, 2, 1, 1, 3, 1, 1 });
+
+                    JungleClear = SkarnerJungleClear;
+                    Combo = SkarnerCombo;
+
+                    Console.WriteLine("Skarner added");
+                    break;
                 default:
                     Console.WriteLine("Not Supported");
                     break;
             }
+        }
+
+        private bool SkarnerCombo()
+        {
+            var targetHero = Program._GameInfo.Target;
+            var rActive = Hero.HasBuff("skarnerimpalevo");
+            if (W.IsReady() && targetHero != null && Hero.Distance(targetHero) < 700)
+            {
+                W.Cast();
+            }
+            ItemHandler.UseItemsCombo(targetHero, !E.IsReady());
+            if (Q.IsReady() && ((targetHero != null && Q.CanCast(targetHero)) || rActive))
+            {
+                Q.Cast();
+            }
+            if (Hero.IsWindingUp)
+            {
+                return false;
+            }
+            if (E.IsReady() && targetHero != null && E.CanCast(targetHero) && Hero.Distance(targetHero) < 700)
+            {
+                E.CastIfHitchanceEquals(targetHero, HitChance.High);
+            }
+            if (R.IsReady() && targetHero != null && R.CanCast(targetHero) && !targetHero.HasBuff("SkarnerImpale"))
+            {
+                R.CastOnUnit(targetHero);
+            }
+            if (rActive)
+            {
+                var ally =
+                    HeroManager.Allies.Where(a => a.Distance(Hero.Position) < 1500)
+                        .OrderBy(a => a.Distance(Hero))
+                        .FirstOrDefault();
+                if (ally != null && ally.Distance(Hero) > 300)
+                {
+                    Hero.IssueOrder(GameObjectOrder.MoveTo, ally);
+                }
+                var allyTower =
+                    Program._GameInfo.AllyStructures.Where(a => a.Distance(Hero.Position) < 2000)
+                        .OrderBy(a => a.Distance(Hero.Position))
+                        .FirstOrDefault();
+                if (allyTower != null)
+                {
+                    Hero.IssueOrder(GameObjectOrder.MoveTo, allyTower);
+                }
+            }
+            else if (targetHero != null)
+            {
+                Hero.IssueOrder(GameObjectOrder.AttackUnit, targetHero);
+            }
+            return false;
+        }
+
+        private bool SkarnerJungleClear()
+        {
+            var targetMob = Program._GameInfo.Target;
+            var structure = Helpers.CheckStructure();
+            if (structure != null)
+            {
+                Hero.IssueOrder(GameObjectOrder.AttackUnit, structure);
+                return false;
+            }
+            if (targetMob == null)
+            {
+                return false;
+            }
+            if (W.IsReady() && Hero.Distance(targetMob) < Q.Range &&
+                (Helpers.getMobs(Hero.Position, W.Range).Count >= 2 ||
+                 targetMob.Health > Hero.GetAutoAttackDamage(targetMob, true) * 5))
+            {
+                W.Cast();
+            }
+            ItemHandler.UseItemsJungle();
+            if (Q.IsReady() && Q.CanCast(targetMob))
+            {
+                Q.Cast();
+            }
+            if (Hero.IsWindingUp)
+            {
+                return false;
+            }
+            if (E.IsReady() && E.CanCast(targetMob))
+            {
+                var pred = E.GetLineFarmLocation(Helpers.getMobs(Hero.Position, E.Range));
+                if (pred.MinionsHit >= 2 || targetMob.Health > Hero.GetAutoAttackDamage(targetMob, true) * 5)
+                {
+                    E.CastIfHitchanceEquals(targetMob, HitChance.VeryHigh);
+                }
+            }
+            Hero.IssueOrder(GameObjectOrder.AttackUnit, targetMob);
+            return false;
         }
 
         private bool ShyvanaCombo()
@@ -92,7 +201,7 @@ namespace AutoJungle
             {
                 W.Cast();
             }
-            ItemHandler.UseItemsJungle();
+            ItemHandler.UseItemsCombo(targetHero, true);
             if (Hero.IsWindingUp)
             {
                 return false;

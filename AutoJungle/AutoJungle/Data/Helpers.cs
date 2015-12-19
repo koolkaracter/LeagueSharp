@@ -11,7 +11,7 @@ namespace AutoJungle.Data
     internal class Helpers
     {
         public static List<Vector3> orig = new List<Vector3>();
-        public static List<Vector3> mod = new List<Vector3>();
+        //public static List<Vector3> mod = new List<Vector3>();
 
         public static List<Geometry.Polygon> Lanes = new List<Geometry.Polygon>()
         {
@@ -73,21 +73,22 @@ namespace AutoJungle.Data
         internal static bool CheckPath(Vector3[] vectors, bool withoutChamps = false)
         {
             var list = vectors.ToList();
-            Resi:
             for (var i = 0; i < list.Count; i++)
             {
                 if (i < list.Count - 1 && list[i].Distance(list[i + 1]) > 800)
                 {
+                    if ((i > 1 && list[i - 1].Distance(list[i]) > 150) &&
+                        ((list[i].CountEnemiesInRange(GameInfo.ChampionRange) > 0 || !withoutChamps) &&
+                         (list[i].UnderTurret(true) || AvoidLane(list[i]))))
+                    {
+                        return false;
+                    }
                     list.Insert(i + 1, list[i].Extend(list[i + 1], list[i].Distance(list[i + 1]) / 2));
-                    goto Resi;
+                    i--;
                 }
             }
-            mod = list;
-            return
-                list.All(
-                    point =>
-                        !point.UnderTurret(true) && !AvoidLane(point) &&
-                        (point.CountEnemiesInRange(GameInfo.ChampionRange) == 0 || withoutChamps));
+            //mod = list;
+            return true;
         }
 
 
@@ -115,7 +116,8 @@ namespace AutoJungle.Data
                           e.Distance(Program.player) < Orbwalking.GetRealAutoAttackRange(e))) &&
                         e.Distance(Program.player) < GameInfo.ChampionRange)
                     .OrderByDescending(e => GetComboDMG(Program.player, e) > e.Health)
-                    .ThenBy(e => e.Distance(Program.player))
+                    .ThenByDescending(e => e.Distance(Program.player) < 500)
+                    .ThenBy(e => e.Health)
                     .FirstOrDefault();
         }
 

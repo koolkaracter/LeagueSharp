@@ -31,10 +31,11 @@ namespace AutoJungle
         public Vector3 SpawnPoint;
         public Vector3 SpawnPointEnemy;
         public int afk;
-        public IEnumerable<Vector3> AllyStructures=new List<Vector3>();
+        public IEnumerable<Vector3> AllyStructures = new List<Vector3>();
         public IEnumerable<Vector3> EnemyStructures = new List<Vector3>();
         public Vector3 ClosestWardPos = Vector3.Zero;
         public const int ChampionRange = 1300;
+
         public GameInfo()
         {
             NextItemPrice = 350;
@@ -168,10 +169,10 @@ namespace AutoJungle
                     "WaitOnFountain: {0}\n" + "MoveTo: {1}\n" + "CheckPoint: {2}\n" + "Target: {3}\n" +
                     "ShouldRecall: {4}\n" + "IsUnderAttack: {5}\n" + "DamageTaken: {6}\n" + "AttackedByTurret: {7}\n" +
                     "NextItemPrice: {8}\n" + "CurrentMonster: {9}\n" + "GameState: {10}\n" + "MinionsAround: {11}\n" +
-                    "SmiteableMob: {12}\n" + "InDanger: {13}\n" + "Afk: {14}\n"+"DamageCount: {15}\n", WaitOnFountain, MoveTo.ToString(),
-                    LastCheckPoint.ToString(), Target == null ? "null" : Target.Name, ShouldRecall, IsUnderAttack(),
-                    DamageTaken, AttackedByTurret, NextItemPrice, CurrentMonster, GameState, MinionsAround,
-                    SmiteableMob == null ? "null" : SmiteableMob.Name, InDanger, afk, DamageCount);
+                    "SmiteableMob: {12}\n" + "InDanger: {13}\n" + "Afk: {14}\n" + "DamageCount: {15}\n", WaitOnFountain,
+                    MoveTo.ToString(), LastCheckPoint.ToString(), Target == null ? "null" : Target.Name, ShouldRecall,
+                    IsUnderAttack(), DamageTaken, AttackedByTurret, NextItemPrice, CurrentMonster, GameState,
+                    MinionsAround, SmiteableMob == null ? "null" : SmiteableMob.Name, InDanger, afk, DamageCount);
             Console.WriteLine(result);
         }
     }
