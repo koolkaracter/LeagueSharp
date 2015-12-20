@@ -43,7 +43,7 @@ namespace UnderratedAIO.Champions
         {
             for (int i = 0; i < savedBarrels.Count; i++)
             {
-                if (savedBarrels[i].barrel.NetworkId == sender.NetworkId)
+                if (savedBarrels[i].barrel.NetworkId == sender.NetworkId || savedBarrels[i].barrel.IsDead)
                 {
                     savedBarrels.RemoveAt(i);
                     return;
@@ -345,47 +345,53 @@ namespace UnderratedAIO.Champions
             if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && config.Item("usee", true).GetValue<bool>() &&
                 E.IsReady() && Orbwalking.CanMove(100) && !justE)
             {
-                var Qbarrels = GetBarrels().Where(o => o.Distance(player) < Q.Range && KillableBarrel(o));
-                foreach (var Qbarrel in Qbarrels.OrderByDescending(b => b.Distance(target) < BarrelExplosionRange))
+                var pred = Prediction.GetPrediction(target, 0.5f);
+                if (pred.Hitchance >= HitChance.High)
                 {
-                    var targPred = Prediction.GetPrediction(target, GetQTime(Qbarrel));
-                    if (Qbarrel.Distance(targPred.UnitPosition) < BarrelExplosionRange)
+                    var Qbarrels = GetBarrels().Where(o => o.Distance(player) < Q.Range && KillableBarrel(o));
+                    foreach (var Qbarrel in Qbarrels.OrderByDescending(b => b.Distance(target) < BarrelExplosionRange))
                     {
-                        if (config.Item("useeAOE", true).GetValue<bool>() && barrels.Count < 2)
+                        var targPred = Prediction.GetPrediction(target, GetQTime(Qbarrel));
+                        if (Qbarrel.Distance(targPred.UnitPosition) < BarrelExplosionRange)
                         {
-                            var enemies =
-                                HeroManager.Enemies.Where(
-                                    e => e.Distance(player) < 1600 && e.Distance(Qbarrel) > BarrelExplosionRange)
-                                    .Select(e => Prediction.GetPrediction(e, 05f));
-                            var pos =
-                                GetBarrelPoints(Qbarrel.Position)
-                                    .Where(p => p.Distance(Qbarrel.Position) < BarrelConnectionRange)
-                                    .OrderByDescending(
-                                        p => enemies.Count(e => e.UnitPosition.Distance(p) < BarrelExplosionRange))
-                                    .FirstOrDefault();
-                            if (pos.IsValid() && pos.CountEnemiesInRange(BarrelExplosionRange) > 0 &&
-                                enemies.Count(e => e.UnitPosition.Distance(pos) < BarrelExplosionRange) > 0)
+                            if (config.Item("useeAOE", true).GetValue<bool>() && barrels.Count < 2)
                             {
-                                E.Cast(pos);
+                                var enemies =
+                                    HeroManager.Enemies.Where(
+                                        e => e.Distance(player) < 1600 && e.Distance(Qbarrel) > BarrelExplosionRange)
+                                        .Select(e => Prediction.GetPrediction(e, 05f));
+                                var pos =
+                                    GetBarrelPoints(Qbarrel.Position)
+                                        .Where(p => p.Distance(Qbarrel.Position) < BarrelConnectionRange)
+                                        .OrderByDescending(
+                                            p => enemies.Count(e => e.UnitPosition.Distance(p) < BarrelExplosionRange))
+                                        .ThenBy(p => p.Distance(target.Position))
+                                        .FirstOrDefault();
+                                if (pos.IsValid() && pos.CountEnemiesInRange(BarrelExplosionRange) > 0 &&
+                                    enemies.Count(e => e.UnitPosition.Distance(pos) < BarrelExplosionRange) > 0)
+                                {
+                                    E.Cast(pos);
+                                }
                             }
+                            break;
                         }
-                        break;
-                    }
-                    var point =
-                        GetBarrelPoints(Qbarrel.Position)
-                            .Where(
-                                p =>
-                                    p.IsValid() && !p.IsWall() && p.Distance(player.Position) < E.Range &&
-                                    p.Distance(targPred.UnitPosition) < BarrelExplosionRange &&
-                                    Qbarrel.Distance(p) < BarrelConnectionRange &&
-                                    savedBarrels.Count(b => b.barrel.Position.Distance(p) < BarrelExplosionRange) < 1)
-                            .OrderBy(p => p.Distance(Prediction.GetPrediction(target, 1f).CastPosition))
-                            .FirstOrDefault();
-                    if (point.IsValid())
-                    {
-                        E.Cast(point);
-                        Utility.DelayAction.Add(2, () => Q.CastOnUnit(Qbarrel));
-                        return;
+                        var point =
+                            GetBarrelPoints(Qbarrel.Position)
+                                .Where(
+                                    p =>
+                                        p.IsValid() && !p.IsWall() && p.Distance(player.Position) < E.Range &&
+                                        p.Distance(targPred.UnitPosition) < BarrelExplosionRange &&
+                                        Qbarrel.Distance(p) < BarrelConnectionRange &&
+                                        savedBarrels.Count(b => b.barrel.Position.Distance(p) < BarrelExplosionRange) <
+                                        1)
+                                .OrderBy(p => p.Distance(pred.UnitPosition))
+                                .FirstOrDefault();
+                        if (point.IsValid())
+                        {
+                            E.Cast(point);
+                            Utility.DelayAction.Add(2, () => Q.CastOnUnit(Qbarrel));
+                            return;
+                        }
                     }
                 }
             }
@@ -698,7 +704,6 @@ namespace UnderratedAIO.Champions
                 }
             }
         }
-
 
         private IEnumerable<Vector3> GetBarrelPoints(Vector3 point)
         {
