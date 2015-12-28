@@ -162,11 +162,13 @@ namespace UnderratedAIO.Champions
             {
                 var barrel =
                     GetBarrels()
-                        .FirstOrDefault(
+                        .Where(
                             o =>
                                 o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
                                 o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
-                                KillableBarrel(o));
+                                KillableBarrel(o))
+                        .OrderBy(o => o.Distance(Game.CursorPos))
+                        .FirstOrDefault();
                 if (barrel != null)
                 {
                     var cursorPos = barrel.Distance(Game.CursorPos) > BarrelConnectionRange
@@ -179,6 +181,23 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
+            if (config.Item("QbarrelCursor", true).GetValue<KeyBind>().Active && Q.IsReady())
+            {
+                var barrel =
+                    GetBarrels()
+                        .Where(
+                            o =>
+                                o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
+                                o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
+                                KillableBarrel(o))
+                        .OrderBy(o => o.Distance(Game.CursorPos))
+                        .FirstOrDefault();
+                if (barrel != null)
+                {
+                    Q.CastOnUnit(barrel);
+                }
+            }
+
             if (config.Item("AutoQBarrel", true).GetValue<bool>() && Q.IsReady())
             {
                 var barrel =
@@ -793,6 +812,9 @@ namespace UnderratedAIO.Champions
                 .SetValue(false);
             menuC.AddItem(new MenuItem("EQtoCursor", "EQ to cursor", true))
                 .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
+            menuC.AddItem(new MenuItem("QbarrelCursor", "Q barrel at cursor", true))
+                .SetValue(new KeyBind("H".ToCharArray()[0], KeyBindType.Press))
                 .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "   R min", true)).SetValue(new Slider(2, 1, 5));
