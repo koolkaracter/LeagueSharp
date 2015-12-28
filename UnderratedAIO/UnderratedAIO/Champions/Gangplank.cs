@@ -21,7 +21,7 @@ namespace UnderratedAIO.Champions
         public static bool justQ, justE;
         public Vector3 ePos;
         public const int BarrelExplosionRange = 375;
-        public const int BarrelConnectionRange = 660;
+        public const int BarrelConnectionRange = 680;
         public List<Barrel> savedBarrels = new List<Barrel>();
         public double[] Rwave = new double[] { 50, 70, 90 };
 
@@ -158,7 +158,27 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
-
+            if (config.Item("EQtoCursor", true).GetValue<KeyBind>().Active && E.IsReady() && Q.IsReady())
+            {
+                var barrel =
+                    GetBarrels()
+                        .FirstOrDefault(
+                            o =>
+                                o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
+                                o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
+                                KillableBarrel(o));
+                if (barrel != null)
+                {
+                    var cursorPos = barrel.Distance(Game.CursorPos) > BarrelConnectionRange
+                        ? barrel.Position.Extend(Game.CursorPos, BarrelConnectionRange)
+                        : Game.CursorPos;
+                    if (cursorPos.IsValid())
+                    {
+                        E.Cast(cursorPos);
+                        Utility.DelayAction.Add(1, () => Q.CastOnUnit(barrel));
+                    }
+                }
+            }
             if (config.Item("AutoQBarrel", true).GetValue<bool>() && Q.IsReady())
             {
                 var barrel =
@@ -380,6 +400,7 @@ namespace UnderratedAIO.Champions
                                 .Where(
                                     p =>
                                         p.IsValid() && !p.IsWall() && p.Distance(player.Position) < E.Range &&
+                                        target.Distance(p) < BarrelExplosionRange &&
                                         p.Distance(targPred.UnitPosition) < BarrelExplosionRange &&
                                         Qbarrel.Distance(p) < BarrelConnectionRange &&
                                         savedBarrels.Count(b => b.barrel.Position.Distance(p) < BarrelExplosionRange) <
@@ -389,7 +410,7 @@ namespace UnderratedAIO.Champions
                         if (point.IsValid())
                         {
                             E.Cast(point);
-                            Utility.DelayAction.Add(2, () => Q.CastOnUnit(Qbarrel));
+                            Utility.DelayAction.Add(1, () => Q.CastOnUnit(Qbarrel));
                             return;
                         }
                     }
@@ -770,7 +791,9 @@ namespace UnderratedAIO.Champions
                 .SetTooltip(
                     "If the target is near to a barrel, not necessary to put more, but this will put ONE to increase AOE damage")
                 .SetValue(false);
-
+            menuC.AddItem(new MenuItem("EQtoCursor", "EQ to cursor", true))
+                .SetValue(new KeyBind("T".ToCharArray()[0], KeyBindType.Press))
+                .SetFontStyle(System.Drawing.FontStyle.Bold, SharpDX.Color.Orange);
             menuC.AddItem(new MenuItem("user", "Use R", true)).SetValue(true);
             menuC.AddItem(new MenuItem("Rmin", "   R min", true)).SetValue(new Slider(2, 1, 5));
             menuC.AddItem(new MenuItem("useIgnite", "Use Ignite", true)).SetValue(true);
