@@ -26,6 +26,8 @@ namespace AutoJungle
 
         public static ItemHandler ItemHandler;
 
+        public static Vector3 pos;
+
         #region Main
 
         private static void Game_OnGameUpdate(EventArgs args)
@@ -34,7 +36,7 @@ namespace AutoJungle
             {
                 Jungle.CastSmite(_GameInfo.SmiteableMob);
             }
-
+            CastHihPrioritySpells();
             if (ShouldSkipUpdate())
             {
                 return;
@@ -84,6 +86,38 @@ namespace AutoJungle
             MoveToPos();
 
             CastSpells();
+        }
+
+        private static void CastHihPrioritySpells()
+        {
+            var target = _GameInfo.Target;
+            switch (ObjectManager.Player.ChampionName)
+            {
+                case "Jax":
+                    var eActive = player.HasBuff("JaxCounterStrike");
+                    if (_GameInfo.GameState == State.Jungling || _GameInfo.GameState == State.LaneClear)
+                    {
+                        var targetMob = _GameInfo.Target;
+                        if (Champdata.E.IsReady() && targetMob.IsValidTarget(350) &&
+                            (player.ManaPercent > 40 || player.HealthPercent < 60 || player.Level == 1) && !eActive &&
+                            _GameInfo.DamageCount >= 2 || _GameInfo.DamageTaken > player.Health * 0.2f)
+                        {
+                            Champdata.E.Cast();
+                        }
+                        return;
+                    }
+                    if (_GameInfo.GameState == State.FightIng)
+                    {
+                        if (Champdata.E.IsReady() &&
+                            ((Champdata.Q.CanCast(target) && !eActive) || (target.IsValidTarget(350)) ||
+                             ((_GameInfo.DamageCount >= 2 || _GameInfo.DamageTaken > player.Health * 0.2f) || !eActive)))
+                        {
+                            Champdata.E.Cast();
+                        }
+                        return;
+                    }
+                    break;
+            }
         }
 
         private static bool HighPriorityPositioning()
@@ -211,7 +245,7 @@ namespace AutoJungle
             {
                 return false;
             }
-            if (player.InFountain() || player.ServerPosition.Distance(_GameInfo.SpawnPoint) < 1000 && _GameInfo.afk > 2)
+            if (player.InFountain() || player.ServerPosition.Distance(_GameInfo.SpawnPoint) < 1000)
             {
                 return false;
             }
@@ -219,7 +253,14 @@ namespace AutoJungle
                 (_GameInfo.GameState == State.Positioning ||
                  (_GameInfo.GameState == State.Retreat && _GameInfo.afk > 15)))
             {
-                player.Spellbook.CastSpell(SpellSlot.Recall);
+                if (player.Distance(_GameInfo.SpawnPoint) > 6000)
+                {
+                    player.Spellbook.CastSpell(SpellSlot.Recall);
+                }
+                else
+                {
+                    player.IssueOrder(GameObjectOrder.MoveTo, _GameInfo.SpawnPoint);
+                }
                 return true;
             }
 
@@ -524,23 +565,11 @@ namespace AutoJungle
                     HeroManager.Enemies.Where(
                         e =>
                             e.Distance(player) < menu.Item("GankRange").GetValue<Slider>().Value && e.IsValidTarget() &&
-                            !e.UnderTurret(true) && !CheckForRetreat(e, e.Position))
-                        .OrderBy(
-                            e =>
-                                _GameInfo.MoveTo.IsValid()
-                                    ? _GameInfo.MoveTo.Distance(e.Position)
-                                    : e.CountEnemiesInRange(GameInfo.ChampionRange));
+                            !e.UnderTurret(true) && !CheckForRetreat(e, e.Position)).OrderBy(e => player.Distance(e));
                 foreach (var possibleTarget in heroes)
                 {
                     var myDmg = Helpers.GetComboDMG(player, possibleTarget);
                     if (player.Level + 1 <= possibleTarget.Level)
-                    {
-                        continue;
-                    }
-                    if (
-                        ObjectManager.Get<Obj_AI_Turret>()
-                            .FirstOrDefault(t => t.IsEnemy && t.IsValidTarget() && t.Distance(possibleTarget) < 1200) !=
-                        null)
                     {
                         continue;
                     }
@@ -610,6 +639,14 @@ namespace AutoJungle
             {
                 tempstate = State.Objective;
             }
+            if (tempstate == State.Null && _GameInfo.GameState != State.Retreat && _GameInfo.GameState != State.Pushing &&
+                _GameInfo.GameState != State.Defending &&
+                ((enemy != null && !CheckForRetreat(enemy, enemy.Position) &&
+                  Helpers.GetRealDistance(player, enemy.Position) < GameInfo.ChampionRange)) ||
+                player.HasBuff("skarnerimpalevo"))
+            {
+                tempstate = State.FightIng;
+            }
             if (tempstate == State.Null && player.Level >= 6 && CheckForGrouping())
             {
                 if (_GameInfo.MoveTo.Distance(player.Position) < GameInfo.ChampionRange)
@@ -631,14 +668,6 @@ namespace AutoJungle
                 {
                     tempstate = State.Grouping;
                 }
-            }
-            if (tempstate == State.Null && _GameInfo.GameState != State.Retreat && _GameInfo.GameState != State.Pushing &&
-                _GameInfo.GameState != State.Defending &&
-                ((enemy != null && !CheckForRetreat(enemy, enemy.Position) &&
-                  Helpers.GetRealDistance(player, enemy.Position) < GameInfo.ChampionRange)) ||
-                player.HasBuff("skarnerimpalevo"))
-            {
-                tempstate = State.FightIng;
             }
             if (tempstate == State.Null && _GameInfo.EnemiesAround == 0 &&
                 (_GameInfo.GameState == State.Ganking || _GameInfo.GameState == State.Positioning) && CheckGanking())
@@ -663,7 +692,7 @@ namespace AutoJungle
             {
                 return tempstate;
             }
-            else if (Environment.TickCount - GameStateChanging > 3000)
+            else if (Environment.TickCount - GameStateChanging > 2000)
             {
                 GameStateChanging = Environment.TickCount;
                 return tempstate;
@@ -688,6 +717,10 @@ namespace AutoJungle
         private static bool CheckForRetreat(Obj_AI_Base enemy, Vector3 pos)
         {
             if (_GameInfo.GameState == State.Jungling)
+            {
+                return false;
+            }
+            if (enemy != null && !enemy.UnderTurret(true) && player.Distance(enemy) < 350 && !_GameInfo.AttackedByTurret)
             {
                 return false;
             }
@@ -1117,11 +1150,16 @@ namespace AutoJungle
         {
             if (Debug)
             {
-                /*
+                if (pos.IsValid())
+                {
+                    Render.Circle.DrawCircle(pos, 50, Color.Crimson, 7);
+                }
+
                 foreach (var m in Helpers.mod)
                 {
                     Render.Circle.DrawCircle(m, 50, Color.Crimson, 7);
-                }*/
+                }
+
                 if (_GameInfo.LastClick.IsValid())
                 {
                     Render.Circle.DrawCircle(_GameInfo.LastClick, 70, Color.Blue, 7);
@@ -1237,6 +1275,7 @@ namespace AutoJungle
             menuChamps.AddItem(new MenuItem("supportedYi", "Master Yi"));
             menuChamps.AddItem(new MenuItem("supportedWarwick", "Warwick"));
             menuChamps.AddItem(new MenuItem("supportedShyvana", "Shyvana"));
+            menuChamps.AddItem(new MenuItem("supportedJax", "Jax"));
             //menuChamps.AddItem(new MenuItem("supportedSkarner", "Skarner"));
             menu.AddSubMenu(menuChamps);
             menu.AddItem(

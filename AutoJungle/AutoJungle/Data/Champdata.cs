@@ -3,6 +3,7 @@ using System.Linq;
 using AutoJungle.Data;
 using LeagueSharp;
 using LeagueSharp.Common;
+using SharpDX;
 using UnderratedAIO.Helpers;
 
 namespace AutoJungle
@@ -14,7 +15,10 @@ namespace AutoJungle
 
         public Func<bool> JungleClear;
         public Func<bool> Combo;
-        public Spell R, Q, W, E;
+        public Spell R;
+        public static Spell Q;
+        public Spell W;
+        public static Spell E;
         public AutoLeveler Autolvl;
 
         public Champdata()
@@ -35,7 +39,7 @@ namespace AutoJungle
 
                     JungleClear = MasteryiJungleClear;
                     Combo = MasteryiCombo;
-                    Console.WriteLine("Masteryi added");
+                    Console.WriteLine("Masteryi loaded");
                     break;
 
                 case "Warwick":
@@ -54,7 +58,7 @@ namespace AutoJungle
                     JungleClear = WarwickJungleClear;
                     Combo = WarwickCombo;
 
-                    Console.WriteLine("Warwick added");
+                    Console.WriteLine("Warwick loaded");
                     break;
 
                 case "Shyvana":
@@ -73,7 +77,7 @@ namespace AutoJungle
                     JungleClear = ShyvanaJungleClear;
                     Combo = ShyvanaCombo;
 
-                    Console.WriteLine("Shyvana added");
+                    Console.WriteLine("Shyvana loaded");
                     break;
 
                 case "SkarnerNOTWORKINGYET":
@@ -91,12 +95,87 @@ namespace AutoJungle
                     JungleClear = SkarnerJungleClear;
                     Combo = SkarnerCombo;
 
-                    Console.WriteLine("Skarner added");
+                    Console.WriteLine("Skarner loaded");
+                    break;
+                case "Jax":
+                    Hero = ObjectManager.Player;
+                    Type = BuildType.ASMANA;
+
+                    Q = new Spell(SpellSlot.Q, 680f);
+                    Q.SetTargetted(0.50f, 75f);
+                    W = new Spell(SpellSlot.W);
+                    E = new Spell(SpellSlot.E);
+                    R = new Spell(SpellSlot.R);
+
+                    Autolvl = new AutoLeveler(new int[] { 2, 1, 0, 0, 0, 3, 0, 1, 0, 1, 3, 1, 1, 2, 2, 3, 2, 2 });
+                    JungleClear = JaxJungleClear;
+                    Combo = JaxCombo;
+
+                    Console.WriteLine("Jax loaded");
                     break;
                 default:
-                    Console.WriteLine("Not Supported");
+                    Console.WriteLine(ObjectManager.Player.ChampionName + " not supported");
                     break;
             }
+        }
+
+        private bool JaxCombo()
+        {
+            var targetHero = Program._GameInfo.Target;
+            if (targetHero == null)
+            {
+                return false;
+            }
+            if (R.IsReady() && Hero.Distance(targetHero) < 300 && Hero.Mana > 250)
+            {
+                R.Cast();
+            }
+            if (W.IsReady() && targetHero.IsValidTarget(300))
+            {
+                W.Cast();
+            }
+            ItemHandler.UseItemsCombo(targetHero, !Q.IsReady());
+            if (Hero.IsWindingUp)
+            {
+                return false;
+            }
+            if (Q.IsReady() && Q.CanCast(targetHero) &&
+                (targetHero.Distance(Hero) > Orbwalking.GetRealAutoAttackRange(targetHero) || Hero.HealthPercent < 40))
+            {
+                Q.CastOnUnit(targetHero);
+            }
+            Hero.IssueOrder(GameObjectOrder.AttackUnit, targetHero);
+            return false;
+        }
+
+        private bool JaxJungleClear()
+        {
+            var targetMob = Program._GameInfo.Target;
+            var structure = Helpers.CheckStructure();
+            if (structure != null)
+            {
+                Hero.IssueOrder(GameObjectOrder.AttackUnit, structure);
+                return false;
+            }
+            if (targetMob == null)
+            {
+                return false;
+            }
+            if (W.IsReady() && targetMob.IsValidTarget(300))
+            {
+                W.Cast();
+            }
+            ItemHandler.UseItemsJungle();
+            if (Q.IsReady() && Q.CanCast(targetMob) && (Hero.ManaPercent > 60 || Hero.HealthPercent < 50))
+            {
+                Q.CastOnUnit(targetMob);
+            }
+            if (Hero.IsWindingUp)
+            {
+                return false;
+            }
+            Hero.IssueOrder(GameObjectOrder.AttackUnit, targetMob);
+            return false;
         }
 
         private bool SkarnerCombo()
@@ -116,7 +195,8 @@ namespace AutoJungle
             {
                 return false;
             }
-            if (E.IsReady() && targetHero != null && E.CanCast(targetHero) && Hero.Distance(targetHero) < 700)
+            if (E.IsReady() && !rActive && targetHero != null && E.CanCast(targetHero) &&
+                Hero.Distance(targetHero) < 700)
             {
                 E.CastIfHitchanceEquals(targetHero, HitChance.High);
             }
@@ -126,21 +206,37 @@ namespace AutoJungle
             }
             if (rActive)
             {
+                var allyTower =
+                    Program._GameInfo.AllyStructures.OrderBy(a => a.Distance(Hero.Position)).FirstOrDefault();
+                if (allyTower != null && allyTower.Distance(Hero.Position) < 2000 &&
+                    allyTower.Distance(Hero.Position) > 300)
+                {
+                    Console.WriteLine(2);
+                    Console.WriteLine(allyTower.Distance(Hero.Position));
+                    Hero.IssueOrder(GameObjectOrder.MoveTo, allyTower.Extend(Program._GameInfo.SpawnPoint, 300));
+                    Program.pos = allyTower.Extend(Program._GameInfo.SpawnPoint, 300);
+                    return false;
+                }
                 var ally =
                     HeroManager.Allies.Where(a => a.Distance(Hero.Position) < 1500)
                         .OrderBy(a => a.Distance(Hero))
                         .FirstOrDefault();
                 if (ally != null && ally.Distance(Hero) > 300)
                 {
-                    Hero.IssueOrder(GameObjectOrder.MoveTo, ally);
+                    Hero.IssueOrder(GameObjectOrder.MoveTo, ally.Position);
+                    Console.WriteLine(1);
+                    Program.pos = ally.Position;
+                    return false;
                 }
-                var allyTower =
-                    Program._GameInfo.AllyStructures.Where(a => a.Distance(Hero.Position) < 2000)
-                        .OrderBy(a => a.Distance(Hero.Position))
-                        .FirstOrDefault();
-                if (allyTower != null)
+                var enemyTower =
+                    Program._GameInfo.EnemyStructures.OrderBy(a => a.Distance(Hero.Position)).FirstOrDefault();
+                if (enemyTower != null && enemyTower.Distance(Hero.Position) < 2000 &&
+                    enemyTower.Distance(Hero.Position) > 300)
                 {
-                    Hero.IssueOrder(GameObjectOrder.MoveTo, allyTower);
+                    Console.WriteLine(3);
+                    Program.pos = targetHero.Position.Extend(enemyTower, 2500);
+                    Hero.IssueOrder(GameObjectOrder.MoveTo, Hero.Position.Extend(enemyTower, 2500));
+                    return false;
                 }
             }
             else if (targetHero != null)

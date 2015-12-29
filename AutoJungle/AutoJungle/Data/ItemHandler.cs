@@ -20,7 +20,32 @@ namespace AutoJungle.Data
                 case BuildType.AS:
                     SetListAS();
                     break;
+                case BuildType.ASMANA:
+                    SetListASMANA();
+                    break;
             }
+        }
+
+        private void SetListASMANA()
+        {
+            ItemList.Add(new BuyingOrder(1, 1041, "Hunter's Machete", 350));
+            ItemList.Add(new BuyingOrder(2, 2031, "Refillable Potion", 150));
+            ItemList.Add(new BuyingOrder(3, 3340, "Trinket", 0));
+            ItemList.Add(new BuyingOrder(4, 1039, "Hunter's Talisman", 350));
+            ItemList.Add(new BuyingOrder(5, 3715, "Skirmisher's Sabre", 700));
+            ItemList.Add(new BuyingOrder(6, 1042, "Dagger", 350));
+            ItemList.Add(new BuyingOrder(7, 1415, "Devourer", 1100));
+            ItemList.Add(new BuyingOrder(8, (int) ItemId.Boots_of_Speed, "Boots of Speed", 300));
+            ItemList.Add(new BuyingOrder(9, (int) ItemId.Tear_of_the_Goddess, "Tear of the Goddess", 750));
+            ItemList.Add(new BuyingOrder(10, (int) ItemId.Boots_of_Swiftness, "Boots of Swoftness", 500));
+            ItemList.Add(new BuyingOrder(11, (int) ItemId.Bilgewater_Cutlass, "Bilgewater Cutlass", 1650));
+            ItemList.Add(new BuyingOrder(12, (int) ItemId.Blade_of_the_Ruined_King, "BOTRK", 1750));
+            ItemList.Add(new BuyingOrder(13, (int) ItemId.Tiamat_Melee_Only, "Tiamat", 1250));
+            ItemList.Add(new BuyingOrder(14, (int) ItemId.Vampiric_Scepter, "Vampiric_Screpter", 900));
+            ItemList.Add(new BuyingOrder(15, (int) ItemId.Ravenous_Hydra_Melee_Only, "Ravenous Hydra Melee Only", 1450));
+            ItemList.Add(new BuyingOrder(16, (int) ItemId.Manamune, "Ravenous Hydra Melee Only", 1650));
+            ItemList.Add(new BuyingOrder(17, (int) ItemId.Zeal, "Zeal", 1200));
+            ItemList.Add(new BuyingOrder(18, (int) ItemId.Phantom_Dancer, "Phantom Dancer", 1500));
         }
 
         private void SetListAD()
@@ -63,6 +88,11 @@ namespace AutoJungle.Data
             {
                 Items.UseItem((int) ItemId.Ravenous_Hydra_Melee_Only);
             }
+            var muramana = LeagueSharp.Common.Data.ItemData.Muramana.GetItem().Id;
+            if (Items.HasItem(muramana) && Items.CanUseItem(muramana) && Program.player.HasBuff("Muramana"))
+            {
+                Items.UseItem(muramana);
+            }
         }
 
         public static void UseItemsCombo(Obj_AI_Base target, bool use)
@@ -82,15 +112,29 @@ namespace AutoJungle.Data
                 return;
             }
             if (Items.HasItem((int) ItemId.Bilgewater_Cutlass) && Items.CanUseItem((int) ItemId.Bilgewater_Cutlass) &&
-                (target.Distance(Program.player) > Orbwalking.GetRealAutoAttackRange(target) || (target.HealthPercent<35 && Program.player.HealthPercent<35)))
+                (target.Distance(Program.player) > Orbwalking.GetRealAutoAttackRange(target) ||
+                 (target.HealthPercent < 35 && Program.player.HealthPercent < 35)))
             {
-                Items.UseItem((int)ItemId.Bilgewater_Cutlass, target);
+                Items.UseItem((int) ItemId.Bilgewater_Cutlass, target);
             }
             if (Items.HasItem((int) ItemId.Blade_of_the_Ruined_King) &&
                 Items.CanUseItem((int) ItemId.Blade_of_the_Ruined_King) &&
-                (target.Distance(Program.player) > Orbwalking.GetRealAutoAttackRange(target) || (target.HealthPercent < 35 && Program.player.HealthPercent < 35)))
+                (target.Distance(Program.player) > Orbwalking.GetRealAutoAttackRange(target) ||
+                 (target.HealthPercent < 35 && Program.player.HealthPercent < 35)))
             {
                 Items.UseItem((int) ItemId.Blade_of_the_Ruined_King, target);
+            }
+            var muramana = LeagueSharp.Common.Data.ItemData.Muramana.GetItem().Id;
+            if (Items.HasItem(muramana) && Items.CanUseItem(muramana))
+            {
+                if (!Program.player.HasBuff("Muramana") && Program.player.Mana > 250)
+                {
+                    Items.UseItem(muramana);
+                }
+                else if (Program.player.HasBuff("Muramana") && Program.player.Mana < 260)
+                {
+                    Items.UseItem(muramana);
+                }
             }
         }
     }
@@ -114,6 +158,7 @@ namespace AutoJungle.Data
     internal enum BuildType
     {
         AS,
-        AD
+        AD,
+        ASMANA
     }
 }

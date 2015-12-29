@@ -10,6 +10,7 @@ namespace AutoJungle.Data
 {
     internal class Helpers
     {
+        public static List<Vector3> mod = new List<Vector3>();
         public static List<Vector3> orig = new List<Vector3>();
         //public static List<Vector3> mod = new List<Vector3>();
 
@@ -87,7 +88,7 @@ namespace AutoJungle.Data
                     i--;
                 }
             }
-            //mod = list;
+            mod = list;
             return true;
         }
 
