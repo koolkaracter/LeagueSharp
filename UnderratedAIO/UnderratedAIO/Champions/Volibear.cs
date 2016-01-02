@@ -63,6 +63,11 @@ namespace UnderratedAIO.Champions
                     break;
             }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            var enemyForKs = HeroManager.Enemies.FirstOrDefault(h => W.CanCast(h) && Wdmg(h) > h.Health);
+            if (enemyForKs != null && W.IsReady() && config.Item("ksW").GetValue<bool>())
+            {
+                W.CastOnUnit(enemyForKs, config.Item("packets").GetValue<bool>());
+            }
         }
 
         private void Harass()
@@ -350,7 +355,7 @@ namespace UnderratedAIO.Champions
             Menu menuM = new Menu("Misc ", "Msettings");
 
             menuM = Jungle.addJungleOptions(menuM);
-
+            menuM.AddItem(new MenuItem("ksW", "KS with W")).SetValue(false);
 
             Menu autolvlM = new Menu("AutoLevel", "AutoLevel");
             autoLeveler = new AutoLeveler(autolvlM);
