@@ -88,6 +88,7 @@ namespace ChatTranslator
             {
                 InitText();
             }
+            test("hello");
         }
 
         private static void Drawing_OnDraw(EventArgs args)
@@ -123,26 +124,6 @@ namespace ChatTranslator
                     line += 15;
                 }
             }
-        }
-
-        private static void Game_OnChat(GameChatEventArgs args)
-        {
-            if (args.Message.Contains("font color"))
-            {
-                return;
-            }
-            if (Config.Item("EnabledLog").GetValue<bool>())
-            {
-                try
-                {
-                    AddToLog(args.Message, args.Sender);
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Error at adding log");
-                }
-            }
-            addMessage(args.Message, args.Sender);
         }
 
         private static void Game_OnUpdate(EventArgs args)
@@ -266,11 +247,12 @@ namespace ChatTranslator
         {
             string from = Config.Item("From").GetValue<StringList>().SelectedValue;
             string to = Config.Item("To").GetValue<StringList>().SelectedValue;
-            if (from != to && !sender.IsMe)
+            string translated = await TranslateYandex(message, from, to, true);
+            if (from != to && !sender.IsMe && translated != message)
             {
                 translate = true;
                 Utility.DelayAction.Add(500, () => translate = false);
-                string translated = await TranslateYandex(message, from, to, true);
+
                 lastMessages.Add(new Message(translated, sender, message));
                 if (Config.Item("ShowInChat").GetValue<bool>())
                 {
@@ -302,6 +284,26 @@ namespace ChatTranslator
                 TranslateAndSend(message);
                 args.Process = false;
             }
+        }
+
+        private static void Game_OnChat(GameChatEventArgs args)
+        {
+            if (args.Message.Contains("font color"))
+            {
+                return;
+            }
+            if (Config.Item("EnabledLog").GetValue<bool>())
+            {
+                try
+                {
+                    AddToLog(args.Message, args.Sender);
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Error at adding log");
+                }
+            }
+            addMessage(args.Message, args.Sender);
         }
 
         private static async void test(string text)
@@ -375,7 +377,12 @@ namespace ChatTranslator
             {
                 case 200:
                     trans = Regex.Matches(html, "\\\".*?\\\"", RegexOptions.IgnoreCase)[4].ToString();
-                    result += trans.Substring(1, trans.Length - 2);
+                    trans = trans.Substring(1, trans.Length - 2);
+                    if (trans.Trim() == text.Trim())
+                    {
+                        return text;
+                    }
+                    result += trans;
                     return result;
                     break;
                 case 401:
