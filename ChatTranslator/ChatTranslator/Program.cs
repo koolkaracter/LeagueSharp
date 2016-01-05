@@ -56,7 +56,7 @@ namespace ChatTranslator
                 });
 
         public static bool ShowMessages, sent, copied, translate;
-        public static string path, fileName, clipBoard;
+        public static string path, fileName, clipBoard, lastInput;
         public static List<string> clipBoardLines;
         public static float gamestart;
 
@@ -248,6 +248,10 @@ namespace ChatTranslator
             string from = Config.Item("From").GetValue<StringList>().SelectedValue;
             string to = Config.Item("To").GetValue<StringList>().SelectedValue;
             string translated = await TranslateYandex(message, from, to, true);
+            if (lastMessages.Count > 8)
+            {
+                lastMessages.RemoveAt(0);
+            }
             if (from != to && !sender.IsMe && translated != message)
             {
                 translate = true;
@@ -261,15 +265,24 @@ namespace ChatTranslator
             }
             else
             {
-                lastMessages.Add(new Message(message, sender, message));
-                if (Config.Item("ShowInChat").GetValue<bool>())
+                var last = lastInput.ToLower().Replace("/all", "");
+                if (from != to && sender.IsMe && last != message)
                 {
-                    Game.PrintChat("({0} => {1}) {2}", from, to, message);
+                    Console.WriteLine(0);
+                    lastMessages.Add(new Message(String.Format("({0} => {1}) {2}", from, to, message), sender, last));
+                    if (Config.Item("ShowInChat").GetValue<bool>())
+                    {
+                        Game.PrintChat("({0} => {1}) {2}", from, to, message);
+                    }
                 }
-            }
-            if (lastMessages.Count > 8)
-            {
-                lastMessages.RemoveAt(0);
+                else
+                {
+                    lastMessages.Add(new Message(message, sender, message));
+                    if (Config.Item("ShowInChat").GetValue<bool>())
+                    {
+                        Game.PrintChat("({0} => {1}) {2}", from, to, message);
+                    }
+                }
             }
         }
 
@@ -282,6 +295,7 @@ namespace ChatTranslator
                 var message = "";
                 message += args.Input;
                 TranslateAndSend(message);
+                lastInput = message;
                 args.Process = false;
             }
         }
@@ -378,6 +392,10 @@ namespace ChatTranslator
                 case 200:
                     trans = Regex.Matches(html, "\\\".*?\\\"", RegexOptions.IgnoreCase)[4].ToString();
                     trans = trans.Substring(1, trans.Length - 2);
+                    if (trans.Length == 0)
+                    {
+                        return "";
+                    }
                     if (trans.Trim() == text.Trim())
                     {
                         return text;
