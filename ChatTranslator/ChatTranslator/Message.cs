@@ -7,15 +7,17 @@ using LeagueSharp.Common;
 
 namespace ChatTranslator
 {
-    class Message
+    internal class Message
     {
-        public string message;
+        public string translated;
+        public string original;
         public Obj_AI_Base sender;
 
-        public Message(string message, Obj_AI_Base sender)
+        public Message(string translated, Obj_AI_Base sender, string original)
         {
-            this.message = message;
+            this.translated = translated;
             this.sender = sender;
+            this.original = original;
         }
     }
 }

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using LeagueSharp;
 using LeagueSharp.Common;
 using System.Net;
+using System.Security.Permissions;
 using System.Text.RegularExpressions;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
@@ -19,24 +20,40 @@ using MenuItem = LeagueSharp.Common.MenuItem;
 
 namespace ChatTranslator
 {
+    [PermissionSet(SecurityAction.Assert, Unrestricted = true)]
     internal class Program
     {
         public static Menu Config;
+
         public static String[] fromArray = new String[]
         {
-            "auto", "en", "de", "es", "fr", "pl", "hu", "sq", "sv", "cs", "ro", "da", "pt", "sr", "fi", "lt", "lv",
-            "sk", "sl", "ph", "tr", "el", "ms", "zh-CN", "zh-TW", "mk", "bg", "ru", "ko", "it", "be", "vi", "uk"
+            "auto", "en", "de", "es", "fr", "pl", "hu", "sq", "sv", "cs", "ro", "da", "pt", "sr", "fi", "lt", "lv", "sk",
+            "sl", "ph", "tr", "el", "ms", "zh-CN", "zh-TW", "mk", "bg", "ru", "ko", "it", "be", "vi", "uk"
         };
+
         public static String[] toArray = new String[]
         {
             "en", "de", "es", "fr", "pl", "hu", "sq", "sv", "cs", "ro", "da", "pt", "sr", "fi", "lt", "lv", "sk", "sl",
             "ph", "tr", "el", "ms", "zh-CN", "zh-TW", "mk", "bg", "ru", "ko", "it", "be", "vi", "uk"
         };
-        public static String[] SpecChars = new String[]
-        {
-            "bg", "zh-CN", "zh-TW", "ru", "ko", "uk"
-        };
+
+        public static String[] SpecChars = new String[] { "bg", "zh-CN", "zh-TW", "ru", "ko", "uk" };
         public static ObservableCollection<Message> lastMessages = new ObservableCollection<Message>();
+
+        public const string yandexUrl = "https://translate.yandex.net/api/v1.5/tr.json/translate";
+
+        public static List<string> yandexApiKey =
+            new List<string>(
+                new string[]
+                {
+                    "?key=trnsl.1.1.20151027T151706Z.16f6a75f2f1b2aa4.d670690d98ed95429c11e25d871b7c2e05e81cbb",
+                    "?key=trnsl.1.1.20160104T204216Z.fafe170e32096852.9e3884fe5a4c00881dbf6781534fee74664c68ec",
+                    "?key=trnsl.1.1.20160104T204235Z.bbf140ab21cf34a8.7b5b3ff936297932f10250966e112f963370e675",
+                    "?key=trnsl.1.1.20160104T204435Z.4ee06ec4b7bf42ed.a6408bbb10e00b0480d516d7c8b2368d8f369710",
+                    "?key=trnsl.1.1.20160104T204502Z.776f8a7e2c4d9d42.b1ee11db59b64410c6402df651cb1e156e0fe1d3",
+                    "?key=trnsl.1.1.20160104T204457Z.986a06123cc06620.f114139f32732c33ba127de92e8a14961a080edd",
+                    "?key=trnsl.1.1.20160104T204437Z.d766324c28c39ddb.25569303b37b7132212831048bbc0db2476eebbb",
+                });
 
         public static bool ShowMessages, sent, copied, translate;
         public static string path, fileName, clipBoard;
@@ -50,58 +67,30 @@ namespace ChatTranslator
 
         private static void Game_OnGameLoad(EventArgs args)
         {
-            Config = new Menu("ChatTranslator", "ChatTranslator", true);
-            Menu translator = new Menu("Translator", "Translator");
-            Menu incomingText = new Menu("IncomingText", "IncomingText");
-            incomingText.AddItem(new MenuItem("From", "From: ").SetValue(new StringList(fromArray)));
-            incomingText.AddItem(new MenuItem("To", "To: ").SetValue(new StringList(toArray)));
-            incomingText.AddItem(new MenuItem("Phonetical", "Use special characters").SetValue(false));
-            incomingText.AddItem(new MenuItem("Enabled", "Enabled").SetValue(true));
-            translator.AddSubMenu(incomingText);
-            Menu outgoingText = new Menu("OutgoingText", "OutgoingText");
-            outgoingText.AddItem(new MenuItem("OutFrom", "From: ").SetValue(new StringList(toArray)));
-            outgoingText.AddItem(new MenuItem("OutTo", "To: ").SetValue(new StringList(toArray)));
-            outgoingText.AddItem(new MenuItem("EnabledOut", "Enabled").SetValue(false));
-            translator.AddSubMenu(outgoingText);
-            Menu position = new Menu("Position", "Position");
-            position.AddItem(new MenuItem("Horizontal", "Horizontal").SetValue(new Slider(15, 1, 2000)));
-            position.AddItem(new MenuItem("Vertical", "Vertical").SetValue(new Slider(500, 1, 2000)));
-            position.AddItem(new MenuItem("AutoShow", "Show on message").SetValue(true));
-            position.AddItem(new MenuItem("Duration", "   Duration").SetValue(new Slider(3000, 1000, 8000)));
-            translator.AddSubMenu(position);
-            translator.AddItem(new MenuItem("Check", "Check").SetValue(new KeyBind(32, KeyBindType.Press)));
-            Config.AddSubMenu(translator);
-            Menu logger = new Menu("Logger", "Logger");
-            logger.AddItem(new MenuItem("EnabledLog", "Enable").SetValue(true));
-            Config.AddSubMenu(logger);
-            Menu copyPaste = new Menu("Paste", "Paste");
-            copyPaste.AddItem(new MenuItem("Paste", "Paste").SetValue(new KeyBind("P".ToCharArray()[0], KeyBindType.Press)));
-            copyPaste.AddItem(new MenuItem("PasteForAll", "Paste for all").SetValue(new KeyBind("O".ToCharArray()[0], KeyBindType.Press)));
-            copyPaste.AddItem(new MenuItem("Delay", "Spam delay").SetValue(new Slider(2000, 0, 2000)));
-            copyPaste.AddItem(new MenuItem("DisablePaste", "Disable this section").SetValue(true));
-            Config.AddSubMenu(copyPaste);
-            Config.AddToMainMenu();
+            CreateMenu();
 
             Game.PrintChat("<font color='#9933FF'>Soresu </font><font color='#FFFFFF'>- ChatTranslator</font>");
             Game.OnUpdate += Game_OnUpdate;
             Game.OnInput += Game_GameInput;
             Game.OnChat += Game_OnChat;
-            Drawing.OnDraw+=Drawing_OnDraw;
-            lastMessages.CollectionChanged+=OnMessage;
-            path = string.Format(@"{0}\ChatLogs\{1}\{2}\{3}\{4}\", LeagueSharp.Common.Config.AppDataDirectory, DateTime.Now.ToString("yyyy"), DateTime.Now.ToString("MMMM"), DateTime.Now.ToString("dd"), Utility.Map.GetMap().ShortName);
+            Drawing.OnDraw += Drawing_OnDraw;
+            lastMessages.CollectionChanged += OnMessage;
+            path = string.Format(
+                @"{0}\ChatLogs\{1}\{2}\{3}\{4}\", LeagueSharp.Common.Config.AppDataDirectory,
+                DateTime.Now.ToString("yyyy"), DateTime.Now.ToString("MMMM"), DateTime.Now.ToString("dd"),
+                Utility.Map.GetMap().ShortName);
             fileName = ObjectManager.Player.SkinName + "_" + Game.Id + ".txt";
-            if (!System.IO.Directory.Exists(path))
+            if (!Directory.Exists(path))
             {
-               System.IO.Directory.CreateDirectory(path); 
+                Directory.CreateDirectory(path);
             }
             if (Config.Item("EnabledLog").GetValue<bool>())
             {
                 InitText();
             }
-            test("Hello");
         }
 
-        static void Drawing_OnDraw(EventArgs args)
+        private static void Drawing_OnDraw(EventArgs args)
         {
             if (Config.Item("Check").GetValue<KeyBind>().Active || ShowMessages)
             {
@@ -110,8 +99,8 @@ namespace ChatTranslator
                 var line = 0;
                 foreach (var message in lastMessages)
                 {
-
-                    Size textSize = TextRenderer.MeasureText(message.sender.Name + ":", new Font(FontFamily.GenericSansSerif, 10));
+                    Size textSize = TextRenderer.MeasureText(
+                        message.sender.Name + ":", new Font(FontFamily.GenericSansSerif, 10));
 
                     if (!message.sender.IsAlly)
                     {
@@ -127,16 +116,16 @@ namespace ChatTranslator
                         {
                             Drawing.DrawText(posX, posY + line, Color.DeepSkyBlue, message.sender.Name + ":");
                         }
-
                     }
-                    Drawing.DrawText(posX + textSize.Width + message.sender.Name.Length, posY + line, Color.White, message.message);
+                    Drawing.DrawText(
+                        posX + textSize.Width + message.sender.Name.Length, posY + line, Color.White,
+                        (message.translated != message.original ? message.original : "") + " " + message.translated);
                     line += 15;
                 }
             }
-
         }
 
-        static void Game_OnChat(GameChatEventArgs args)
+        private static void Game_OnChat(GameChatEventArgs args)
         {
             if (args.Message.Contains("font color"))
             {
@@ -144,12 +133,19 @@ namespace ChatTranslator
             }
             if (Config.Item("EnabledLog").GetValue<bool>())
             {
-                AddToLog(args.Message, args.Sender);
+                try
+                {
+                    AddToLog(args.Message, args.Sender);
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Error at adding log");
+                }
             }
             addMessage(args.Message, args.Sender);
         }
 
-        static void Game_OnUpdate(EventArgs args)
+        private static void Game_OnUpdate(EventArgs args)
         {
             if (Config.Item("DisablePaste").GetValue<bool>())
             {
@@ -228,11 +224,13 @@ namespace ChatTranslator
             byte[] bytes = Encoding.Default.GetBytes(data);
             return Encoding.UTF8.GetString(bytes);
         }
+
         private static string setEncodingDefault(string data)
         {
             byte[] bytes = Encoding.UTF8.GetBytes(data);
             return Encoding.Default.GetString(bytes);
         }
+
         private static void InitText()
         {
             if (!File.Exists(path + fileName))
@@ -255,30 +253,37 @@ namespace ChatTranslator
 
         private static void AddToLog(string message, Obj_AI_Hero sender)
         {
-            if (sender==null || message==null)
+            if (sender == null || message == null)
             {
                 return;
             }
             InitText();
-            string line = sender.Name+" ("+sender.ChampionName+")" + ": " + message+"\n";
+            string line = sender.Name + " (" + sender.ChampionName + ")" + ": " + message + "\n";
             File.AppendAllText(path + fileName, line, Encoding.Default);
         }
 
         private static async void addMessage(string message, Obj_AI_Hero sender)
         {
-            
             string from = Config.Item("From").GetValue<StringList>().SelectedValue;
             string to = Config.Item("To").GetValue<StringList>().SelectedValue;
             if (from != to && !sender.IsMe)
             {
                 translate = true;
                 Utility.DelayAction.Add(500, () => translate = false);
-                string translated = await TranslateGoogle(message, from, to, true);
-                lastMessages.Add(new Message(translated, sender));
+                string translated = await TranslateYandex(message, from, to, true);
+                lastMessages.Add(new Message(translated, sender, message));
+                if (Config.Item("ShowInChat").GetValue<bool>())
+                {
+                    Game.PrintChat("({0} => {1}) {2}", from, to, translated);
+                }
             }
             else
             {
-                lastMessages.Add(new Message(message, sender));
+                lastMessages.Add(new Message(message, sender, message));
+                if (Config.Item("ShowInChat").GetValue<bool>())
+                {
+                    Game.PrintChat("({0} => {1}) {2}", from, to, message);
+                }
             }
             if (lastMessages.Count > 8)
             {
@@ -298,6 +303,7 @@ namespace ChatTranslator
                 args.Process = false;
             }
         }
+
         private static async void test(string text)
         {
             if (text.Length > 1)
@@ -305,10 +311,11 @@ namespace ChatTranslator
                 string from = Config.Item("OutFrom").GetValue<StringList>().SelectedValue;
                 string to = Config.Item("OutTo").GetValue<StringList>().SelectedValue;
                 string x = "";
-                x += await TranslateGoogle(text, from, to, false);
+                x += await TranslateYandex(text, from, to, false);
                 Console.WriteLine(x);
             }
         }
+
         private static async void TranslateAndSend(string text)
         {
             if (text.Length > 1)
@@ -322,8 +329,9 @@ namespace ChatTranslator
                 string from = Config.Item("OutFrom").GetValue<StringList>().SelectedValue;
                 string to = Config.Item("OutTo").GetValue<StringList>().SelectedValue;
                 string x = "";
-                x += await TranslateGoogle(text, from, to, false);
-                if (all == true)
+                x += await TranslateYandex(text, from, to, false);
+                x = setEncodingDefault(x);
+                if (all)
                 {
                     Game.Say("/all " + x);
                 }
@@ -334,49 +342,66 @@ namespace ChatTranslator
             }
         }
 
-        private static async Task<string> TranslateGoogle(string text, string fromCulture, string toCulture, bool langs)
+        private static async Task<string> TranslateYandex(string text, string fromCulture, string toCulture, bool langs)
         {
             string url;
             string strServerURL;
-
-            strServerURL = "https://translate.google.com/translate_a/single?client=t&sl={0}&tl={1}&hl=en&dt=bd&dt=ex&dt=ld&dt=md&dt=qca&dt=rw&dt=rm&dt=ss&dt=t&dt=at&ie=UTF-8&oe=UTF-8&source=btn&ssel=3&tsel=3&kc=0&tk=520576|693806&q={2}";
+            var lang = fromCulture == "auto" ? toCulture : fromCulture + "-" + toCulture;
+            var keyIndex = new Random().Next(0, yandexApiKey.Count - 1);
+            var key = yandexApiKey[keyIndex];
+            strServerURL = yandexUrl + key + "&lang=" + lang + "&text=" + text;
             url = string.Format(strServerURL, fromCulture, toCulture, text.Replace(' ', '+'));
-
             byte[] bytessss = Encoding.Default.GetBytes(url);
             url = Encoding.UTF8.GetString(bytessss);
-            string html="";
-
-                System.Uri uri = new System.Uri(url);
-                try
-                {
-                    html = await DownloadStringAsync(uri);
-                }
-                catch (Exception e)
-                {
-                    
-                   Console.WriteLine(e.Message);
-                } 
+            string html = "";
+            Uri uri = new Uri(url);
+            try
+            {
+                html = await DownloadStringAsync(uri);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
 
             string result = "";
-            if (langs == true)
+            if (langs)
             {
                 result += "(" + fromCulture + " => " + toCulture + ") ";
             }
-            string trans ="";
-            if (Config.Item("Phonetical").GetValue<bool>() && SpecChars.Contains(toCulture))
+            string trans = "";
+            var code = Regex.Matches(html, "([0-9])\\d+", RegexOptions.IgnoreCase)[0].ToString();
+            switch (int.Parse(code))
             {
-                trans = Regex.Matches(html, "\\\".*?\\\"", RegexOptions.IgnoreCase)[2].ToString(); 
+                case 200:
+                    trans = Regex.Matches(html, "\\\".*?\\\"", RegexOptions.IgnoreCase)[4].ToString();
+                    result += trans.Substring(1, trans.Length - 2);
+                    return result;
+                    break;
+                case 401:
+                    Console.WriteLine("Invalid API key");
+                    break;
+                case 402:
+                    Console.WriteLine("Blocked API key");
+                    break;
+                case 403:
+                    Console.WriteLine("Exceeded the daily limit on the number of requests");
+                    break;
+                case 404:
+                    Console.WriteLine("Exceeded the daily limit on the amount of translated text");
+                    break;
+                case 413:
+                    Console.WriteLine("Exceeded the maximum text size");
+                    break;
+                case 422:
+                    Console.WriteLine("The text cannot be translated");
+                    break;
+                case 501:
+                    Console.WriteLine("The specified translation direction is not supported");
+                    break;
             }
-            else
-            {
-                trans = Regex.Matches(html, "\\\".*?\\\"", RegexOptions.IgnoreCase)[0].ToString(); 
-            }
-
-            result += trans.Substring(1, trans.Length - 2);
-
-            //result += trans.Substring(19, trans.Length - 20);
-
-            return result;
+            yandexUrl.Remove(keyIndex);
+            return "";
         }
 
         public static byte[] FromHex(string hex)
@@ -413,9 +438,8 @@ namespace ChatTranslator
                 }
             };
             wc.DownloadStringAsync(url);
-  
+
             return tcs.Task;
-            
         }
 
         private static double StringCompare(string a, string b)
@@ -439,6 +463,44 @@ namespace ChatTranslator
                 }
             }
             return sameCharAtIndex / maxLen * 100;
+        }
+
+        private static void CreateMenu()
+        {
+            Config = new Menu("ChatTranslator", "ChatTranslator", true);
+            Menu translator = new Menu("Translator", "Translator");
+            Menu incomingText = new Menu("IncomingText", "IncomingText");
+            incomingText.AddItem(new MenuItem("From", "From: ").SetValue(new StringList(fromArray)));
+            incomingText.AddItem(new MenuItem("To", "To: ").SetValue(new StringList(toArray)));
+            incomingText.AddItem(new MenuItem("ShowInChat", "Show in chat").SetValue(false));
+            incomingText.AddItem(new MenuItem("Enabled", "Enabled").SetValue(true));
+            translator.AddSubMenu(incomingText);
+            Menu outgoingText = new Menu("OutgoingText", "OutgoingText");
+            outgoingText.AddItem(new MenuItem("OutFrom", "From: ").SetValue(new StringList(toArray)));
+            outgoingText.AddItem(new MenuItem("OutTo", "To: ").SetValue(new StringList(toArray)));
+            outgoingText.AddItem(new MenuItem("EnabledOut", "Enabled").SetValue(false));
+            translator.AddSubMenu(outgoingText);
+            Menu position = new Menu("Position", "Position");
+            position.AddItem(new MenuItem("Horizontal", "Horizontal").SetValue(new Slider(15, 1, 2000)));
+            position.AddItem(new MenuItem("Vertical", "Vertical").SetValue(new Slider(500, 1, 2000)));
+            position.AddItem(new MenuItem("AutoShow", "Show on message").SetValue(true));
+            position.AddItem(new MenuItem("Duration", "   Duration").SetValue(new Slider(3000, 1000, 8000)));
+            translator.AddSubMenu(position);
+            translator.AddItem(new MenuItem("Check", "Check").SetValue(new KeyBind(32, KeyBindType.Press)));
+            Config.AddSubMenu(translator);
+            Menu logger = new Menu("Logger", "Logger");
+            logger.AddItem(new MenuItem("EnabledLog", "Enable").SetValue(true));
+            Config.AddSubMenu(logger);
+            Menu copyPaste = new Menu("Paste", "Paste");
+            copyPaste.AddItem(
+                new MenuItem("Paste", "Paste").SetValue(new KeyBind("P".ToCharArray()[0], KeyBindType.Press)));
+            copyPaste.AddItem(
+                new MenuItem("PasteForAll", "Paste for all").SetValue(
+                    new KeyBind("O".ToCharArray()[0], KeyBindType.Press)));
+            copyPaste.AddItem(new MenuItem("Delay", "Spam delay").SetValue(new Slider(2000, 0, 2000)));
+            copyPaste.AddItem(new MenuItem("DisablePaste", "Disable this section").SetValue(true));
+            Config.AddSubMenu(copyPaste);
+            Config.AddToMainMenu();
         }
     }
 }
