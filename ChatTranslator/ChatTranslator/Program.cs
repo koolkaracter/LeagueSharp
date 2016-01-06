@@ -89,6 +89,7 @@ namespace ChatTranslator
                 InitText();
             }
             test("hello");
+            lastInput = "null";
         }
 
         private static void Drawing_OnDraw(EventArgs args)
@@ -243,20 +244,19 @@ namespace ChatTranslator
             File.AppendAllText(path + fileName, line, Encoding.Default);
         }
 
-        private static async void addMessage(string message, Obj_AI_Hero sender)
+        private static async void addMessage(string message, Obj_AI_Hero sender, bool shouldTranslate = true)
         {
             string from = Config.Item("From").GetValue<StringList>().SelectedValue;
             string to = Config.Item("To").GetValue<StringList>().SelectedValue;
-            string translated = await TranslateYandex(message, from, to, true);
-            if (lastMessages.Count > 8)
+            string translated = message;
+            if (shouldTranslate)
             {
-                lastMessages.RemoveAt(0);
+                translated = await TranslateYandex(message, from, to, true);
             }
             if (from != to && !sender.IsMe && translated != message)
             {
                 translate = true;
                 Utility.DelayAction.Add(500, () => translate = false);
-
                 lastMessages.Add(new Message(translated, sender, message));
                 if (Config.Item("ShowInChat").GetValue<bool>())
                 {
@@ -265,11 +265,11 @@ namespace ChatTranslator
             }
             else
             {
-                var last = lastInput.ToLower().Replace("/all", "");
-                if (from != to && sender.IsMe && last != message)
+                var last = new TestPerAll(lastInput);
+                if (from != to && sender.IsMe && last.Output != message)
                 {
-                    Console.WriteLine(0);
-                    lastMessages.Add(new Message(String.Format("({0} => {1}) {2}", from, to, message), sender, last));
+                    lastMessages.Add(
+                        new Message(String.Format("({0} => {1}) {2}", from, to, message), sender, last.Output));
                     if (Config.Item("ShowInChat").GetValue<bool>())
                     {
                         Game.PrintChat("({0} => {1}) {2}", from, to, message);
@@ -284,20 +284,24 @@ namespace ChatTranslator
                     }
                 }
             }
+            if (lastMessages.Count > 8)
+            {
+                lastMessages.RemoveAt(0);
+            }
         }
 
         private static void Game_GameInput(GameInputEventArgs args)
         {
+            var message = "";
+            message += args.Input;
             if (Config.Item("EnabledOut").GetValue<bool>() &&
                 Config.Item("OutFrom").GetValue<StringList>().SelectedValue !=
                 Config.Item("OutTo").GetValue<StringList>().SelectedValue)
             {
-                var message = "";
-                message += args.Input;
                 TranslateAndSend(message);
-                lastInput = message;
                 args.Process = false;
             }
+            lastInput = message;
         }
 
         private static void Game_OnChat(GameChatEventArgs args)
@@ -317,7 +321,14 @@ namespace ChatTranslator
                     Console.WriteLine("Error at adding log");
                 }
             }
-            addMessage(args.Message, args.Sender);
+            if (Config.Item("Enabled").GetValue<bool>() && !args.Sender.IsMe)
+            {
+                addMessage(args.Message, args.Sender);
+            }
+            else
+            {
+                addMessage(args.Message, args.Sender, false);
+            }
         }
 
         private static async void test(string text)
@@ -337,9 +348,10 @@ namespace ChatTranslator
             if (text.Length > 1)
             {
                 bool all = false;
-                if (text.Contains("/all"))
+                var test = new TestPerAll(text);
+                if (test.ContainsPerAll)
                 {
-                    text = text.Replace("/all", "");
+                    text = test.Output;
                     all = true;
                 }
                 string from = Config.Item("OutFrom").GetValue<StringList>().SelectedValue;
@@ -526,6 +538,23 @@ namespace ChatTranslator
             copyPaste.AddItem(new MenuItem("DisablePaste", "Disable this section").SetValue(true));
             Config.AddSubMenu(copyPaste);
             Config.AddToMainMenu();
+        }
+    }
+
+    internal class TestPerAll
+    {
+        public string Input;
+        public string Output;
+        public bool ContainsPerAll;
+
+        public TestPerAll(string input)
+        {
+            Regex regex = new Regex("/all", RegexOptions.IgnoreCase);
+            var contains = regex.IsMatch(input);
+            var replaced = regex.Replace(input, "");
+            this.Input = input;
+            Output = replaced.Trim();
+            ContainsPerAll = contains;
         }
     }
 }
