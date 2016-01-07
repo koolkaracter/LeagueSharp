@@ -186,7 +186,7 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("userindanger", true).GetValue<bool>() && R.IsReady() &&
                 (player.CountEnemiesInRange(800) >= 2 &&
-                 player.CountEnemiesInRange(800) > player.CountAlliesInRange(1500) + 1) ||
+                 player.CountEnemiesInRange(800) > player.CountAlliesInRange(1500) + 1 && player.HealthPercent < 60) ||
                 (player.Health < target.Health && player.HealthPercent < 40 &&
                  player.CountAlliesInRange(1000) + 1 < player.CountEnemiesInRange(1000)))
             {
@@ -195,10 +195,22 @@ namespace UnderratedAIO.Champions
                         e =>
                             e.IsValidTarget() && R.CanCast(e) &&
                             (player.HealthPercent < 60 || e.CountEnemiesInRange(300) > 2) &&
-                            HeroManager.Enemies.Count(h => h.Distance(e) < 400 && e.HealthPercent < 35) == 0)
+                            HeroManager.Enemies.Count(h => h.Distance(e) < 400 && e.HealthPercent < 35) == 0 &&
+                            R.GetPrediction(e).CastPosition.Distance(player.Position) < R.ChargedMaxRange)
                         .OrderByDescending(e => R.GetPrediction(e).CastPosition.CountEnemiesInRange(400))
                         .ThenByDescending(e => e.Distance(target))
                         .FirstOrDefault();
+                if (R.Range > 1300 && targ == null)
+                {
+                    targ =
+                        HeroManager.Enemies.Where(
+                            e =>
+                                e.IsValidTarget() && R.CanCast(e) &&
+                                R.GetPrediction(e).CastPosition.Distance(player.Position) < R.ChargedMaxRange)
+                            .OrderByDescending(e => R.GetPrediction(e).CastPosition.CountEnemiesInRange(400))
+                            .ThenByDescending(e => e.Distance(target))
+                            .FirstOrDefault();
+                }
                 if (!R.IsCharging && targ != null)
                 {
                     R.StartCharging();
