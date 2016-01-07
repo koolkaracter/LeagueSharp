@@ -183,6 +183,19 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("QbarrelCursor", true).GetValue<KeyBind>().Active && Q.IsReady())
             {
+                var meleeRangeBarrel =
+                    GetBarrels()
+                        .OrderBy(o => o.Distance(Game.CursorPos))
+                        .FirstOrDefault(
+                            o =>
+                                o.Health > 1 && o.Distance(player) < Orbwalking.GetRealAutoAttackRange(o) &&
+                                !KillableBarrel(o, true));
+                if (meleeRangeBarrel != null && Orbwalking.CanAttack())
+                {
+                    orbwalker.SetAttack(false);
+                    player.IssueOrder(GameObjectOrder.AttackUnit, meleeRangeBarrel);
+                    return;
+                }
                 var barrel =
                     GetBarrels()
                         .Where(
@@ -438,13 +451,13 @@ namespace UnderratedAIO.Champions
             var meleeRangeBarrel =
                 barrels.FirstOrDefault(
                     b =>
-                        b.Health < 2 && KillableBarrel(b, true) &&
-                        b.Distance(player) < Orbwalking.GetAutoAttackRange(player, b) &&
+                        (b.Health < 2 || (b.Health == 2 && !KillableBarrel(b, true) && Q.IsReady() && !justQ)) &&
+                        KillableBarrel(b, true) && b.Distance(player) < Orbwalking.GetRealAutoAttackRange(b) &&
                         HeroManager.Enemies.Count(
                             o =>
                                 o.IsValidTarget() && o.Distance(b) < BarrelExplosionRange &&
                                 b.Distance(Prediction.GetPrediction(o, 500).UnitPosition) < BarrelExplosionRange) > 0);
-            if (meleeRangeBarrel != null && !Q.IsReady() && !justQ)
+            if (meleeRangeBarrel != null && !Q.IsReady() && !justQ && Orbwalking.CanAttack())
             {
                 orbwalker.SetAttack(false);
                 player.IssueOrder(GameObjectOrder.AttackUnit, meleeRangeBarrel);
