@@ -149,7 +149,9 @@ namespace UnderratedAIO.Champions
                                     minion,
                                     (int) (player.AttackCastDelay * 1000) - 100 + Game.Ping / 2 +
                                     1000 * (int) player.Distance(minion) / (int) Orbwalking.GetMyProjectileSpeed()) < 0);
-                if (!Orbwalking.Orbwalker.PriorizeFarm || (Orbwalking.Orbwalker.PriorizeFarm && miniPred == null))
+                var priortarg = orbwalker.GetTarget();
+                var canHArass = priortarg != null && !(priortarg is Obj_AI_Hero);
+                if (canHArass || (!canHArass && miniPred == null))
                 {
                     var targQ = Q.GetPrediction(target);
                     if (Q.Range - 100 > targQ.CastPosition.Distance(player.Position) &&
