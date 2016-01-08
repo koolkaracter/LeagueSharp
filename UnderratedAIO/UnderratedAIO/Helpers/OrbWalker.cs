@@ -901,7 +901,7 @@ namespace UnderratedAIO.Helpers
                 misc.AddItem(
                     new MenuItem("FocusMinionsOverTurrets", "Focus minions over objectives").SetShared()
                         .SetValue(new KeyBind('M', KeyBindType.Toggle)));
-                misc.AddItem(new MenuItem("meleeMagnet", "Melee Magnet").SetShared().SetValue(false));
+                misc.AddItem(new MenuItem("meleeMagnet", "Melee Magnet").SetShared().SetValue(true));
                 _config.AddSubMenu(misc);
 
                 /* Missile check */
