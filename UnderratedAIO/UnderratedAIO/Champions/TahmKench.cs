@@ -271,10 +271,7 @@ namespace UnderratedAIO.Champions
             }
             if (W.IsReady() && config.Item("usewLC", true).GetValue<bool>() && MinionInYou)
             {
-                if (bestPosition.MinionsHit >= config.Item("wMinHit", true).GetValue<Slider>().Value)
-                {
-                    WSkillShot.Cast(bestPosition.Position, config.Item("packets").GetValue<bool>());
-                }
+                WSkillShot.Cast(bestPosition.Position, config.Item("packets").GetValue<bool>());
             }
         }
 
