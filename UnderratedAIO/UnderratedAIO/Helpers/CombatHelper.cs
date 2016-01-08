@@ -95,11 +95,11 @@ namespace UnderratedAIO.Helpers
                     new DashData("Rengar", SpellSlot.Unknown), new DashData("Riven", SpellSlot.Q),
                     new DashData("Riven", SpellSlot.E), new DashData("Quinn", SpellSlot.E),
                     new DashData("Sejuani", SpellSlot.Q), new DashData("Shyvana", SpellSlot.R),
-                    new DashData("Thresh", SpellSlot.Q), new DashData("Tristana", SpellSlot.W),
-                    new DashData("Tryndamere", SpellSlot.E), new DashData("Vi", SpellSlot.Q),
-                    new DashData("Wukong", SpellSlot.E), new DashData("XinZhao", SpellSlot.E),
-                    new DashData("Yasuo", SpellSlot.E), new DashData("Zac", SpellSlot.E),
-                    new DashData("Ziggs", SpellSlot.W)
+                    new DashData("Shen", SpellSlot.E), new DashData("Thresh", SpellSlot.Q),
+                    new DashData("Tristana", SpellSlot.W), new DashData("Tryndamere", SpellSlot.E),
+                    new DashData("Vi", SpellSlot.Q), new DashData("Wukong", SpellSlot.E),
+                    new DashData("XinZhao", SpellSlot.E), new DashData("Yasuo", SpellSlot.E),
+                    new DashData("Zac", SpellSlot.E), new DashData("Ziggs", SpellSlot.W)
                 });
 
         private static List<int> defItems =

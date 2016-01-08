@@ -5,7 +5,6 @@ using Color = System.Drawing.Color;
 using LeagueSharp;
 using LeagueSharp.Common;
 using UnderratedAIO.Helpers;
-using Environment = UnderratedAIO.Helpers.Environment;
 using Orbwalking = UnderratedAIO.Helpers.Orbwalking;
 
 namespace UnderratedAIO.Champions
@@ -24,6 +23,7 @@ namespace UnderratedAIO.Champions
             Drawing.OnDraw += Game_OnDraw;
             Game.OnUpdate += Game_OnGameUpdate;
             Helpers.Jungle.setSmiteSlot();
+            Console.WriteLine(ObjectManager.Player.ChampionName);
         }
 
 
@@ -101,7 +101,6 @@ namespace UnderratedAIO.Champions
             // Orbwalker
             Menu menuOrb = new Menu("Orbwalker", "orbwalker");
             orbwalker = new Orbwalking.Orbwalker(menuOrb);
-            menuOrb.AddItem(new MenuItem("Enabledorb", "Enable OrbWalker")).SetValue(true);
             config.AddSubMenu(menuOrb);
             Menu menuC = new Menu("Combo ", "csettings");
             menuC = ItemHandler.addItemOptons(menuC);
@@ -113,7 +112,8 @@ namespace UnderratedAIO.Champions
             autoLeveler = new AutoLeveler(autolvlM);
             menuM.AddSubMenu(autolvlM);
             config.AddSubMenu(menuM);
-            config.AddItem(new MenuItem("Enabledcomm", "Enable Utilies")).SetValue(false);
+            config.AddItem(new MenuItem("Enabledcomm", "Enable Utilies")).SetValue(true);
+            config.AddItem(new MenuItem("Enabledorb", "Enable OrbWalker")).SetValue(true);
             config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
         }

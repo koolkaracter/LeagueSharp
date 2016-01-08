@@ -520,6 +520,7 @@ namespace UnderratedAIO.Champions
         public float DamageTaken;
         public int DamageCount;
         public Obj_AI_Hero Hero;
+        public int spell;
 
         public WDatas(Obj_AI_Hero _hero)
         {
