@@ -422,15 +422,13 @@ namespace UnderratedAIO.Champions
                     }
                     else
                     {
-                        data.DamageCount++;
-                        Utility.DelayAction.Add(
-                            300, () =>
-                            {
-                                if (data.DamageCount > 0)
-                                {
-                                    data.DamageCount--;
-                                }
-                            });
+                        if (sender is Obj_AI_Hero)
+                        {
+                            data.DamageTaken +=
+                                (float)
+                                    Damage.GetSpellDamage((Obj_AI_Hero) sender, (Obj_AI_Base) args.Target, args.Slot);
+                            data.DamageCount++;
+                        }
                     }
                 }
             }

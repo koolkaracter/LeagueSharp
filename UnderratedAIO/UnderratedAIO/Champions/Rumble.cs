@@ -94,7 +94,7 @@ namespace UnderratedAIO.Champions
             if (W.IsReady() && config.Item("usew", true).GetValue<bool>() &&
                 (preventSilence(W) || (!config.Item("blockW", true).GetValue<bool>() && !preventSilence(W))) &&
                 (DamageTaken > getShield() * config.Item("shieldPercent", true).GetValue<Slider>().Value / 100 ||
-                 config.Item("Aggro", true).GetValue<Slider>().Value <= DamageCount))
+                 config.Item("Aggro", true).GetValue<Slider>().Value <= DamageCount || IncSpell))
             {
                 W.Cast();
             }
@@ -246,10 +246,11 @@ namespace UnderratedAIO.Champions
                 Q.Cast(target.Position);
             }
             if (config.Item("usee", true).GetValue<bool>() && E.CanCast(target) &&
-                (preventSilence(E) ||
-                 (target.Health < PassiveDmg(target) * 2 &&
-                  target.Distance(player) < Orbwalking.GetRealAutoAttackRange(target))) &&
-                (!ActiveE || System.Environment.TickCount - lastE > config.Item("eDelay", true).GetValue<Slider>().Value ||
+                (((preventSilence(E) ||
+                   (target.Health < PassiveDmg(target) * 2 &&
+                    target.Distance(player) < Orbwalking.GetRealAutoAttackRange(target))) &&
+                  (!ActiveE ||
+                   System.Environment.TickCount - lastE > config.Item("eDelay", true).GetValue<Slider>().Value)) ||
                  edmg > target.Health))
             {
                 E.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
@@ -285,7 +286,7 @@ namespace UnderratedAIO.Champions
                     if (pos.IsValid() && pos.Distance(player.Position) < R.Range + 1000 &&
                         targE.Hitchance >= HitChance.VeryHigh)
                     {
-                        R.Cast(target.Position.Extend(pos, -target.MoveSpeed / 2), pos);
+                        R.Cast(target.Position.Extend(pos, -target.MoveSpeed), pos);
                     }
                 }
                 else
@@ -301,7 +302,7 @@ namespace UnderratedAIO.Champions
                         target, target.Position.Extend(pred, 1000), R.Width, new[] { CollisionableObjects.Heroes, }) >=
                     config.Item("Rmin", true).GetValue<Slider>().Value)
                 {
-                    R.Cast(target.Position.Extend(pred, -target.MoveSpeed / 2), pred);
+                    R.Cast(target.Position.Extend(pred, -target.MoveSpeed), pred);
                 }
             }
         }
@@ -390,7 +391,7 @@ namespace UnderratedAIO.Champions
                     var dist = player.Distance(args.End);
                     justE = true;
                     Utility.DelayAction.Add(
-                        (int) (dist > E.Range ? E.Range : dist / E.Speed * 1000), () => justE = false);
+                        (int) ((dist > E.Range ? E.Range : dist) / E.Speed * 1000), () => justE = false);
                     lastE = System.Environment.TickCount;
                 }
             }
@@ -413,10 +414,12 @@ namespace UnderratedAIO.Champions
                     }
                     else
                     {
-                        if (W.IsReady())
+                        if (sender is Obj_AI_Hero)
                         {
-                            IncSpell = true;
-                            Utility.DelayAction.Add(300, () => IncSpell = false);
+                            DamageTaken +=
+                                (float)
+                                    Damage.GetSpellDamage((Obj_AI_Hero) sender, (Obj_AI_Base) args.Target, args.Slot);
+                            DamageCount++;
                         }
                     }
                 }

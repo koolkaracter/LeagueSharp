@@ -21,7 +21,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static List<WDatas> IncomingDamages = new List<WDatas>();
         public Team lastWtarget = Team.Null;
-        public static bool justWOut;
+        public static bool justWOut, justQ;
         public float DamageTakenTime;
         public float lastE;
 
@@ -68,6 +68,7 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
+            orbwalker.SetMovement(true);
             if (System.Environment.TickCount - DamageTakenTime > 800)
             {
                 resetData();
@@ -108,7 +109,8 @@ namespace UnderratedAIO.Champions
             }
 
             if (config.Item("ShieldUnderHealthP", true).GetValue<Slider>().Value > player.HealthPercent &&
-                playerData.DamageTaken > 50 || playerData.DamageTaken > player.Health)
+                (playerData.DamageTaken > 50 && player.PhysicalShield >= playerData.DamageTaken) ||
+                playerData.DamageTaken > player.Health)
             {
                 E.Cast();
             }
@@ -135,22 +137,24 @@ namespace UnderratedAIO.Champions
                     {
                         continue;
                     }
-                    if (config.Item("EatUnderHealthP" + allies[i].ChampionName, true).GetValue<Slider>().Value >
-                        allies[i].HealthPercent && playerData.DamageTaken > 50 ||
-                        playerData.DamageTaken > allies[i].Health)
+                    if (CheckCasting(allies[i]))
                     {
-                        lastWtarget = Team.Ally;
-                        W.CastOnUnit(allies[i]);
-                    }
+                        if (config.Item("EatUnderHealthP" + allies[i].ChampionName, true).GetValue<Slider>().Value >
+                            allies[i].HealthPercent && playerData.DamageTaken > 50 ||
+                            playerData.DamageTaken > allies[i].Health && allies[i].Spellbook.IsCastingSpell)
+                        {
+                            lastWtarget = Team.Ally;
+                            W.CastOnUnit(allies[i]);
+                        }
 
-                    if (playerData.DamageTaken >
-                        allies[i].Health *
-                        config.Item("EatDamage" + allies[i].ChampionName, true).GetValue<Slider>().Value / 100)
-                    {
-                        lastWtarget = Team.Ally;
-                        W.CastOnUnit(allies[i]);
+                        if (playerData.DamageTaken >
+                            allies[i].Health *
+                            config.Item("EatDamage" + allies[i].ChampionName, true).GetValue<Slider>().Value / 100)
+                        {
+                            lastWtarget = Team.Ally;
+                            W.CastOnUnit(allies[i]);
+                        }
                     }
-
                     if (i + 1 <= allies.Count() - 1 &&
                         config.Item("Priority" + allies[i + 1].ChampionName, true).GetValue<Slider>().Value <
                         config.Item("Priority" + allies[i].ChampionName, true).GetValue<Slider>().Value)
@@ -159,6 +163,19 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
+        }
+
+        private bool CheckCasting(Obj_AI_Hero hero)
+        {
+            if (!config.Item("dontuseDevourcasting", true).GetValue<bool>())
+            {
+                return true;
+            }
+            if (hero.Spellbook.IsCastingSpell || hero.Spellbook.IsChanneling || hero.Spellbook.IsCharging)
+            {
+                return false;
+            }
+            return true;
         }
 
         private void resetData()
@@ -179,9 +196,9 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target) && !justWOut && Orbwalking.CanMove(100))
+            if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target) && !justWOut)
             {
-                Q.CastIfHitchanceEquals(target, HitChance.VeryHigh, config.Item("packets").GetValue<bool>());
+                handeQ(target, HitChance.VeryHigh);
             } //usewminiH
             if (config.Item("usewminiH", true).GetValue<bool>())
             {
@@ -195,8 +212,15 @@ namespace UnderratedAIO.Champions
 
         private void handleWEnemyHero(Obj_AI_Hero target)
         {
-            if (target.GetBuffCount("TahmKenchPDebuffCounter") == 3)
+            if (target.GetBuffCount("TahmKenchPDebuffCounter") == 3 && !CombatHelper.CheckCriticalBuffs(target) &&
+                !target.HasBuffOfType(BuffType.Stun) && !target.HasBuffOfType(BuffType.Snare) && !Q.CanCast(target) &&
+                !justQ)
             {
+                orbwalker.SetMovement(false);
+                if (Orbwalking.CanMove(100) && Game.CursorPos.Distance(target.Position) < 300)
+                {
+                    player.IssueOrder(GameObjectOrder.MoveTo, target.Position.Extend(player.Position, 100));
+                }
                 lastWtarget = Team.Enemy;
                 W.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
@@ -294,17 +318,42 @@ namespace UnderratedAIO.Champions
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
             }
-            if (Q.CanCast(target) && config.Item("useq", true).GetValue<bool>() && !justWOut && Orbwalking.CanMove(100))
+            if (Q.CanCast(target) && config.Item("useq", true).GetValue<bool>() && !justWOut)
             {
-                Q.CastIfHitchanceEquals(target, HitChance.High, config.Item("packets").GetValue<bool>());
+                handeQ(target, HitChance.High);
             }
             if (W.IsReady() && !SomebodyInYou && config.Item("usew", true).GetValue<bool>())
             {
-                handleWEnemyHero(target);
+                if (!config.Item("dontusewks", true).GetValue<bool>() ||
+                    ((getWDamage(target) < HealthPrediction.GetHealthPrediction(target, 600) &&
+                      player.CountAlliesInRange(1200) > 0) || player.CountAlliesInRange(1200) == 0))
+                {
+                    handleWEnemyHero(target);
+                }
             }
             if (config.Item("usewmini", true).GetValue<bool>())
             {
                 HandleWHarass(target);
+            }
+        }
+
+        private double getWDamage(Obj_AI_Hero target)
+        {
+            var dmg = (new double[] { 0.20, 0.23, 0.26, 0.29, 0.32 }[W.Level - 1] + 0.02 * player.TotalMagicalDamage) *
+                      target.MaxHealth;
+            return Damage.CalcDamage(player, target, Damage.DamageType.Magical, dmg);
+        }
+
+        private void handeQ(Obj_AI_Hero target, HitChance hitChance)
+        {
+            if (player.Distance(target) <= Orbwalking.GetRealAutoAttackRange(target) && !Orbwalking.CanAttack() &&
+                Orbwalking.CanMove(100) && target.GetBuffCount("TahmKenchPDebuffCounter") != 2)
+            {
+                Q.CastIfHitchanceEquals(target, hitChance, config.Item("packets").GetValue<bool>());
+            }
+            else if (player.Distance(target) > Orbwalking.GetRealAutoAttackRange(target))
+            {
+                Q.CastIfHitchanceEquals(target, hitChance, config.Item("packets").GetValue<bool>());
             }
         }
 
@@ -351,6 +400,12 @@ namespace UnderratedAIO.Champions
                     justWOut = true;
                     Utility.DelayAction.Add(500, () => { justWOut = false; });
                 }
+                if (args.SData.Name == "TahmKenchQ")
+                {
+                    var dist = player.Distance(args.End);
+                    justQ = true;
+                    Utility.DelayAction.Add(500, () => justQ = false);
+                }
             }
 
             if (!(sender is Obj_AI_Base))
@@ -363,21 +418,25 @@ namespace UnderratedAIO.Champions
                 if (sender.IsValid && !sender.IsDead && sender.IsEnemy)
                 {
                     var data = IncomingDamages.FirstOrDefault(i => i.Hero.NetworkId == target.NetworkId);
-                    if (Orbwalking.IsAutoAttack(args.SData.Name))
+                    if (data != null)
                     {
-                        var dmg = (float) sender.GetAutoAttackDamage(target, true);
-                        data.DamageTaken += dmg;
-                        data.DamageCount++;
-                    }
-                    else
-                    {
-                        if (sender is Obj_AI_Hero && sender.IsEnemy && args.Target.IsAlly &&
-                            !Orbwalking.IsAutoAttack(args.SData.Name))
+                        if (Orbwalking.IsAutoAttack(args.SData.Name))
                         {
-                            data.DamageTaken +=
-                                (float)
-                                    Damage.GetSpellDamage((Obj_AI_Hero) sender, (Obj_AI_Base) args.Target, args.Slot);
+                            var dmg = (float) sender.GetAutoAttackDamage(target, true);
+
+                            data.DamageTaken += dmg;
                             data.DamageCount++;
+                        }
+                        else
+                        {
+                            if (sender is Obj_AI_Hero && sender.IsEnemy && args.Target.IsAlly)
+                            {
+                                data.DamageTaken +=
+                                    (float)
+                                        Damage.GetSpellDamage(
+                                            (Obj_AI_Hero) sender, (Obj_AI_Base) args.Target, args.Slot);
+                                data.DamageCount++;
+                            }
                         }
                     }
                 }
@@ -421,6 +480,7 @@ namespace UnderratedAIO.Champions
             Menu menuC = new Menu("Combo ", "csettings");
             menuC.AddItem(new MenuItem("useq", "Use Q", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usew", "Use W on target", true)).SetValue(true);
+            menuC.AddItem(new MenuItem("dontusewks", "   Block KS", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usewmini", "Use W on minion", true)).SetValue(true);
             menuC.AddItem(new MenuItem("usewminiRange", "   Min range", true))
                 .SetValue(new Slider(300, 0, (int) WSkillShot.Range));
@@ -467,6 +527,7 @@ namespace UnderratedAIO.Champions
                 allyMenu.AddItem(new MenuItem("useEat" + ally.ChampionName, "Enabled", true)).SetValue(true);
                 AllyDef.AddSubMenu(allyMenu);
             }
+            AllyDef.AddItem(new MenuItem("dontuseDevourcasting", "Don't interrupt ally", true)).SetValue(true);
             AllyDef.AddItem(new MenuItem("useDevour", "Enabled", true)).SetValue(true);
             menuM.AddSubMenu(AllyDef);
             menuM = Jungle.addJungleOptions(menuM);

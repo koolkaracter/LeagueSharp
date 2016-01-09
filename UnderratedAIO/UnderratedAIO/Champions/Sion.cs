@@ -476,10 +476,12 @@ namespace UnderratedAIO.Champions
                     }
                     else
                     {
-                        if (W.IsReady())
+                        if (sender is Obj_AI_Hero)
                         {
-                            IncSpell = true;
-                            Utility.DelayAction.Add(300, () => IncSpell = false);
+                            DamageTaken +=
+                                (float)
+                                    Damage.GetSpellDamage((Obj_AI_Hero) sender, (Obj_AI_Base) args.Target, args.Slot);
+                            DamageCount++;
                         }
                     }
                 }
