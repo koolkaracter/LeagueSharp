@@ -221,6 +221,7 @@ namespace UnderratedAIO.Champions
                 {
                     player.IssueOrder(GameObjectOrder.MoveTo, target.Position.Extend(player.Position, 100));
                 }
+
                 lastWtarget = Team.Enemy;
                 W.CastOnUnit(target, config.Item("packets").GetValue<bool>());
             }
@@ -339,9 +340,12 @@ namespace UnderratedAIO.Champions
 
         private double getWDamage(Obj_AI_Hero target)
         {
+            var r = R.Level - 1;
+            var Rpercent = new float[] { 0.04f, 0.06f, 0.08f }[r >= 1 ? r : 1];
+            var bonusDmg = 20 + ((player.MaxHealth - (515f + (95f * (player.Level - 1f)))) * Rpercent);
             var dmg = (new double[] { 0.20, 0.23, 0.26, 0.29, 0.32 }[W.Level - 1] +
                        0.02 * player.TotalMagicalDamage / 100) * target.MaxHealth;
-            return Damage.CalcDamage(player, target, Damage.DamageType.Magical, dmg) * 1.1f;
+            return Damage.CalcDamage(player, target, Damage.DamageType.Magical, dmg + bonusDmg);
         }
 
         private void handeQ(Obj_AI_Hero target, HitChance hitChance)
@@ -361,7 +365,9 @@ namespace UnderratedAIO.Champions
         {
             DrawHelper.DrawCircle(config.Item("drawqq", true).GetValue<Circle>(), Q.Range);
             DrawHelper.DrawCircle(config.Item("drawww", true).GetValue<Circle>(), W.Range);
-            DrawHelper.DrawCircle(config.Item("drawrr", true).GetValue<Circle>(), R.Range);
+            var r = R.Level - 1;
+            DrawHelper.DrawCircle(
+                config.Item("drawrr", true).GetValue<Circle>(), new int[] { 4000, 5000, 6000 }[r >= 1 ? r : 1]);
             Helpers.Jungle.ShowSmiteStatus(
                 config.Item("useSmite").GetValue<KeyBind>().Active, config.Item("smiteStatus").GetValue<bool>());
             Utility.HpBarDamageIndicator.Enabled = config.Item("drawcombo", true).GetValue<bool>();
