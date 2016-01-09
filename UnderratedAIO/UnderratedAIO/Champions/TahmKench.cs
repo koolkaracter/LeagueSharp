@@ -339,9 +339,9 @@ namespace UnderratedAIO.Champions
 
         private double getWDamage(Obj_AI_Hero target)
         {
-            var dmg = (new double[] { 0.20, 0.23, 0.26, 0.29, 0.32 }[W.Level - 1] + 0.02 * player.TotalMagicalDamage) *
-                      target.MaxHealth;
-            return Damage.CalcDamage(player, target, Damage.DamageType.Magical, dmg);
+            var dmg = (new double[] { 0.20, 0.23, 0.26, 0.29, 0.32 }[W.Level - 1] +
+                       0.02 * player.TotalMagicalDamage / 100) * target.MaxHealth;
+            return Damage.CalcDamage(player, target, Damage.DamageType.Magical, dmg) * 1.1f;
         }
 
         private void handeQ(Obj_AI_Hero target, HitChance hitChance)
