@@ -20,7 +20,7 @@ namespace UnderratedAIO.Champions
         public static Spell Q, W, WSkillShot, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public Team lastWtarget = Team.Null;
-        public static bool justWOut, justQ;
+        public static bool justWOut, justQ, blockW;
         public float lastE;
 
         public TahmKench()
@@ -64,6 +64,11 @@ namespace UnderratedAIO.Champions
         {
             orbwalker.SetMovement(true);
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
+            blockW = false;
+            if (config.Item("useDevour", true).GetValue<bool>() && W.IsReady() && !justQ)
+            {
+                EatAlly();
+            }
             switch (orbwalker.ActiveMode)
             {
                 case Orbwalking.OrbwalkingMode.Combo:
@@ -83,10 +88,6 @@ namespace UnderratedAIO.Champions
             if (config.Item("useShield", true).GetValue<bool>() && E.IsReady())
             {
                 UseShield();
-            }
-            if (config.Item("useDevour", true).GetValue<bool>() && W.IsReady())
-            {
-                EatAlly();
             }
         }
 
@@ -149,6 +150,10 @@ namespace UnderratedAIO.Champions
                         config.Item("Priority" + allies[i + 1].ChampionName, true).GetValue<Slider>().Value <
                         config.Item("Priority" + allies[i].ChampionName, true).GetValue<Slider>().Value)
                     {
+                        if (config.Item("allyPrior", true).GetValue<bool>())
+                        {
+                            blockW = true;
+                        }
                         return;
                     }
                 }
@@ -262,7 +267,7 @@ namespace UnderratedAIO.Champions
                         ObjectManager.Player.ServerPosition, WSkillShot.Range, MinionTypes.All, MinionTeam.NotAlly));
 
             if (W.IsReady() && !SomebodyInYou && config.Item("usewLC", true).GetValue<bool>() &&
-                bestPosition.MinionsHit >= config.Item("wMinHit", true).GetValue<Slider>().Value)
+                bestPosition.MinionsHit >= config.Item("wMinHit", true).GetValue<Slider>().Value && !justQ)
             {
                 var mini =
                     MinionManager.GetMinions(W.Range, MinionTypes.All, MinionTeam.NotAlly)
@@ -303,7 +308,7 @@ namespace UnderratedAIO.Champions
             {
                 handeQ(target, HitChance.High);
             }
-            if (W.IsReady() && !SomebodyInYou && config.Item("usew", true).GetValue<bool>())
+            if (W.IsReady() && !SomebodyInYou && config.Item("usew", true).GetValue<bool>() && !blockW)
             {
                 if (!config.Item("dontusewks", true).GetValue<bool>() ||
                     ((getWDamage(target) < HealthPrediction.GetHealthPrediction(target, 600) &&
@@ -468,6 +473,7 @@ namespace UnderratedAIO.Champions
                 AllyDef.AddSubMenu(allyMenu);
             }
             AllyDef.AddItem(new MenuItem("dontuseDevourcasting", "Don't interrupt ally", true)).SetValue(true);
+            AllyDef.AddItem(new MenuItem("allyPrior", "Prioritize ally over damage enemy", true)).SetValue(true);
             AllyDef.AddItem(new MenuItem("useDevour", "Enabled", true)).SetValue(true);
             menuM.AddSubMenu(AllyDef);
             menuM = Jungle.addJungleOptions(menuM);
