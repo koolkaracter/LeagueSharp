@@ -269,7 +269,8 @@ namespace UnderratedAIO.Champions
                         i =>
                             i.IsAlly && !i.IsMe && !i.IsDead &&
                             ((Checkinrange(i) &&
-                              ((i.Health * 100 / i.MaxHealth) <= config.Item("atpercent").GetValue<Slider>().Value)) ||
+                              ((i.Health * 100 / i.MaxHealth) <= config.Item("atpercent").GetValue<Slider>().Value) ||
+                              Program.IncDamages.GetAllyData(i.NetworkId).DamageTaken > i.Health) ||
                              (CombatHelper.CheckCriticalBuffs(i) && i.CountEnemiesInRange(600) < 1))))
             {
                 if (config.Item("user").GetValue<bool>() && orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.Combo &&

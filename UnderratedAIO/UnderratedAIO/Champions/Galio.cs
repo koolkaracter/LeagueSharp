@@ -22,8 +22,6 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static List<WDatas> IncomingDamages = new List<WDatas>();
-        public float DamageTakenTime;
         public bool justR, justQ, justE;
 
         public Galio()
@@ -38,10 +36,6 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
             Spellbook.OnCastSpell += Spellbook_OnCastSpell;
-            foreach (var ally in ObjectManager.Get<Obj_AI_Hero>().Where(h => h.IsAlly))
-            {
-                IncomingDamages.Add(new WDatas(ally));
-            }
         }
 
         private void Spellbook_OnCastSpell(Spellbook sender, SpellbookCastSpellEventArgs args)
@@ -76,11 +70,6 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            if (System.Environment.TickCount - DamageTakenTime > 1200)
-            {
-                resetData();
-            }
-
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             if (config.Item("AutoW", true).GetValue<bool>() && W.IsReady())
             {
@@ -91,7 +80,8 @@ namespace UnderratedAIO.Champions
                  (orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && config.Item("usew", true).GetValue<bool>())))
             {
                 foreach (var i in
-                    IncomingDamages.Where(i => i.Hero.IsValid && i.Hero.Distance(player) < W.Range)
+                    Program.IncDamages.IncomingDamagesAlly.Where(
+                        i => i.Hero.IsValid && i.Hero.Distance(player) < W.Range)
                         .OrderByDescending(i => TargetSelector.GetPriority(i.Hero)))
                 {
                     var checkBuff = CombatHelper.CheckBuffs(i.Hero);
@@ -134,16 +124,6 @@ namespace UnderratedAIO.Champions
                     break;
                 default:
                     break;
-            }
-        }
-
-        private void resetData()
-        {
-            DamageTakenTime = System.Environment.TickCount;
-            foreach (var incDamage in IncomingDamages)
-            {
-                incDamage.DamageTaken = 0f;
-                incDamage.DamageCount = 0;
             }
         }
 
@@ -297,7 +277,7 @@ namespace UnderratedAIO.Champions
         private void CastW(bool combo)
         {
             foreach (var incDamage in
-                IncomingDamages.Where(i => i.Hero.Distance(player) < W.Range && i.Hero.IsValid)
+                Program.IncDamages.IncomingDamagesAlly.Where(i => i.Hero.Distance(player) < W.Range && i.Hero.IsValid)
                     .OrderByDescending(i => TargetSelector.GetPriority(i.Hero)))
             {
                 if ((incDamage.DamageCount >= config.Item("Wmin", true).GetValue<Slider>().Value ||
@@ -309,7 +289,7 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private bool CheckDamageToW(WDatas incDamage)
+        private bool CheckDamageToW(IncData incDamage)
         {
             switch (config.Item("Wdam", true).GetValue<StringList>().SelectedIndex)
             {
@@ -408,30 +388,6 @@ namespace UnderratedAIO.Champions
                 justE = true;
                 Utility.DelayAction.Add(getDelay(E, args.End), () => justE = false);
             }
-            Obj_AI_Hero target = args.Target as Obj_AI_Hero;
-            if (target != null && target.IsAlly)
-            {
-                if (sender.IsValid && !sender.IsDead && sender.IsEnemy)
-                {
-                    var data = IncomingDamages.FirstOrDefault(i => i.Hero.NetworkId == target.NetworkId);
-                    if (Orbwalking.IsAutoAttack(args.SData.Name))
-                    {
-                        var dmg = (float) sender.GetAutoAttackDamage(target, true);
-                        data.DamageTaken += dmg;
-                        data.DamageCount++;
-                    }
-                    else
-                    {
-                        if (sender is Obj_AI_Hero)
-                        {
-                            data.DamageTaken +=
-                                (float)
-                                    Damage.GetSpellDamage((Obj_AI_Hero) sender, (Obj_AI_Base) args.Target, args.Slot);
-                            data.DamageCount++;
-                        }
-                    }
-                }
-            }
         }
 
         private int getDelay(Spell spell, Vector3 pos)
@@ -510,19 +466,6 @@ namespace UnderratedAIO.Champions
             config.AddItem(new MenuItem("packets", "Use Packets")).SetValue(false);
             config.AddItem(new MenuItem("UnderratedAIO", "by Soresu v" + Program.version.ToString().Replace(",", ".")));
             config.AddToMainMenu();
-        }
-    }
-
-    internal class WDatas
-    {
-        public float DamageTaken;
-        public int DamageCount;
-        public Obj_AI_Hero Hero;
-        public int spell;
-
-        public WDatas(Obj_AI_Hero _hero)
-        {
-            this.Hero = _hero;
         }
     }
 }

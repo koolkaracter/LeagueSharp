@@ -21,8 +21,8 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static bool justQ, useIgnite, justE, IncSpell;
-        public static float DamageTaken, DamageTakenTime, qStart, DamageCount;
+        public static bool justQ, useIgnite, justE;
+        public static float qStart;
         public Vector3 lastQPos;
         public const int qWidth = 350;
         public double[] Rwave = new double[] { 50, 70, 90 };
@@ -99,18 +99,14 @@ namespace UnderratedAIO.Champions
                 default:
                     break;
             }
-            if (System.Environment.TickCount - DamageTakenTime > 1200)
-            {
-                DamageTakenTime = System.Environment.TickCount;
-                DamageTaken = 0f;
-                DamageCount = 0;
-            }
-            if (DamageCount >= config.Item("wMinAggro", true).GetValue<Slider>().Value &&
+            var data = Program.IncDamages.GetAllyData(player.NetworkId);
+            if (data != null && data.DamageCount >= config.Item("wMinAggro", true).GetValue<Slider>().Value &&
                 player.ManaPercent > config.Item("minmanaAgg", true).GetValue<Slider>().Value)
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
-            if (activatedW && DamageTaken > player.GetBuff("sionwshieldstacks").Count && DamageTaken < player.Health)
+            if (data != null && activatedW && data.DamageTaken > player.GetBuff("sionwshieldstacks").Count &&
+                data.DamageTaken < player.Health)
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -265,7 +261,9 @@ namespace UnderratedAIO.Champions
             }
             if (!activatedW && W.IsReady() && config.Item("usew", true).GetValue<bool>())
             {
-                if ((DamageTaken > getWShield() / 100 * config.Item("shieldDmg", true).GetValue<Slider>().Value) ||
+                var data = Program.IncDamages.GetAllyData(player.NetworkId);
+                if (data.DamageTaken > player.Health ||
+                    (data.DamageTaken > getWShield() / 100 * config.Item("shieldDmg", true).GetValue<Slider>().Value) ||
                     (target.Distance(player) < W.Range && config.Item("usewir", true).GetValue<bool>()))
                 {
                     W.Cast(config.Item("packets").GetValue<bool>());
@@ -323,13 +321,16 @@ namespace UnderratedAIO.Champions
             }
             var poly = GetPoly(lastQPos);
             var heroes = HeroManager.Enemies.Where(e => poly.IsInside(e.Position));
-            if (heroes.Any())
+            var objAiHeroes = heroes as IList<Obj_AI_Hero> ?? heroes.ToList();
+            if (objAiHeroes.Any())
             {
-                var escaping = heroes.Count(h => poly.IsOutside(Prediction.GetPrediction(h, 0.2f).UnitPosition.To2D()));
-
+                var escaping =
+                    objAiHeroes.Count(h => poly.IsOutside(Prediction.GetPrediction(h, 0.2f).UnitPosition.To2D()));
+                var data = Program.IncDamages.GetAllyData(player.NetworkId);
                 if ((escaping > 0 &&
-                     (heroes.Count() == 1 || (heroes.Count() >= 2 && System.Environment.TickCount - qStart > 1000))) ||
-                    DamageTaken > player.Health)
+                     (objAiHeroes.Count() == 1 ||
+                      (objAiHeroes.Count() >= 2 && System.Environment.TickCount - qStart > 1000))) ||
+                    data.DamageTaken > player.Health)
                 {
                     Q.Cast(target.Position, true);
                 }
@@ -463,29 +464,7 @@ namespace UnderratedAIO.Champions
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
-            Obj_AI_Hero target = args.Target as Obj_AI_Hero;
-            if (target != null && !activatedP)
-            {
-                if (sender.IsValid && !sender.IsDead && sender.IsEnemy && target.IsValid && target.IsMe)
-                {
-                    if (Orbwalking.IsAutoAttack(args.SData.Name))
-                    {
-                        var dmg = (float) sender.GetAutoAttackDamage(player, true);
-                        DamageTaken += dmg;
-                        DamageCount++;
-                    }
-                    else
-                    {
-                        if (sender is Obj_AI_Hero)
-                        {
-                            DamageTaken +=
-                                (float)
-                                    Damage.GetSpellDamage((Obj_AI_Hero) sender, (Obj_AI_Base) args.Target, args.Slot);
-                            DamageCount++;
-                        }
-                    }
-                }
-            }
+
             if (config.Item("userCC", true).GetValue<bool>() && sender is Obj_AI_Hero && sender.IsEnemy &&
                 player.Distance(sender) < Q.Range &&
                 CombatHelper.isDangerousSpell(

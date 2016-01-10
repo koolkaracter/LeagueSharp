@@ -20,8 +20,7 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static bool justE, IncSpell;
-        public static float DamageTaken, DamageTakenTime, DamageCount;
+        public static bool justE;
         public Vector3 qPos, lastpos;
         public float lastE;
 
@@ -68,12 +67,6 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            if (System.Environment.TickCount - DamageTakenTime > 1200)
-            {
-                DamageTakenTime = System.Environment.TickCount;
-                DamageTaken = 0f;
-                DamageCount = 0;
-            }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             switch (orbwalker.ActiveMode)
             {
@@ -91,10 +84,11 @@ namespace UnderratedAIO.Champions
                 default:
                     break;
             }
-            if (W.IsReady() && config.Item("usew", true).GetValue<bool>() &&
+            var data = Program.IncDamages.GetAllyData(player.NetworkId);
+            if (data != null && W.IsReady() && config.Item("usew", true).GetValue<bool>() &&
                 (preventSilence(W) || (!config.Item("blockW", true).GetValue<bool>() && !preventSilence(W))) &&
-                (DamageTaken > getShield() * config.Item("shieldPercent", true).GetValue<Slider>().Value / 100 ||
-                 config.Item("Aggro", true).GetValue<Slider>().Value <= DamageCount || IncSpell))
+                (data.DamageTaken > getShield() * config.Item("shieldPercent", true).GetValue<Slider>().Value / 100 ||
+                 config.Item("Aggro", true).GetValue<Slider>().Value <= data.DamageCount))
             {
                 W.Cast();
             }
@@ -401,28 +395,6 @@ namespace UnderratedAIO.Champions
                     args.SData.Name, args.Target as Obj_AI_Hero, sender as Obj_AI_Hero, args.End, float.MaxValue))
             {
                 W.Cast();
-            }
-            if (args.Target != null && !ActiveW)
-            {
-                if (sender.IsValid && !sender.IsDead && sender.IsEnemy && args.Target.IsValid && args.Target.IsMe)
-                {
-                    if (Orbwalking.IsAutoAttack(args.SData.Name))
-                    {
-                        var dmg = (float) sender.GetAutoAttackDamage(player, true);
-                        DamageTaken += dmg;
-                        DamageCount++;
-                    }
-                    else
-                    {
-                        if (sender is Obj_AI_Hero)
-                        {
-                            DamageTaken +=
-                                (float)
-                                    Damage.GetSpellDamage((Obj_AI_Hero) sender, (Obj_AI_Base) args.Target, args.Slot);
-                            DamageCount++;
-                        }
-                    }
-                }
             }
         }
 

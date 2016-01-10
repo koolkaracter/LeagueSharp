@@ -223,7 +223,9 @@ namespace UnderratedAIO.Champions
                     lastE = 0;
                 }
             }
-            if ((player.Health * 100 / player.MaxHealth) <= config.Item("user", true).GetValue<Slider>().Value ||
+            var data = Program.IncDamages.GetAllyData(player.NetworkId);
+            if (((player.Health * 100 / player.MaxHealth) <= config.Item("user", true).GetValue<Slider>().Value &&
+                 data.DamageTaken > 30) ||
                 config.Item("userindanger", true).GetValue<Slider>().Value < player.CountEnemiesInRange(R.Range))
             {
                 R.Cast(config.Item("packets").GetValue<bool>());

@@ -19,10 +19,8 @@ namespace UnderratedAIO.Champions
         public static AutoLeveler autoLeveler;
         public static Spell Q, W, WSkillShot, E, R;
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
-        public static List<WDatas> IncomingDamages = new List<WDatas>();
         public Team lastWtarget = Team.Null;
         public static bool justWOut, justQ;
-        public float DamageTakenTime;
         public float lastE;
 
         public TahmKench()
@@ -36,10 +34,6 @@ namespace UnderratedAIO.Champions
             Utility.HpBarDamageIndicator.DamageToUnit = ComboDamage;
             Obj_AI_Base.OnProcessSpellCast += Game_ProcessSpell;
             AntiGapcloser.OnEnemyGapcloser += OnEnemyGapcloser;
-            foreach (var ally in ObjectManager.Get<Obj_AI_Hero>().Where(h => h.IsAlly))
-            {
-                IncomingDamages.Add(new WDatas(ally));
-            }
         }
 
         private void OnEnemyGapcloser(ActiveGapcloser gapcloser)
@@ -69,10 +63,6 @@ namespace UnderratedAIO.Champions
         private void Game_OnGameUpdate(EventArgs args)
         {
             orbwalker.SetMovement(true);
-            if (System.Environment.TickCount - DamageTakenTime > 800)
-            {
-                resetData();
-            }
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             switch (orbwalker.ActiveMode)
             {
@@ -102,7 +92,7 @@ namespace UnderratedAIO.Champions
 
         private void UseShield()
         {
-            var playerData = IncomingDamages.FirstOrDefault(h => h.Hero.NetworkId == player.NetworkId);
+            var playerData = Program.IncDamages.GetAllyData(player.NetworkId);
             if (playerData == null)
             {
                 return;
@@ -132,22 +122,22 @@ namespace UnderratedAIO.Champions
             {
                 for (int i = 0; i <= allies.Count() - 1; i++)
                 {
-                    var playerData = IncomingDamages.FirstOrDefault(h => h.Hero.NetworkId == allies[i].NetworkId);
-                    if (playerData == null || !config.Item("useEat" + allies[i].ChampionName, true).GetValue<bool>())
+                    var allyData = Program.IncDamages.GetAllyData(allies[i].NetworkId);
+                    if (allyData == null || !config.Item("useEat" + allies[i].ChampionName, true).GetValue<bool>())
                     {
                         continue;
                     }
-                    if (CheckCasting(allies[i]))
+                    if (CheckCasting(allies[i]) && !allies[i].IsInvulnerable)
                     {
                         if (config.Item("EatUnderHealthP" + allies[i].ChampionName, true).GetValue<Slider>().Value >
-                            allies[i].HealthPercent && playerData.DamageTaken > 50 ||
-                            playerData.DamageTaken > allies[i].Health && allies[i].Spellbook.IsCastingSpell)
+                            allies[i].HealthPercent && allyData.DamageTaken > 50 ||
+                            allyData.DamageTaken > allies[i].Health && allies[i].Spellbook.IsCastingSpell)
                         {
                             lastWtarget = Team.Ally;
                             W.CastOnUnit(allies[i]);
                         }
 
-                        if (playerData.DamageTaken >
+                        if (allyData.DamageTaken >
                             allies[i].Health *
                             config.Item("EatDamage" + allies[i].ChampionName, true).GetValue<Slider>().Value / 100)
                         {
@@ -176,16 +166,6 @@ namespace UnderratedAIO.Champions
                 return false;
             }
             return true;
-        }
-
-        private void resetData()
-        {
-            DamageTakenTime = System.Environment.TickCount;
-            foreach (var incDamage in IncomingDamages)
-            {
-                incDamage.DamageTaken = 0f;
-                incDamage.DamageCount = 0;
-            }
         }
 
         private void Harass()
@@ -412,52 +392,6 @@ namespace UnderratedAIO.Champions
                     justQ = true;
                     Utility.DelayAction.Add(500, () => justQ = false);
                 }
-            }
-
-            if (!(sender is Obj_AI_Base))
-            {
-                return;
-            }
-            Obj_AI_Hero target = args.Target as Obj_AI_Hero;
-            if (target != null && target.IsAlly)
-            {
-                if (sender.IsValid && !sender.IsDead && sender.IsEnemy)
-                {
-                    var data = IncomingDamages.FirstOrDefault(i => i.Hero.NetworkId == target.NetworkId);
-                    if (data != null)
-                    {
-                        if (Orbwalking.IsAutoAttack(args.SData.Name))
-                        {
-                            var dmg = (float) sender.GetAutoAttackDamage(target, true);
-
-                            data.DamageTaken += dmg;
-                            data.DamageCount++;
-                        }
-                        else
-                        {
-                            if (sender is Obj_AI_Hero && sender.IsEnemy && args.Target.IsAlly)
-                            {
-                                data.DamageTaken +=
-                                    (float)
-                                        Damage.GetSpellDamage(
-                                            (Obj_AI_Hero) sender, (Obj_AI_Base) args.Target, args.Slot);
-                                data.DamageCount++;
-                            }
-                        }
-                    }
-                }
-            }
-            if (args == null || sender == null)
-            {
-                return;
-            }
-            if (sender is Obj_AI_Hero && target != null && target.IsAlly && !target.IsMe &&
-                config.Item("targetedCC" + target.ChampionName, true).GetValue<bool>() && sender.IsEnemy &&
-                player.Distance(target) < W.Range && CombatHelper.isTargetedCC(args.SData.Name, true) &&
-                args.SData.Name != "NasusW")
-            {
-                lastWtarget = Team.Ally;
-                W.CastOnUnit(target);
             }
         }
 

@@ -35,14 +35,13 @@ namespace UnderratedAIO.Champions
 
         private void Game_OnGameUpdate(EventArgs args)
         {
-            
             if (GarenE)
             {
                 orbwalker.SetMovement(false);
                 if (orbwalker.ActiveMode != Orbwalking.OrbwalkingMode.None)
                 {
                     player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
-                }  
+                }
             }
             else
             {
@@ -103,7 +102,7 @@ namespace UnderratedAIO.Champions
                 return;
             }
             var combodamage = ComboDamage(target);
-            if (config.Item("useItems").GetValue<bool>())
+            if (config.Item("useItems").GetValue<bool>() && !GarenQ)
             {
                 ItemHandler.UseItems(target, config, combodamage);
             }
@@ -155,8 +154,9 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
-            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && player.CountEnemiesInRange(E.Range) > 0 &&
-                target.IsFacing(player))
+            var data = Program.IncDamages.GetAllyData(player.NetworkId);
+            if (config.Item("usew", true).GetValue<bool>() && W.IsReady() && target.IsFacing(player) &&
+                data.DamageTaken > 40)
             {
                 W.Cast(config.Item("packets").GetValue<bool>());
             }
@@ -197,7 +197,7 @@ namespace UnderratedAIO.Champions
                     {
                         Render.Circle.DrawCircle(e.Position, 157, Color.Gold, 12);
                     }
-                }   
+                }
             }
         }
 

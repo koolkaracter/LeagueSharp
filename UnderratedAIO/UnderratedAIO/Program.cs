@@ -1,19 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.PerformanceData;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using LeagueSharp;
 using LeagueSharp.Common;
+using UnderratedAIO.Helpers;
 
 namespace UnderratedAIO
 {
-    class Program
+    internal class Program
     {
         public static Obj_AI_Hero player = ObjectManager.Player;
         public static string version = Assembly.GetExecutingAssembly().GetName().Version.ToString();
-        static void Main(string[] args)
+        public static IncomingDamage IncDamages;
+
+        private static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += OnGameLoad;
         }
@@ -22,7 +27,6 @@ namespace UnderratedAIO
         {
             try
             {
-
                 var type = Type.GetType("UnderratedAIO.Champions." + player.ChampionName);
                 if (type != null)
                 {
@@ -36,7 +40,7 @@ namespace UnderratedAIO
                         Helpers.DynamicInitializer.NewInstance(common);
                     }
                 }
-
+                IncDamages = new IncomingDamage();
             }
             catch (Exception e)
             {
