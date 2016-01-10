@@ -49,12 +49,12 @@ namespace UnderratedAIO.Champions
         {
             Q = new Spell(SpellSlot.Q, 800);
 
-            Q.SetSkillshot(0.5f, 70, 2000, true, SkillshotType.SkillshotLine);
+            Q.SetSkillshot(0.5f, 80, 2000, true, SkillshotType.SkillshotLine);
 
             W = new Spell(SpellSlot.W, 250);
 
             WSkillShot = new Spell(SpellSlot.W, 900);
-            WSkillShot.SetSkillshot(0.5f, 70, 900, true, SkillshotType.SkillshotLine);
+            WSkillShot.SetSkillshot(0.5f, 80, 900, true, SkillshotType.SkillshotLine);
 
             E = new Spell(SpellSlot.E);
             R = new Spell(SpellSlot.R, 1700);
@@ -170,7 +170,7 @@ namespace UnderratedAIO.Champions
 
         private void Harass()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(1300, TargetSelector.DamageType.Magical, true);
+            Obj_AI_Hero target = TargetSelector.GetTarget(900, TargetSelector.DamageType.Magical, true);
             float perc = config.Item("minmanaH", true).GetValue<Slider>().Value / 100f;
             if (player.Mana < player.MaxMana * perc || target == null)
             {
@@ -282,7 +282,7 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(1700, TargetSelector.DamageType.Magical, true);
+            Obj_AI_Hero target = TargetSelector.GetTarget(900, TargetSelector.DamageType.Magical, true);
             if (target == null || target.IsInvulnerable || target.MagicImmune)
             {
                 return;
