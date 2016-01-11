@@ -21,7 +21,7 @@ namespace UnderratedAIO.Champions
         public static bool justQ, justE;
         public Vector3 ePos;
         public const int BarrelExplosionRange = 325;
-        public const int BarrelConnectionRange = 680;
+        public const int BarrelConnectionRange = 650;
         public List<Barrel> savedBarrels = new List<Barrel>();
         public double[] Rwave = new double[] { 50, 70, 90 };
 
