@@ -137,7 +137,7 @@ namespace UnderratedAIO.Champions
         {
             if (R.IsReady() && player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerFlash")) == SpellState.Ready)
             {
-                var points = CombatHelper.PointsAroundTheTarget(player, 425);
+                var points = CombatHelper.PointsAroundTheTarget(player.Position, 425);
                 var best =
                     points.Where(
                         p =>

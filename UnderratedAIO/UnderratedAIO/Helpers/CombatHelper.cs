@@ -266,36 +266,6 @@ namespace UnderratedAIO.Helpers
             return false;
         }
 
-        public static List<Vector3> PointsAroundTheTarget(Obj_AI_Base target, float dist)
-        {
-            if (target == null)
-            {
-                return new List<Vector3>();
-            }
-            List<Vector3> list = new List<Vector3>();
-            var newPos = new Vector3();
-            var prec = 15;
-            if (dist > 1)
-            {
-                prec = 30;
-            }
-            var k = (float) ((2 * dist * Math.PI) / prec);
-            for (int i = 1; i < prec + 1; i++)
-            {
-                for (int j = 0; j < 3; j++)
-                {
-                    var perimeter =
-                        target.Position.Extend(
-                            new Vector3(target.Direction.X, target.Direction.Y, target.Position.Z), dist);
-                    newPos = new Vector3(perimeter.X + 65 * j, perimeter.Y + 65 * j, target.Position.Z);
-                    var rotated = newPos.To2D().RotateAroundPoint(target.Position.To2D(), k * i).To3D();
-                    list.Add(rotated);
-                }
-            }
-
-            return list;
-        }
-
         public static List<Vector3> PointsAroundTheTarget(Vector3 pos, float dist, float prec = 15, float prec2 = 6)
         {
             if (!pos.IsValid())

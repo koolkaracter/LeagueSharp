@@ -164,7 +164,7 @@ namespace UnderratedAIO.Champions
                         {
                             case 0:
                                 point =
-                                    CombatHelper.PointsAroundTheTarget(player, R.Range)
+                                    CombatHelper.PointsAroundTheTarget(player.Position, R.Range)
                                         .Where(p => p.CountEnemiesInRange(R.Range + 100) > 0)
                                         .OrderByDescending(
                                             p => enemies.Count(e => e.UnitPosition.Distance(p) <= R.Range))
@@ -173,7 +173,7 @@ namespace UnderratedAIO.Champions
                                 break;
                             case 1:
                                 point =
-                                    CombatHelper.PointsAroundTheTarget(target, R.Range)
+                                    CombatHelper.PointsAroundTheTarget(target.Position, R.Range)
                                         .Where(p => p.CountEnemiesInRange(R.Range + 100) > 0)
                                         .OrderByDescending(
                                             p => enemies.Count(e => e.UnitPosition.Distance(p) <= R.Range))
