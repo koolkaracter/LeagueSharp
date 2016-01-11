@@ -543,7 +543,10 @@ namespace UnderratedAIO.Helpers
                 }
                 return;
             }
-
+            if (Game.CursorPos.Distance(LastMoveCommandPosition) < 20 && Player.IsMoving)
+            {
+                return;
+            }
             var point = position;
 
             if (Player.Distance(point, true) < 150 * 150)
@@ -1087,7 +1090,7 @@ namespace UnderratedAIO.Helpers
             ///     Determines if the orbwalker should wait before attacking a minion.
             /// </summary>
             /// <returns><c>true</c> if the orbwalker should wait before attacking a minion, <c>false</c> otherwise.</returns>
-            private bool ShouldWait()
+            public bool ShouldWait()
             {
                 return
                     ObjectManager.Get<Obj_AI_Minion>()
