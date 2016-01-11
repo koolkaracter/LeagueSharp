@@ -20,7 +20,7 @@ namespace UnderratedAIO.Champions
         public static readonly Obj_AI_Hero player = ObjectManager.Player;
         public static bool justQ, justE;
         public Vector3 ePos;
-        public const int BarrelExplosionRange = 375;
+        public const int BarrelExplosionRange = 325;
         public const int BarrelConnectionRange = 680;
         public List<Barrel> savedBarrels = new List<Barrel>();
         public double[] Rwave = new double[] { 50, 70, 90 };
@@ -171,13 +171,28 @@ namespace UnderratedAIO.Champions
                         .FirstOrDefault();
                 if (barrel != null)
                 {
-                    var cursorPos = barrel.Distance(Game.CursorPos) > BarrelConnectionRange
-                        ? barrel.Position.Extend(Game.CursorPos, BarrelConnectionRange)
-                        : Game.CursorPos;
+                    var cp = Game.CursorPos;
+                    var cursorPos = barrel.Distance(cp) > BarrelConnectionRange
+                        ? barrel.Position.Extend(cp, BarrelConnectionRange)
+                        : cp;
+                    var points =
+                        CombatHelper.PointsAroundTheTarget(player.Position, E.Range - 200, 15, 6)
+                            .Where(p => p.Distance(player.Position) < E.Range);
+                    var cursorPos2 = cursorPos.Distance(cp) > BarrelConnectionRange
+                        ? cursorPos.Extend(cp, BarrelConnectionRange)
+                        : cp;
+                    var middle = GetMiddleBarrel(barrel, points);
+                    var threeBarrel = cursorPos.Distance(cp) > BarrelExplosionRange && E.Instance.Ammo >= 2 &&
+                                      Game.CursorPos.Distance(player.Position) < E.Range && middle.IsValid();
+                    var firsDelay = threeBarrel ? 500 : 1;
                     if (cursorPos.IsValid())
                     {
-                        E.Cast(cursorPos);
-                        Utility.DelayAction.Add(1, () => Q.CastOnUnit(barrel));
+                        E.Cast(threeBarrel ? middle : cursorPos);
+                        Utility.DelayAction.Add(firsDelay, () => Q.CastOnUnit(barrel));
+                        if (threeBarrel)
+                        {
+                            Utility.DelayAction.Add(1001, () => E.Cast(cursorPos2));
+                        }
                     }
                 }
             }
@@ -226,6 +241,21 @@ namespace UnderratedAIO.Champions
                     Q.Cast(barrel);
                 }
             }
+        }
+
+        private Vector3 GetMiddleBarrel(Obj_AI_Minion barrel, IEnumerable<Vector3> points)
+        {
+            var middle =
+                points.Where(
+                    p =>
+                        p.Distance(barrel.Position) < BarrelConnectionRange &&
+                        p.Distance(barrel.Position) > BarrelExplosionRange &&
+                        p.Distance(Game.CursorPos) < BarrelConnectionRange &&
+                        p.Distance(Game.CursorPos) > BarrelExplosionRange &&
+                        p.Distance(barrel.Position) + p.Distance(Game.CursorPos) > BarrelExplosionRange * 2 - 200)
+                    .OrderByDescending(p => p.Distance(barrel.Position))
+                    .FirstOrDefault();
+            return middle;
         }
 
         private void Lasthit()
@@ -677,6 +707,57 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
+
+            if (Q.IsReady() && config.Item("drawEQ", true).GetValue<bool>())
+            {
+                var points =
+                    CombatHelper.PointsAroundTheTarget(player.Position, E.Range - 200, 15, 6)
+                        .Where(p => p.Distance(player.Position) < E.Range);
+
+
+                var barrel =
+                    GetBarrels()
+                        .Where(
+                            o =>
+                                o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
+                                o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
+                                KillableBarrel(o))
+                        .OrderBy(o => o.Distance(Game.CursorPos))
+                        .FirstOrDefault();
+                if (barrel != null)
+                {
+                    var cp = Game.CursorPos;
+                    var cursorPos = barrel.Distance(cp) > BarrelConnectionRange
+                        ? barrel.Position.Extend(cp, BarrelConnectionRange)
+                        : cp;
+                    var cursorPos2 = cursorPos.Distance(cp) > BarrelConnectionRange
+                        ? cursorPos.Extend(cp, BarrelConnectionRange)
+                        : cp;
+                    var middle = GetMiddleBarrel(barrel, points);
+                    var threeBarrel = cursorPos.Distance(cp) > BarrelExplosionRange && E.Instance.Ammo >= 2 &&
+                                      cursorPos2.Distance(player.Position) < E.Range && middle.IsValid();
+                    if (threeBarrel)
+                    {
+                        Render.Circle.DrawCircle(Game.CursorPos, BarrelExplosionRange, Color.DarkOrange, 6);
+                        Render.Circle.DrawCircle(middle, BarrelExplosionRange, Color.DarkOrange, 6);
+                        Drawing.DrawLine(
+                            Drawing.WorldToScreen(barrel.Position),
+                            Drawing.WorldToScreen(middle.Extend(barrel.Position, BarrelExplosionRange)), 2,
+                            Color.DarkOrange);
+                        Drawing.DrawLine(
+                            Drawing.WorldToScreen(middle.Extend(cp, BarrelExplosionRange)),
+                            Drawing.WorldToScreen(cp.Extend(middle, BarrelExplosionRange)), 2, Color.DarkOrange);
+                    }
+                    else if (E.Instance.Ammo >= 1)
+                    {
+                        Drawing.DrawLine(
+                            Drawing.WorldToScreen(barrel.Position),
+                            Drawing.WorldToScreen(cursorPos.Extend(barrel.Position, BarrelExplosionRange)), 2,
+                            Color.DarkOrange);
+                        Render.Circle.DrawCircle(cursorPos, BarrelExplosionRange, Color.DarkOrange, 6);
+                    }
+                }
+            }
         }
 
         public void drawText(int mode, string result)
@@ -798,6 +879,7 @@ namespace UnderratedAIO.Champions
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage", true)).SetValue(true);
             menuD.AddItem(new MenuItem("drawW", "Draw W", true)).SetValue(true);
+            menuD.AddItem(new MenuItem("drawEQ", "Draw EQ to cursor", true)).SetValue(true);
             menuD.AddItem(new MenuItem("drawKillableSL", "Show killable targets with R", true))
                 .SetValue(new StringList(new[] { "OFF", "Above HUD", "Under GP" }, 1));
             config.AddSubMenu(menuD);
