@@ -127,33 +127,30 @@ namespace UnderratedAIO.Champions
                     HeroManager.Enemies.Where(
                         e =>
                             ((e.UnderTurret(true) &&
-                              e.HealthPercent < config.Item("Rhealt", true).GetValue<Slider>().Value * 0.75) ||
+                              e.HealthPercent < config.Item("Rhealt", true).GetValue<Slider>().Value * 0.75f) ||
                              (!e.UnderTurret(true) &&
                               e.HealthPercent < config.Item("Rhealt", true).GetValue<Slider>().Value)) &&
                             e.HealthPercent > config.Item("RhealtMin", true).GetValue<Slider>().Value &&
                             e.IsValidTarget() && e.Distance(player) > 1500))
                 {
-                    var ally =
-                        HeroManager.Allies.OrderBy(a => a.Health)
-                            .FirstOrDefault(
-                                a =>
-                                    enemy.Distance(a) < 700 &&
-                                    (CombatHelper.IsFacing(a, enemy.Position) ||
-                                     CombatHelper.IsFacing(enemy, a.Position)));
-                    if (ally != null)
+                    var pred = Program.IncDamages.GetEnemyData(enemy.NetworkId);
+                    if (pred != null && pred.DamageTaken > 50 && pred.DamageTaken < enemy.Health)
                     {
-                        var pos = Prediction.GetPrediction(enemy, 0.75f);
-                        if (
-                            !(CombatHelper.IsFacing(ally, enemy.Position) && CombatHelper.IsFacing(enemy, ally.Position)) &&
-                            pos.CastPosition.Distance(enemy.Position) < 450 && pos.Hitchance >= HitChance.VeryHigh)
+                        var ally = HeroManager.Allies.OrderBy(a => a.Health)
+                            .FirstOrDefault(a => enemy.Distance(a) < 700);
+                        if (ally != null)
                         {
-                            if (enemy.IsMoving)
+                            var pos = Prediction.GetPrediction(enemy, 0.75f);
+                            if (pos.CastPosition.Distance(enemy.Position) < 450 && pos.Hitchance >= HitChance.VeryHigh)
                             {
-                                R.Cast(enemy.Position.Extend(pos.CastPosition, 450));
-                            }
-                            else
-                            {
-                                R.Cast(enemy.ServerPosition);
+                                if (enemy.IsMoving)
+                                {
+                                    R.Cast(enemy.Position.Extend(pos.CastPosition, 450));
+                                }
+                                else
+                                {
+                                    R.Cast(enemy.ServerPosition);
+                                }
                             }
                         }
                     }

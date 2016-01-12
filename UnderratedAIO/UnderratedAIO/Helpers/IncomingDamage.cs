@@ -22,7 +22,7 @@ namespace UnderratedAIO.Helpers
 
         public IncData GetEnemyData(int networkId)
         {
-            return IncomingDamagesAlly.FirstOrDefault(i => i.Hero.NetworkId == networkId);
+            return IncomingDamagesEnemy.FirstOrDefault(i => i.Hero.NetworkId == networkId);
         }
 
         public void Debug()
