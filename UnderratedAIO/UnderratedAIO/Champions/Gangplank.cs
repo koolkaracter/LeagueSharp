@@ -21,7 +21,7 @@ namespace UnderratedAIO.Champions
         public static bool justQ, justE;
         public Vector3 ePos;
         public const int BarrelExplosionRange = 325;
-        public const int BarrelConnectionRange = 650;
+        public const int BarrelConnectionRange = 660;
         public List<Barrel> savedBarrels = new List<Barrel>();
         public double[] Rwave = new double[] { 50, 70, 90 };
 
@@ -183,7 +183,8 @@ namespace UnderratedAIO.Champions
                         : cp;
                     var middle = GetMiddleBarrel(barrel, points);
                     var threeBarrel = cursorPos.Distance(cp) > BarrelExplosionRange && E.Instance.Ammo >= 2 &&
-                                      Game.CursorPos.Distance(player.Position) < E.Range && middle.IsValid();
+                                      Game.CursorPos.Distance(player.Position) < E.Range && middle.IsValid() &&
+                                      player.Distance(barrel) > 470;
                     var firsDelay = threeBarrel ? 500 : 1;
                     if (cursorPos.IsValid())
                     {
@@ -735,7 +736,8 @@ namespace UnderratedAIO.Champions
                         : cp;
                     var middle = GetMiddleBarrel(barrel, points);
                     var threeBarrel = cursorPos.Distance(cp) > BarrelExplosionRange && E.Instance.Ammo >= 2 &&
-                                      cursorPos2.Distance(player.Position) < E.Range && middle.IsValid();
+                                      cursorPos2.Distance(player.Position) < E.Range && middle.IsValid() &&
+                                      player.Distance(barrel) > 470;
                     if (threeBarrel)
                     {
                         Render.Circle.DrawCircle(Game.CursorPos, BarrelExplosionRange, Color.DarkOrange, 6);
