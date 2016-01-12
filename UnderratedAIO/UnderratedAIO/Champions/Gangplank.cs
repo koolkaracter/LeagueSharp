@@ -102,6 +102,7 @@ namespace UnderratedAIO.Champions
         private void Game_OnGameUpdate(EventArgs args)
         {
             orbwalker.SetAttack(true);
+            orbwalker.SetMovement(true);
             Jungle.CastSmite(config.Item("useSmite").GetValue<KeyBind>().Active);
             switch (orbwalker.ActiveMode)
             {
@@ -160,6 +161,11 @@ namespace UnderratedAIO.Champions
             }
             if (config.Item("EQtoCursor", true).GetValue<KeyBind>().Active && E.IsReady() && Q.IsReady())
             {
+                orbwalker.SetMovement(false);
+                if (player.IsMoving)
+                {
+                    player.IssueOrder(GameObjectOrder.Stop, player.Position);
+                }
                 var barrel =
                     GetBarrels()
                         .Where(
@@ -183,8 +189,7 @@ namespace UnderratedAIO.Champions
                         : cp;
                     var middle = GetMiddleBarrel(barrel, points);
                     var threeBarrel = cursorPos.Distance(cp) > BarrelExplosionRange && E.Instance.Ammo >= 2 &&
-                                      Game.CursorPos.Distance(player.Position) < E.Range && middle.IsValid() &&
-                                      player.Distance(barrel) > 470;
+                                      Game.CursorPos.Distance(player.Position) < E.Range && middle.IsValid();
                     var firsDelay = threeBarrel ? 500 : 1;
                     if (cursorPos.IsValid())
                     {
@@ -192,7 +197,7 @@ namespace UnderratedAIO.Champions
                         Utility.DelayAction.Add(firsDelay, () => Q.CastOnUnit(barrel));
                         if (threeBarrel)
                         {
-                            Utility.DelayAction.Add(1001, () => E.Cast(cursorPos2));
+                            Utility.DelayAction.Add(801, () => E.Cast(cursorPos2));
                         }
                     }
                 }
@@ -253,7 +258,7 @@ namespace UnderratedAIO.Champions
                         p.Distance(barrel.Position) > BarrelExplosionRange &&
                         p.Distance(Game.CursorPos) < BarrelConnectionRange &&
                         p.Distance(Game.CursorPos) > BarrelExplosionRange &&
-                        p.Distance(barrel.Position) + p.Distance(Game.CursorPos) > BarrelExplosionRange * 2 - 200)
+                        p.Distance(barrel.Position) + p.Distance(Game.CursorPos) > BarrelExplosionRange * 2 - 100)
                     .OrderByDescending(p => p.Distance(barrel.Position))
                     .FirstOrDefault();
             return middle;
@@ -736,8 +741,7 @@ namespace UnderratedAIO.Champions
                         : cp;
                     var middle = GetMiddleBarrel(barrel, points);
                     var threeBarrel = cursorPos.Distance(cp) > BarrelExplosionRange && E.Instance.Ammo >= 2 &&
-                                      cursorPos2.Distance(player.Position) < E.Range && middle.IsValid() &&
-                                      player.Distance(barrel) > 470;
+                                      cursorPos2.Distance(player.Position) < E.Range && middle.IsValid();
                     if (threeBarrel)
                     {
                         Render.Circle.DrawCircle(Game.CursorPos, BarrelExplosionRange, Color.DarkOrange, 6);
