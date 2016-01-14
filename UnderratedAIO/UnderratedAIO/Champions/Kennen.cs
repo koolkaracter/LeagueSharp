@@ -78,8 +78,10 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if (player.HasBuff("KennenShurikenStorm") &&
-                config.Item("Minhelath", true).GetValue<Slider>().Value > player.Health / player.MaxHealth * 100)
+            var data = Program.IncDamages.GetAllyData(player.NetworkId);
+            if (data != null && player.HasBuff("KennenShurikenStorm") &&
+                (config.Item("Minhelath", true).GetValue<Slider>().Value > player.Health / player.MaxHealth * 100 ||
+                 (data.DamageTaken > player.Health && config.Item("Minhelath", true).GetValue<Slider>().Value > 0)))
             {
                 if (Items.HasItem(ItemHandler.Wooglet.Id) && Items.CanUseItem(ItemHandler.Wooglet.Id))
                 {
@@ -365,14 +367,7 @@ namespace UnderratedAIO.Champions
             var buff = target.GetBuff("kennenmarkofstorm");
             if (buff != null)
             {
-                if (buff.Count < 2)
-                {
-                    return buff.Count + 1;
-                }
-                else
-                {
-                    return buff.Count;
-                }
+                return buff.Count;
             }
             return 0;
         }
@@ -380,7 +375,7 @@ namespace UnderratedAIO.Champions
         private void InitKennen()
         {
             Q = new Spell(SpellSlot.Q, 950);
-            Q.SetSkillshot(0.125f, 50, 1700, true, SkillshotType.SkillshotLine);
+            Q.SetSkillshot(0.5f, 50, 1700, true, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W, 900);
             E = new Spell(SpellSlot.E);
             R = new Spell(SpellSlot.R, 500);
