@@ -313,7 +313,7 @@ namespace ChatTranslator
                 lastMessages.Add(new Message(translated, sender, message));
                 if (Config.Item("ShowInChat").GetValue<bool>())
                 {
-                    Game.PrintChat("({0} => {1}) {2}", from, to, translated);
+                    Game.PrintChat(translated);
                 }
             }
             else
@@ -325,7 +325,7 @@ namespace ChatTranslator
                         new Message(String.Format("({0} => {1}) {2}", from, to, message), sender, last.Output));
                     if (Config.Item("ShowInChat").GetValue<bool>() && translated != message)
                     {
-                        Game.PrintChat("({0} => {1}) {2}", from, to, message);
+                        Game.PrintChat(translated);
                     }
                 }
                 else
@@ -333,7 +333,7 @@ namespace ChatTranslator
                     lastMessages.Add(new Message(message, sender, message));
                     if (Config.Item("ShowInChat").GetValue<bool>() && translated != message)
                     {
-                        Game.PrintChat("({0} => {1}) {2}", from, to, message);
+                        Game.PrintChat(translated);
                     }
                 }
             }
