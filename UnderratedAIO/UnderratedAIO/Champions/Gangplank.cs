@@ -184,7 +184,7 @@ namespace UnderratedAIO.Champions
                     var cursorPos2 = cursorPos.Distance(cp) > BarrelConnectionRange
                         ? cursorPos.Extend(cp, BarrelConnectionRange)
                         : cp;
-                    var middle = GetMiddleBarrel(barrel, points);
+                    var middle = GetMiddleBarrel(barrel, points, cursorPos);
                     var threeBarrel = cursorPos.Distance(cp) > BarrelExplosionRange && E.Instance.Ammo >= 2 &&
                                       Game.CursorPos.Distance(player.Position) < E.Range && middle.IsValid();
                     var firsDelay = threeBarrel ? 500 : 1;
@@ -194,7 +194,7 @@ namespace UnderratedAIO.Champions
                         Utility.DelayAction.Add(firsDelay, () => Q.CastOnUnit(barrel));
                         if (threeBarrel)
                         {
-                            Utility.DelayAction.Add(801, () => E.Cast(cursorPos2));
+                            Utility.DelayAction.Add(801, () => E.Cast(middle.Extend(cp, BarrelConnectionRange)));
                         }
                     }
                 }
@@ -246,16 +246,15 @@ namespace UnderratedAIO.Champions
             }
         }
 
-        private Vector3 GetMiddleBarrel(Obj_AI_Minion barrel, IEnumerable<Vector3> points)
+        private Vector3 GetMiddleBarrel(Obj_AI_Minion barrel, IEnumerable<Vector3> points, Vector3 cursorPos)
         {
             var middle =
                 points.Where(
                     p =>
-                        p.Distance(barrel.Position) < BarrelConnectionRange &&
+                        !p.IsWall() && p.Distance(barrel.Position) < BarrelConnectionRange &&
                         p.Distance(barrel.Position) > BarrelExplosionRange &&
-                        p.Distance(Game.CursorPos) < BarrelConnectionRange &&
-                        p.Distance(Game.CursorPos) > BarrelExplosionRange &&
-                        p.Distance(barrel.Position) + p.Distance(Game.CursorPos) > BarrelExplosionRange * 2 - 100)
+                        p.Distance(cursorPos) < BarrelConnectionRange && p.Distance(cursorPos) > BarrelExplosionRange &&
+                        p.Distance(barrel.Position) + p.Distance(cursorPos) > BarrelExplosionRange * 2 - 100)
                     .OrderByDescending(p => p.Distance(barrel.Position))
                     .FirstOrDefault();
             return middle;
@@ -736,20 +735,18 @@ namespace UnderratedAIO.Champions
                     var cursorPos2 = cursorPos.Distance(cp) > BarrelConnectionRange
                         ? cursorPos.Extend(cp, BarrelConnectionRange)
                         : cp;
-                    var middle = GetMiddleBarrel(barrel, points);
+                    var middle = GetMiddleBarrel(barrel, points, cursorPos);
                     var threeBarrel = cursorPos.Distance(cp) > BarrelExplosionRange && E.Instance.Ammo >= 2 &&
                                       cursorPos2.Distance(player.Position) < E.Range && middle.IsValid();
                     if (threeBarrel)
                     {
-                        Render.Circle.DrawCircle(Game.CursorPos, BarrelExplosionRange, Color.DarkOrange, 6);
+                        Render.Circle.DrawCircle(
+                            middle.Extend(cp, BarrelConnectionRange), BarrelExplosionRange, Color.DarkOrange, 6);
                         Render.Circle.DrawCircle(middle, BarrelExplosionRange, Color.DarkOrange, 6);
                         Drawing.DrawLine(
                             Drawing.WorldToScreen(barrel.Position),
                             Drawing.WorldToScreen(middle.Extend(barrel.Position, BarrelExplosionRange)), 2,
                             Color.DarkOrange);
-                        Drawing.DrawLine(
-                            Drawing.WorldToScreen(middle.Extend(cp, BarrelExplosionRange)),
-                            Drawing.WorldToScreen(cp.Extend(middle, BarrelExplosionRange)), 2, Color.DarkOrange);
                     }
                     else if (E.Instance.Ammo >= 1)
                     {
