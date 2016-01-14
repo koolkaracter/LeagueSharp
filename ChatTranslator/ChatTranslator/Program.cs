@@ -27,14 +27,40 @@ namespace ChatTranslator
 
         public static String[] fromArray = new String[]
         {
-            "auto", "en", "de", "es", "fr", "pl", "hu", "sq", "sv", "cs", "ro", "da", "pt", "sr", "fi", "lt", "lv", "sk",
-            "sl", "ph", "tr", "el", "ms", "zh-CN", "zh-TW", "mk", "bg", "ru", "ko", "it", "be", "vi", "uk"
+            "auto", "af", "sq", "ar", "hy", "az", "eu", "be", "bs", "bg", "ca", "zh", "hr", "cs", "da", "nl", "en", "et",
+            "fi", "fr", "gl", "ka", "de", "el", "ht", "hu", "is", "id", "ga", "it", "kk", "ko", "ky", "la", "lv", "lt",
+            "mk", "mg", "ms", "mt", "mn", "no", "fa", "pl", "pt", "ro", "ru", "sr", "sk", "sl", "es", "sw", "sv", "tl",
+            "tg", "tt", "th", "tr", "uk", "uz", "vi", "cy", "he"
+        };
+
+        public static String[] fromArrayMenu = new String[]
+        {
+            "auto", "Afrikaans", "Albanian", "Arabic", "Armenian", "Azerbaijan", "Basque", "Belarusian", "Bosnian",
+            "Bulgarian", "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Estonian", "Finish",
+            "French", "Galician", "Georgian", "German", "Greek", "Haitian", "Hungarian", "Icelandic", "Indonesian",
+            "Irish", "Italian", "Kazakh", "Korean", "Kyrgyz", "Latin", "Latvian", "Lithuanian", "Macedonian", "Malagasy",
+            "Malay", "Maltese", "Mongolian", "Norwegian", "Persian", "Polish", "Portuguese", "Romanian", "Russian",
+            "Serbian", "Slovakian", "Slovenian", "Spanish", "Swahili", "Swedish", "Tagalog", "Tajik", "Tatar", "Thai",
+            "Turkish", "Ukrainian", "Uzbek", "Vietnamese", "Welsh", "Yiddish"
         };
 
         public static String[] toArray = new String[]
         {
-            "en", "de", "es", "fr", "pl", "hu", "sq", "sv", "cs", "ro", "da", "pt", "sr", "fi", "lt", "lv", "sk", "sl",
-            "ph", "tr", "el", "ms", "zh-CN", "zh-TW", "mk", "bg", "ru", "ko", "it", "be", "vi", "uk"
+            "af", "sq", "ar", "hy", "az", "eu", "be", "bs", "bg", "ca", "zh", "hr", "cs", "da", "nl", "en", "et", "fi",
+            "fr", "gl", "ka", "de", "el", "ht", "hu", "is", "id", "ga", "it", "kk", "ko", "ky", "la", "lv", "lt", "mk",
+            "mg", "ms", "mt", "mn", "no", "fa", "pl", "pt", "ro", "ru", "sr", "sk", "sl", "es", "sw", "sv", "tl", "tg",
+            "tt", "th", "tr", "uk", "uz", "vi", "cy", "he"
+        };
+
+        public static String[] toArrayMenu = new String[]
+        {
+            "Afrikaans", "Albanian", "Arabic", "Armenian", "Azerbaijan", "Basque", "Belarusian", "Bosnian", "Bulgarian",
+            "Catalan", "Chinese", "Croatian", "Czech", "Danish", "Dutch", "English", "Estonian", "Finish", "French",
+            "Galician", "Georgian", "German", "Greek", "Haitian", "Hungarian", "Icelandic", "Indonesian", "Irish",
+            "Italian", "Kazakh", "Korean", "Kyrgyz", "Latin", "Latvian", "Lithuanian", "Macedonian", "Malagasy", "Malay",
+            "Maltese", "Mongolian", "Norwegian", "Persian", "Polish", "Portuguese", "Romanian", "Russian", "Serbian",
+            "Slovakian", "Slovenian", "Spanish", "Swahili", "Swedish", "Tagalog", "Tajik", "Tatar", "Thai", "Turkish",
+            "Ukrainian", "Uzbek", "Vietnamese", "Welsh", "Yiddish"
         };
 
         public static String[] SpecChars = new String[] { "bg", "zh-CN", "zh-TW", "ru", "ko", "uk" };
@@ -42,7 +68,7 @@ namespace ChatTranslator
 
         public const string yandexUrl = "https://translate.yandex.net/api/v1.5/tr.json/translate";
 
-        public static List<string> yandexApiKey =
+        public static List<string> yandexApiKeys =
             new List<string>(
                 new string[]
                 {
@@ -55,6 +81,7 @@ namespace ChatTranslator
                     "?key=trnsl.1.1.20160104T204437Z.d766324c28c39ddb.25569303b37b7132212831048bbc0db2476eebbb",
                 });
 
+        public static string yandexApiKey;
         public static bool ShowMessages, sent, copied, translate;
         public static string path, fileName, clipBoard, lastInput;
         public static List<string> clipBoardLines;
@@ -75,6 +102,7 @@ namespace ChatTranslator
             Game.OnChat += Game_OnChat;
             Drawing.OnDraw += Drawing_OnDraw;
             lastMessages.CollectionChanged += OnMessage;
+
             path = string.Format(
                 @"{0}\ChatLogs\{1}\{2}\{3}\{4}\", LeagueSharp.Common.Config.AppDataDirectory,
                 DateTime.Now.ToString("yyyy"), DateTime.Now.ToString("MMMM"), DateTime.Now.ToString("dd"),
@@ -84,12 +112,37 @@ namespace ChatTranslator
             {
                 Directory.CreateDirectory(path);
             }
+            SetApiKey();
+
             if (Config.Item("EnabledLog").GetValue<bool>())
             {
                 InitText();
             }
-            test("hello");
             lastInput = "null";
+        }
+
+        private static void SetApiKey()
+        {
+            var apiKeyPath = LeagueSharp.Common.Config.AppDataDirectory + @"\yandexApiKey.txt";
+            if (!File.Exists(apiKeyPath))
+            {
+                File.Create(apiKeyPath);
+            }
+
+            Utility.DelayAction.Add(
+                100, () =>
+                {
+                    yandexApiKey = File.ReadLines(apiKeyPath).FirstOrDefault();
+                    if (yandexApiKey != null && yandexApiKey.Contains("trns"))
+                    {
+                        yandexApiKey = "?key=" + yandexApiKey.Trim();
+                    }
+                    else
+                    {
+                        yandexApiKey = "";
+                    }
+                    test("hello");
+                });
         }
 
         private static void Drawing_OnDraw(EventArgs args)
@@ -246,8 +299,8 @@ namespace ChatTranslator
 
         private static async void addMessage(string message, Obj_AI_Hero sender, bool shouldTranslate = true)
         {
-            string from = Config.Item("From").GetValue<StringList>().SelectedValue;
-            string to = Config.Item("To").GetValue<StringList>().SelectedValue;
+            string from = fromArray[Config.Item("From").GetValue<StringList>().SelectedIndex];
+            string to = toArray[Config.Item("To").GetValue<StringList>().SelectedIndex];
             string translated = message;
             if (shouldTranslate)
             {
@@ -270,7 +323,7 @@ namespace ChatTranslator
                 {
                     lastMessages.Add(
                         new Message(String.Format("({0} => {1}) {2}", from, to, message), sender, last.Output));
-                    if (Config.Item("ShowInChat").GetValue<bool>())
+                    if (Config.Item("ShowInChat").GetValue<bool>() && translated != message)
                     {
                         Game.PrintChat("({0} => {1}) {2}", from, to, message);
                     }
@@ -278,7 +331,7 @@ namespace ChatTranslator
                 else
                 {
                     lastMessages.Add(new Message(message, sender, message));
-                    if (Config.Item("ShowInChat").GetValue<bool>())
+                    if (Config.Item("ShowInChat").GetValue<bool>() && translated != message)
                     {
                         Game.PrintChat("({0} => {1}) {2}", from, to, message);
                     }
@@ -295,8 +348,8 @@ namespace ChatTranslator
             var message = "";
             message += args.Input;
             if (Config.Item("EnabledOut").GetValue<bool>() &&
-                Config.Item("OutFrom").GetValue<StringList>().SelectedValue !=
-                Config.Item("OutTo").GetValue<StringList>().SelectedValue)
+                toArray[Config.Item("OutFrom").GetValue<StringList>().SelectedIndex] !=
+                toArray[Config.Item("OutTo").GetValue<StringList>().SelectedIndex])
             {
                 TranslateAndSend(message);
                 args.Process = false;
@@ -307,6 +360,10 @@ namespace ChatTranslator
         private static void Game_OnChat(GameChatEventArgs args)
         {
             if (args.Message.Contains("font color"))
+            {
+                return;
+            }
+            if (!(args.Sender is Obj_AI_Hero))
             {
                 return;
             }
@@ -335,8 +392,8 @@ namespace ChatTranslator
         {
             if (text.Length > 1)
             {
-                string from = Config.Item("OutFrom").GetValue<StringList>().SelectedValue;
-                string to = Config.Item("OutTo").GetValue<StringList>().SelectedValue;
+                string from = toArray[Config.Item("OutFrom").GetValue<StringList>().SelectedIndex];
+                string to = toArray[Config.Item("OutTo").GetValue<StringList>().SelectedIndex];
                 string x = "";
                 x += await TranslateYandex(text, from, to, false);
                 Console.WriteLine(x);
@@ -354,8 +411,8 @@ namespace ChatTranslator
                     text = test.Output;
                     all = true;
                 }
-                string from = Config.Item("OutFrom").GetValue<StringList>().SelectedValue;
-                string to = Config.Item("OutTo").GetValue<StringList>().SelectedValue;
+                string from = toArray[Config.Item("OutFrom").GetValue<StringList>().SelectedIndex];
+                string to = toArray[Config.Item("OutTo").GetValue<StringList>().SelectedIndex];
                 string x = "";
                 x += await TranslateYandex(text, from, to, false);
                 x = setEncodingDefault(x);
@@ -375,8 +432,17 @@ namespace ChatTranslator
             string url;
             string strServerURL;
             var lang = fromCulture == "auto" ? toCulture : fromCulture + "-" + toCulture;
-            var keyIndex = new Random().Next(0, yandexApiKey.Count - 1);
-            var key = yandexApiKey[keyIndex];
+            var key = "";
+            tryAgain:
+            var keyIndex = new Random().Next(0, yandexApiKeys.Count - 1);
+            if (yandexApiKey != "")
+            {
+                key = yandexApiKey;
+            }
+            else
+            {
+                key = yandexApiKeys[keyIndex];
+            }
             strServerURL = yandexUrl + key + "&lang=" + lang + "&text=" + text;
             url = string.Format(strServerURL, fromCulture, toCulture, text.Replace(' ', '+'));
             byte[] bytessss = Encoding.Default.GetBytes(url);
@@ -389,7 +455,23 @@ namespace ChatTranslator
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                if (yandexApiKey != "")
+                {
+                    yandexApiKey = "";
+                }
+                else
+                {
+                    if (keyIndex == 0)
+                    {
+                        return text;
+                    }
+                    yandexUrl.Remove(keyIndex);
+                }
+                if (yandexUrl.Any())
+                {
+                    Console.WriteLine("One of the API key is wrong1");
+                    goto tryAgain;
+                }
             }
 
             string result = "";
@@ -436,9 +518,33 @@ namespace ChatTranslator
                 case 501:
                     Console.WriteLine("The specified translation direction is not supported");
                     break;
+                default:
+                    return text;
+                    break;
             }
-            yandexUrl.Remove(keyIndex);
-            return "";
+            if (yandexApiKey != "")
+            {
+                yandexApiKey = "";
+            }
+            else
+            {
+                if (keyIndex == 0)
+                {
+                    return text;
+                }
+                yandexUrl.Remove(keyIndex);
+            }
+            if (yandexUrl.Any())
+            {
+                Console.WriteLine("One of the API key is wrong2");
+                goto tryAgain;
+            }
+            return text;
+        }
+
+        private static object GetApiKey()
+        {
+            throw new NotImplementedException();
         }
 
         public static byte[] FromHex(string hex)
@@ -507,14 +613,14 @@ namespace ChatTranslator
             Config = new Menu("ChatTranslator", "ChatTranslator", true);
             Menu translator = new Menu("Translator", "Translator");
             Menu incomingText = new Menu("IncomingText", "IncomingText");
-            incomingText.AddItem(new MenuItem("From", "From: ").SetValue(new StringList(fromArray)));
-            incomingText.AddItem(new MenuItem("To", "To: ").SetValue(new StringList(toArray)));
+            incomingText.AddItem(new MenuItem("From", "From: ").SetValue(new StringList(fromArrayMenu)));
+            incomingText.AddItem(new MenuItem("To", "To: ").SetValue(new StringList(toArrayMenu, 15)));
             incomingText.AddItem(new MenuItem("ShowInChat", "Show in chat").SetValue(false));
             incomingText.AddItem(new MenuItem("Enabled", "Enabled").SetValue(true));
             translator.AddSubMenu(incomingText);
             Menu outgoingText = new Menu("OutgoingText", "OutgoingText");
-            outgoingText.AddItem(new MenuItem("OutFrom", "From: ").SetValue(new StringList(toArray)));
-            outgoingText.AddItem(new MenuItem("OutTo", "To: ").SetValue(new StringList(toArray)));
+            outgoingText.AddItem(new MenuItem("OutFrom", "From: ").SetValue(new StringList(toArrayMenu, 15)));
+            outgoingText.AddItem(new MenuItem("OutTo", "To: ").SetValue(new StringList(toArrayMenu)));
             outgoingText.AddItem(new MenuItem("EnabledOut", "Enabled").SetValue(false));
             translator.AddSubMenu(outgoingText);
             Menu position = new Menu("Position", "Position");
@@ -537,6 +643,9 @@ namespace ChatTranslator
             copyPaste.AddItem(new MenuItem("Delay", "Spam delay").SetValue(new Slider(2000, 0, 2000)));
             copyPaste.AddItem(new MenuItem("DisablePaste", "Disable this section").SetValue(true));
             Config.AddSubMenu(copyPaste);
+            Config.AddItem(new MenuItem("CThelp", "You can use your own API key"))
+                .SetTooltip(
+                    "AppData\\Roaming\\LSXXXXXXX\\yandexApiKey.txt, copy into the first line \"trnsl.1.1.201...\"");
             Config.AddToMainMenu();
         }
     }
