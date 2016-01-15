@@ -490,12 +490,21 @@ namespace UnderratedAIO.Champions
                 barrels.FirstOrDefault(
                     b =>
                         (b.Health < 2 || (b.Health == 2 && !KillableBarrel(b, true) && Q.IsReady() && !justQ)) &&
-                        KillableBarrel(b, true) && b.Distance(player) < Orbwalking.GetRealAutoAttackRange(b) &&
+                        KillableBarrel(b, true) && b.Distance(player) < Orbwalking.GetRealAutoAttackRange(b));
+            var secondb =
+                barrels.Where(
+                    b =>
+                        b.Distance(meleeRangeBarrel) < BarrelConnectionRange &&
                         HeroManager.Enemies.Count(
                             o =>
                                 o.IsValidTarget() && o.Distance(b) < BarrelExplosionRange &&
                                 b.Distance(Prediction.GetPrediction(o, 500).UnitPosition) < BarrelExplosionRange) > 0);
-            if (meleeRangeBarrel != null && !Q.IsReady() && !justQ && Orbwalking.CanAttack())
+            if (meleeRangeBarrel != null &&
+                ((HeroManager.Enemies.Count(
+                    o =>
+                        o.IsValidTarget() && o.Distance(meleeRangeBarrel) < BarrelExplosionRange &&
+                        meleeRangeBarrel.Distance(Prediction.GetPrediction(o, 500).UnitPosition) < BarrelExplosionRange) >
+                  0) || secondb != null) && !Q.IsReady() && !justQ && Orbwalking.CanAttack())
             {
                 orbwalker.SetAttack(false);
                 player.IssueOrder(GameObjectOrder.AttackUnit, meleeRangeBarrel);
