@@ -134,7 +134,9 @@ namespace UnderratedAIO.Champions
                             e.IsValidTarget() && e.Distance(player) > 1500))
                 {
                     var pred = Program.IncDamages.GetEnemyData(enemy.NetworkId);
-                    if (pred != null && pred.DamageTaken > 50 && pred.DamageTaken < enemy.Health)
+                    if (pred != null && pred.DamageTaken > 50 && pred.DamageTaken < enemy.Health &&
+                        enemy.Health - pred.DamageTaken <
+                        config.Item("Rhealt", true).GetValue<Slider>().Value / 100f * enemy.MaxHealth)
                     {
                         var ally = HeroManager.Allies.OrderBy(a => a.Health)
                             .FirstOrDefault(a => enemy.Distance(a) < 700);
@@ -188,7 +190,7 @@ namespace UnderratedAIO.Champions
                     var threeBarrel = cursorPos.Distance(cp) > BarrelExplosionRange && E.Instance.Ammo >= 2 &&
                                       Game.CursorPos.Distance(player.Position) < E.Range && middle.IsValid();
                     var firsDelay = threeBarrel ? 500 : 1;
-                    if (cursorPos.IsValid())
+                    if (cursorPos.IsValid() && cursorPos.Distance(player.Position) < E.Range)
                     {
                         E.Cast(threeBarrel ? middle : cursorPos);
                         Utility.DelayAction.Add(firsDelay, () => Q.CastOnUnit(barrel));
@@ -255,7 +257,8 @@ namespace UnderratedAIO.Champions
                         p.Distance(barrel.Position) > BarrelExplosionRange &&
                         p.Distance(cursorPos) < BarrelConnectionRange && p.Distance(cursorPos) > BarrelExplosionRange &&
                         p.Distance(barrel.Position) + p.Distance(cursorPos) > BarrelExplosionRange * 2 - 100)
-                    .OrderByDescending(p => p.Distance(barrel.Position))
+                    .OrderByDescending(p => p.CountEnemiesInRange(BarrelExplosionRange))
+                    .ThenByDescending(p => p.Distance(barrel.Position))
                     .FirstOrDefault();
             return middle;
         }
@@ -418,6 +421,7 @@ namespace UnderratedAIO.Champions
             {
                 ItemHandler.UseItems(target, config, ComboDamage(target), config.Item("AutoW", true).GetValue<bool>());
             }
+            var dontQ = false;
             var barrels =
                 GetBarrels()
                     .Where(
@@ -454,6 +458,7 @@ namespace UnderratedAIO.Champions
                                 if (pos.IsValid() && pos.CountEnemiesInRange(BarrelExplosionRange) > 0 &&
                                     enemies.Count(e => e.UnitPosition.Distance(pos) < BarrelExplosionRange) > 0)
                                 {
+                                    dontQ = true;
                                     E.Cast(pos);
                                 }
                             }
@@ -473,6 +478,7 @@ namespace UnderratedAIO.Champions
                                 .FirstOrDefault();
                         if (point.IsValid())
                         {
+                            dontQ = true;
                             E.Cast(point);
                             Utility.DelayAction.Add(1, () => Q.CastOnUnit(Qbarrel));
                             return;
@@ -515,6 +521,7 @@ namespace UnderratedAIO.Champions
                                     BarrelExplosionRange &&
                                     target.Distance(detoneateTargetBarrel.Position) < BarrelExplosionRange)
                                 {
+                                    dontQ = true;
                                     Q.CastOnUnit(detoneateTargetBarrel, config.Item("packets").GetValue<bool>());
                                     return;
                                 }
@@ -531,6 +538,7 @@ namespace UnderratedAIO.Champions
                                             BarrelExplosionRange &&
                                             target.Distance(detoneateTargetBarrelSecond.Position) < BarrelExplosionRange)
                                         {
+                                            dontQ = true;
                                             Q.CastOnUnit(detoneateTargetBarrel, config.Item("packets").GetValue<bool>());
                                             return;
                                         }
@@ -564,6 +572,7 @@ namespace UnderratedAIO.Champions
                                         detoneateTargetBarrel.CountEnemiesInRange(BarrelExplosionRange) >=
                                         config.Item("detoneateTargets", true).GetValue<Slider>().Value)
                                     {
+                                        dontQ = true;
                                         Q.CastOnUnit(detoneateTargetBarrel, config.Item("packets").GetValue<bool>());
                                         return;
                                     }
@@ -582,6 +591,7 @@ namespace UnderratedAIO.Champions
                                                 detoneateTargetBarrelSecond.CountEnemiesInRange(BarrelExplosionRange) >=
                                                 config.Item("detoneateTargets", true).GetValue<Slider>().Value)
                                             {
+                                                dontQ = true;
                                                 Q.CastOnUnit(
                                                     detoneateTargetBarrel, config.Item("packets").GetValue<bool>());
                                                 return;
@@ -599,7 +609,14 @@ namespace UnderratedAIO.Champions
                 {
                     CastE(target, barrels);
                 }
-                if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && Orbwalking.CanMove(100) && !justE)
+                var Qbarrels = GetBarrels().FirstOrDefault(o => o.Distance(player) < Q.Range);
+                if (Qbarrels != null && E.Instance.Ammo > 0 && Q.IsReady() && config.Item("usee", true).GetValue<bool>() &&
+                    target.Health > Q.GetDamage(target))
+                {
+                    dontQ = true;
+                }
+                if (config.Item("useq", true).GetValue<bool>() && Q.CanCast(target) && Orbwalking.CanMove(100) && !justE &&
+                    !dontQ)
                 {
                     CastQonHero(target, barrels);
                 }
