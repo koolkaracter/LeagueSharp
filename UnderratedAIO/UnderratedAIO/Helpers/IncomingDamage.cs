@@ -65,7 +65,7 @@ namespace UnderratedAIO.Helpers
                 for (int index = 0; index < incDamage.Damages.Count; index++)
                 {
                     var d = incDamage.Damages[index];
-                    if (Game.Time - d.Time > 0.8f)
+                    if (Game.Time - d.Time > d.delete)
                     {
                         incDamage.Damages.RemoveAt(index);
                         if (incDamage.DamageCount > 0)
@@ -92,10 +92,12 @@ namespace UnderratedAIO.Helpers
                                 .FirstOrDefault(i => i.Hero.NetworkId == target.NetworkId);
                         if (data != null)
                         {
+                            var missileSpeed = sender.Distance(target) / args.SData.MissileSpeed;
+                            missileSpeed = missileSpeed > 1f ? 0.8f : missileSpeed;
                             if (Orbwalking.IsAutoAttack(args.SData.Name))
                             {
                                 var dmg = (float) sender.GetAutoAttackDamage(target, true);
-                                data.Damages.Add(new Dmg(dmg));
+                                data.Damages.Add(new Dmg(dmg, missileSpeed));
                                 data.DamageCount++;
                             }
                             else
@@ -105,7 +107,8 @@ namespace UnderratedAIO.Helpers
                                 {
                                     data.Damages.Add(
                                         new Dmg(
-                                            (float) Damage.GetSpellDamage(hero, (Obj_AI_Base) args.Target, args.Slot)));
+                                            (float) Damage.GetSpellDamage(hero, (Obj_AI_Base) args.Target, args.Slot),
+                                            missileSpeed));
                                     data.DamageCount++;
                                 }
                             }
@@ -145,11 +148,13 @@ namespace UnderratedAIO.Helpers
     {
         public float DamageTaken;
         public float Time;
+        public float delete;
 
-        public Dmg(float dmg)
+        public Dmg(float dmg, float delete)
         {
             DamageTaken = dmg;
             Time = Game.Time;
+            this.delete = delete;
         }
     }
 }
