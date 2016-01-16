@@ -81,6 +81,7 @@ namespace UnderratedAIO.Champions
                     Clear();
                     break;
                 case Orbwalking.OrbwalkingMode.LastHit:
+                    Console.WriteLine(player.GetBuffCount("talentreaperdisplay"));
                     break;
                 default:
                     break;
@@ -135,7 +136,7 @@ namespace UnderratedAIO.Champions
                             allyData.DamageTaken > allies[i].Health && allies[i].Spellbook.IsCastingSpell)
                         {
                             lastWtarget = Team.Ally;
-                            W.CastOnUnit(allies[i]);
+                            W.CastOnUnit(allies[i], true);
                         }
 
                         if (allyData.DamageTaken >
@@ -143,7 +144,21 @@ namespace UnderratedAIO.Champions
                             config.Item("EatDamage" + allies[i].ChampionName, true).GetValue<Slider>().Value / 100)
                         {
                             lastWtarget = Team.Ally;
-                            W.CastOnUnit(allies[i]);
+                            W.CastOnUnit(allies[i], true);
+                        }
+                        if (config.Item("targetedCC" + allies[i].ChampionName, true).GetValue<bool>() &&
+                            allyData.TargetedCC)
+                        {
+                            lastWtarget = Team.Ally;
+                            W.CastOnUnit(allies[i], true);
+                        }
+                        if (config.Item("ontargetedCC" + allies[i].ChampionName, true).GetValue<bool>() &&
+                            (allies[i].HasBuffOfType(BuffType.Knockup) || allies[i].HasBuffOfType(BuffType.Fear) ||
+                             allies[i].HasBuffOfType(BuffType.Flee) || allies[i].HasBuffOfType(BuffType.Stun) ||
+                             allies[i].HasBuffOfType(BuffType.Snare)))
+                        {
+                            lastWtarget = Team.Ally;
+                            W.CastOnUnit(allies[i], true);
                         }
                     }
                     if (i + 1 <= allies.Count() - 1 &&
@@ -208,7 +223,7 @@ namespace UnderratedAIO.Champions
                 }
 
                 lastWtarget = Team.Enemy;
-                W.CastOnUnit(target, config.Item("packets").GetValue<bool>());
+                W.CastOnUnit(target, true);
             }
         }
 
@@ -228,7 +243,7 @@ namespace UnderratedAIO.Champions
                 if (mini != null)
                 {
                     lastWtarget = Team.Minion;
-                    W.CastOnUnit(mini, config.Item("packets").GetValue<bool>());
+                    W.CastOnUnit(mini, true);
                 }
             }
         }
@@ -276,7 +291,7 @@ namespace UnderratedAIO.Champions
                 if (mini != null)
                 {
                     lastWtarget = Team.Minion;
-                    W.CastOnUnit(mini, config.Item("packets").GetValue<bool>());
+                    W.CastOnUnit(mini, true);
                 }
             }
             if (W.IsReady() && config.Item("usewLC", true).GetValue<bool>() && MinionInYou)
@@ -397,6 +412,13 @@ namespace UnderratedAIO.Champions
                     justQ = true;
                     Utility.DelayAction.Add(500, () => justQ = false);
                 }
+                if (args.SData.Name == "tahmkenchw")
+                {
+                    if (args.Target != null)
+                    {
+                        Console.WriteLine(args.Target.Name);
+                    }
+                }
             }
         }
 
@@ -465,8 +487,9 @@ namespace UnderratedAIO.Champions
                     .SetValue(new Slider(20, 0, 100));
                 allyMenu.AddItem(new MenuItem("EatDamage" + ally.ChampionName, "Eat at Damage in %health", true))
                     .SetValue(new Slider(40, 0, 100));
-                allyMenu.AddItem(new MenuItem("targetedCC" + ally.ChampionName, "Eat on TargetedCC", true))
+                allyMenu.AddItem(new MenuItem("targetedCC" + ally.ChampionName, "Eat brefore Targeted CC", true))
                     .SetValue(true);
+                allyMenu.AddItem(new MenuItem("ontargetedCC" + ally.ChampionName, "Eat on CC", true)).SetValue(true);
                 allyMenu.AddItem(new MenuItem("Priority" + ally.ChampionName, "Priority", true))
                     .SetValue(new Slider(Environment.Hero.GetPriority(ally.ChampionName), 1, 5));
                 allyMenu.AddItem(new MenuItem("useEat" + ally.ChampionName, "Enabled", true)).SetValue(true);
