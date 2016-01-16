@@ -171,7 +171,7 @@ namespace UnderratedAIO.Champions
                     player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
                     return;
                 }
-                else if (savedQ != null)
+                if (savedQ != null)
                 {
                     if (E.CanCast(target) &&
                         Prediction.GetPrediction(target, 0.2f).UnitPosition.Distance(savedQ.position) <
@@ -181,8 +181,7 @@ namespace UnderratedAIO.Champions
                     }
                     if (savedQ != null && !SimpleQ /*&& target.Distance(qPos) > QExplosionRange*/&&
                         target.Distance(player) < R.Range - 100 &&
-                        target.Position.Distance(savedQ.position) < 550 + QExplosionRange / 2 &&
-                        !target.HasBuffOfType(BuffType.Knockback))
+                        target.Position.Distance(savedQ.position) < 550 + QExplosionRange / 2)
                     {
                         HandeR(target, savedQ.position, true);
                     }
@@ -222,6 +221,10 @@ namespace UnderratedAIO.Champions
 
         private void DetonateQ()
         {
+            if (SimpleQ)
+            {
+                return;
+            }
             var targethero =
                 HeroManager.Enemies.Where(e => e.Distance(savedQ.position) < QExplosionRange && e.IsValidTarget())
                     .OrderByDescending(e => e.Distance(savedQ.position))
@@ -475,11 +478,9 @@ namespace UnderratedAIO.Champions
             {
                 return;
             }
-            if ((target.HasBuffOfType(BuffType.Snare) || target.HasBuffOfType(BuffType.Stun) ||
-                 target.HasBuffOfType(BuffType.Suppression) || target.HasBuffOfType(BuffType.Knockup)) &&
-                !target.HasBuffOfType(BuffType.Knockback) && !target.IsDashing())
+            var pred = Prediction.GetPrediction(target, target.Distance(player.ServerPosition) / R.Speed);
+            if (pred.Hitchance > HitChance.VeryHigh && !justE && !target.IsDashing())
             {
-                var pred = R.GetPrediction(target);
                 var cast = pred.UnitPosition.Extend(toVector3, -100);
                 if (player.Distance(cast) < R.Range && checkBuffs(target, player.Distance(cast)) &&
                     pred.UnitPosition.Distance(target.Position) < 15 &&
@@ -672,7 +673,8 @@ namespace UnderratedAIO.Champions
                     {
                         justE = true;
                         Utility.DelayAction.Add(
-                            (int) (dist > E.Range ? E.Range : dist / E.Speed * 1000), () => justE = false);
+                            (int) ((dist > E.Range ? E.Range : dist / E.Speed * 1000) - player.BoundingRadius),
+                            () => justE = false);
                     }
                 }
             }

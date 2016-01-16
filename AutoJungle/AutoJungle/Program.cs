@@ -36,7 +36,7 @@ namespace AutoJungle
             {
                 Jungle.CastSmite(_GameInfo.SmiteableMob);
             }
-            CastHihPrioritySpells();
+            CastHighPrioritySpells();
             if (ShouldSkipUpdate())
             {
                 return;
@@ -88,7 +88,7 @@ namespace AutoJungle
             CastSpells();
         }
 
-        private static void CastHihPrioritySpells()
+        private static void CastHighPrioritySpells()
         {
             var target = _GameInfo.Target;
             switch (ObjectManager.Player.ChampionName)
@@ -658,7 +658,8 @@ namespace AutoJungle
                     {
                         tempstate = State.Defending;
                     }
-                    else if (_GameInfo.GameState == State.Grouping || _GameInfo.GameState == State.Pushing)
+                    else if (_GameInfo.GameState != State.Grouping && _GameInfo.GameState != State.Retreat &&
+                             _GameInfo.GameState != State.Jungling)
                     {
                         tempstate = State.Pushing;
                     }
@@ -726,7 +727,7 @@ namespace AutoJungle
             }
             var indanger = ((Helpers.GetHealth(true, pos) +
                              ((player.Distance(pos) < GameInfo.ChampionRange) ? 0 : player.Health)) * 1.3f <
-                            Helpers.GetHealth(false, pos) && pos.CountEnemiesInRange(GameInfo.ChampionRange) > 0 &&
+                            Helpers.GetHealth(false, pos) && pos.CountEnemiesInRange(GameInfo.ChampionRange) > 1 &&
                             Helpers.AlliesThere(pos, 500) == 0) ||
                            player.HealthPercent < menu.Item("HealtToBack").GetValue<Slider>().Value;
             if (indanger || _GameInfo.AttackedByTurret)
@@ -794,7 +795,7 @@ namespace AutoJungle
                         CheckLaneClear(s)))
             {
                 var aMinis = Helpers.getAllyMobs(vector, GameInfo.ChampionRange);
-                if (Helpers.AlliesThere(vector) > vector.CountEnemiesInRange(1300) && aMinis.Count > 1)
+                if (aMinis.Count > 1)
                 {
                     var eMinis =
                         Helpers.getMobs(vector, GameInfo.ChampionRange)
@@ -837,8 +838,7 @@ namespace AutoJungle
                 {
                     continue;
                 }
-                if (vector.CountAlliesInRange(GameInfo.ChampionRange) + 1 >
-                    vector.CountEnemiesInRange(GameInfo.ChampionRange) && eMinis.Count > 3)
+                if (eMinis.Count > 3)
                 {
                     var temp = eMinis.OrderByDescending(m => Helpers.getMobs(m.Position, 300).Count).FirstOrDefault();
                     if (temp != null)
