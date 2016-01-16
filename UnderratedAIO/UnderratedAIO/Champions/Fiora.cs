@@ -115,6 +115,29 @@ namespace UnderratedAIO.Champions
                 default:
                     break;
             }
+            var data = Program.IncDamages.GetAllyData(player.NetworkId);
+            if (data != null && W.IsReady())
+            {
+                Obj_AI_Hero enemy = TargetSelector.GetTarget(W.Range, TargetSelector.DamageType.Physical);
+                if ((config.Item("usew", true).GetValue<bool>() &&
+                     orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && enemy != null &&
+                     data.DamageTaken >= enemy.GetAutoAttackDamage(player) - 5) ||
+                    (config.Item("usewDangerous", true).GetValue<bool>() && data.DamageTaken > player.Health * 0.1f))
+                {
+                    MinionManager.FarmLocation bestPositionW =
+                        W.GetLineFarmLocation(
+                            MinionManager.GetMinions(
+                                ObjectManager.Player.ServerPosition, W.Range, MinionTypes.All, MinionTeam.NotAlly));
+                    if (enemy != null)
+                    {
+                        W.Cast(enemy, config.Item("packets").GetValue<bool>());
+                    }
+                    else if (bestPositionW.MinionsHit > 0)
+                    {
+                        W.Cast(bestPositionW.Position, config.Item("packets").GetValue<bool>());
+                    }
+                }
+            }
         }
 
         private void ClearList()
@@ -143,7 +166,6 @@ namespace UnderratedAIO.Champions
                 !Orbwalking.CanAttack())
             {
                 E.Cast(config.Item("packets").GetValue<bool>());
-                Orbwalking.ResetAutoAttackTimer();
             }
             if (unit.IsMe && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
                 (config.Item("RapidAttack", true).GetValue<KeyBind>().Active || rapid) && !Orbwalking.CanAttack() &&
@@ -154,7 +176,6 @@ namespace UnderratedAIO.Champions
                 if (pos.IsValid())
                 {
                     Q.Cast(pos, config.Item("packets").GetValue<bool>());
-                    Orbwalking.ResetAutoAttackTimer();
                 }
                 else
                 {
@@ -180,7 +201,6 @@ namespace UnderratedAIO.Champions
                      (player.HealthPercent < 75 && config.Item("user", true).GetValue<bool>())))
                 {
                     R.CastOnUnit(target, config.Item("packets").GetValue<bool>());
-                    Orbwalking.ResetAutoAttackTimer();
                 }
             }
         }
@@ -218,9 +238,10 @@ namespace UnderratedAIO.Champions
             }
             var closestPassive = GetClosestPassivePosition(target);
             if (closestPassive.IsValid() && config.Item("MoveToVitals", true).GetValue<bool>() &&
-                Orbwalking.CanMove(100) && Game.CursorPos.Distance(target.Position) < 350)
+                Orbwalking.CanMove(300) && !Orbwalking.CanAttack() && Game.CursorPos.Distance(target.Position) < 350 &&
+                !player.IsWindingUp)
             {
-                //orbwalker.SetMovement(false);
+                orbwalker.SetMovement(false);
                 player.IssueOrder(
                     GameObjectOrder.MoveTo,
                     target.Position.Extend(closestPassive, Math.Max(player.BoundingRadius + target.BoundingRadius, 100)));
@@ -232,7 +253,7 @@ namespace UnderratedAIO.Champions
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useq", true).GetValue<bool>() && Q.IsReady() && Orbwalking.CanMove(100) &&
                 config.Item("useqMin", true).GetValue<Slider>().Value <= player.Distance(target) &&
-                (closestPassive.IsValid() || (target.HealthPercent < 30)))
+                (closestPassive.IsValid() || (target.HealthPercent < 30)) && !player.IsWindingUp)
             {
                 var pos = GetQpoint(target, closestPassive);
                 if (pos.IsValid())
@@ -281,24 +302,11 @@ namespace UnderratedAIO.Champions
             {
                 hero = targetW;
             }
-            if (target != null &&
-                (!hero.HasBuff("fiorarmark") || (hero.HasBuff("fiorarmark") && player.HealthPercent < 50)) &&
-                (W.IsReady() && target.IsMe &&
-                 (Orbwalking.IsAutoAttack(spellName) || CombatHelper.IsAutoattack(spellName)) &&
-                 ((config.Item("usew", true).GetValue<bool>() && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo &&
-                   hero is Obj_AI_Hero &&
-                   ((config.Item("usewDangerous", true).GetValue<bool>() &&
-                     target.GetAutoAttackDamage(player, true) > player.Health * 0.1f) ||
-                    !config.Item("usewDangerous", true).GetValue<bool>())) ||
-                  config.Item("autoW", true).GetValue<bool>()) &&
-                 !(hero is Obj_AI_Turret || hero.Name == "OdinNeutralGuardian") && player.Distance(hero) < 700))
+            if (hero.IsMe)
             {
-                var perc = config.Item("minmanaP", true).GetValue<Slider>().Value / 100f;
-                if (player.Mana > player.MaxMana * perc && hero.TotalAttackDamage > 50 &&
-                    ((player.UnderTurret(true) && orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) ||
-                     !player.UnderTurret(true)))
+                if (args.SData.Name == "FioraE")
                 {
-                    W.Cast(hero, config.Item("packets").GetValue<bool>());
+                    Orbwalking.ResetAutoAttackTimer();
                 }
             }
             if (config.Item("usewCC", true).GetValue<bool>())
