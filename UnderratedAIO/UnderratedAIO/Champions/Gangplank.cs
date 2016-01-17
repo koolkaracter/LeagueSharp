@@ -243,7 +243,7 @@ namespace UnderratedAIO.Champions
                                 HeroManager.Enemies.Count(
                                     e =>
                                         e.IsValidTarget() &&
-                                        Prediction.GetPrediction(e, 0.5f).UnitPosition.Distance(o.Position) <
+                                        Prediction.GetPrediction(e, 0.1f).UnitPosition.Distance(o.Position) <
                                         BarrelExplosionRange) > 0);
 
                 if (barrel != null)
