@@ -239,12 +239,13 @@ namespace UnderratedAIO.Champions
                             o =>
                                 o.IsValid && !o.IsDead && o.Distance(player) < Q.Range &&
                                 o.SkinName == "GangplankBarrel" && o.GetBuff("gangplankebarrellife").Caster.IsMe &&
-                                KillableBarrel(o) && o.CountEnemiesInRange(BarrelExplosionRange - 50) > 0 &&
-                                HeroManager.Enemies.Count(
-                                    e =>
-                                        e.IsValidTarget() &&
-                                        Prediction.GetPrediction(e, 0.1f).UnitPosition.Distance(o.Position) <
-                                        BarrelExplosionRange) > 0);
+                                KillableBarrel(o) &&
+                                (o.CountEnemiesInRange(BarrelExplosionRange - 50) > 0 ||
+                                 HeroManager.Enemies.Count(
+                                     e =>
+                                         e.IsValidTarget() &&
+                                         Prediction.GetPrediction(e, 0.1f).UnitPosition.Distance(o.Position) <
+                                         BarrelExplosionRange - 20) > 0));
 
                 if (barrel != null)
                 {
