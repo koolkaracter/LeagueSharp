@@ -83,9 +83,9 @@ namespace UnderratedAIO.Champions
         private void InitEzreal()
         {
             Q = new Spell(SpellSlot.Q, 1150);
-            Q.SetSkillshot(0.5f, 60f, 2000f, true, SkillshotType.SkillshotLine);
+            Q.SetSkillshot(0.25f, 60f, 2000f, true, SkillshotType.SkillshotLine);
             W = new Spell(SpellSlot.W, 1000);
-            W.SetSkillshot(0.5f, 80f, 1600f, false, SkillshotType.SkillshotLine);
+            W.SetSkillshot(0.25f, 80f, 1600f, false, SkillshotType.SkillshotLine);
             E = new Spell(SpellSlot.E, 450);
             R = new Spell(SpellSlot.R, 2000);
             R.SetSkillshot(1.2f, 160f, 2000f, false, SkillshotType.SkillshotLine);
