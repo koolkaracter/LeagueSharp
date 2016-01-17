@@ -172,7 +172,7 @@ namespace UnderratedAIO.Champions
                                 o.Distance(player) < Orbwalking.GetRealAutoAttackRange(player))
                         .OrderBy(o => o.Distance(player))
                         .FirstOrDefault();
-                if (blob != null && Orbwalking.CanMove(100))
+                if (blob != null && Orbwalking.CanMove(300) && !Orbwalking.CanAttack() && !player.IsWindingUp)
                 {
                     orbwalker.SetMovement(false);
                     player.IssueOrder(GameObjectOrder.MoveTo, blob.Position);
