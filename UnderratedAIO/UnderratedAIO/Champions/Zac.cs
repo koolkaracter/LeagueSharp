@@ -105,11 +105,6 @@ namespace UnderratedAIO.Champions
         private void Harass()
         {
             Obj_AI_Hero target = TargetSelector.GetTarget(Q.Range, TargetSelector.DamageType.Magical);
-            float perc = config.Item("minmanaH", true).GetValue<Slider>().Value / 100f;
-            if (player.Mana < player.MaxMana * perc || target == null)
-            {
-                return;
-            }
             if (config.Item("useqH", true).GetValue<bool>() && Q.CanCast(target))
             {
                 Q.CastIfHitchanceEquals(target, HitChance.Medium, config.Item("packets").GetValue<bool>());
@@ -125,11 +120,6 @@ namespace UnderratedAIO.Champions
 
         private void Clear()
         {
-            float perc = config.Item("minmana", true).GetValue<Slider>().Value / 100f;
-            if (player.Mana < player.MaxMana * perc)
-            {
-                return;
-            }
             var target = Jungle.GetNearest(player.Position, GetTargetRange());
             if (config.Item("useqLC", true).GetValue<bool>() && Q.IsReady() && !E.IsCharging)
             {
@@ -448,7 +438,6 @@ namespace UnderratedAIO.Champions
             Menu menuH = new Menu("Harass ", "Hsettings");
             menuH.AddItem(new MenuItem("useqH", "Use Q", true)).SetValue(true);
             menuH.AddItem(new MenuItem("usewH", "Use W", true)).SetValue(true);
-            menuH.AddItem(new MenuItem("minmanaH", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuH);
             // LaneClear Settings
             Menu menuLC = new Menu("LaneClear ", "Lcsettings");
@@ -459,7 +448,6 @@ namespace UnderratedAIO.Champions
             menuLC.AddItem(new MenuItem("useeLC", "Use E", true)).SetValue(true);
             menuLC.AddItem(new MenuItem("eMinHit", "   E min hit", true)).SetValue(new Slider(3, 1, 6));
             menuLC.AddItem(new MenuItem("collectBlobs", "Collect nearby blobs", true)).SetValue(true);
-            menuLC.AddItem(new MenuItem("minmana", "Keep X% mana", true)).SetValue(new Slider(1, 1, 100));
             config.AddSubMenu(menuLC);
             Menu menuM = new Menu("Misc ", "Msettings");
             menuM.AddItem(new MenuItem("Interrupt", "Cast R to interrupt spells", true)).SetValue(true);
