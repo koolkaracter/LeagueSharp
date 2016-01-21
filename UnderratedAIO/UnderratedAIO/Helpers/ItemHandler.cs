@@ -38,6 +38,8 @@ namespace UnderratedAIO.Helpers
         public static Items.Item Dervish = new Items.Item(3137, 0);
         public static Items.Item Zhonya = new Items.Item(3157, 0);
         public static Items.Item Wooglet = new Items.Item(3090, 0);
+        public static Items.Item Seraph = new Items.Item(3040, 0);
+        public static Items.Item SeraphDom = new Items.Item(3048, 0);
 
         public static bool QssUsed, useHydra = false;
         public static float MuramanaTime;
@@ -172,12 +174,51 @@ namespace UnderratedAIO.Helpers
             if (Items.HasItem(frost.Id) && Items.CanUseItem(frost.Id) && target != null &&
                 config.Item("frost").GetValue<bool>())
             {
-                if (player.Distance(target) < frost.Range &&
-                    (config.Item("frostmin").GetValue<Slider>().Value <= target.CountEnemiesInRange(225f) &&
-                     ((target.Health / target.MaxHealth * 100f) < 40 && config.Item("frostlow").GetValue<bool>() ||
-                      !config.Item("frostlow").GetValue<bool>())))
+                if ((config.Item("frostmin").GetValue<Slider>().Value <= player.CountEnemiesInRange(2000) ||
+                     target.HealthPercent < 40) &&
+                    (target.HealthPercent < 40 && config.Item("frostlow").GetValue<bool>() ||
+                     !config.Item("frostlow").GetValue<bool>()))
                 {
                     frost.Cast(target);
+                }
+            }
+
+            if (config.Item("Zhonya").GetValue<bool>())
+            {
+                if ((config.Item("Zhonyadmg").GetValue<Slider>().Value / 100f * player.Health <=
+                     Program.IncDamages.GetAllyData(player.NetworkId).DamageTaken ||
+                     Program.IncDamages.GetAllyData(player.NetworkId).DamageTaken > player.Health) ||
+                    (Danger() && player.HealthPercent < 30))
+                {
+                    if (Items.HasItem(Zhonya.Id) && Items.CanUseItem(Zhonya.Id))
+                    {
+                        Zhonya.Cast();
+                        return;
+                    }
+                    if (Items.HasItem(Wooglet.Id) && Items.CanUseItem(Wooglet.Id))
+                    {
+                        Wooglet.Cast();
+                        return;
+                    }
+                }
+            }
+
+            if (config.Item("Seraph").GetValue<bool>())
+            {
+                if (((config.Item("SeraphdmgHP").GetValue<Slider>().Value / 100f * player.Health <=
+                      Program.IncDamages.GetAllyData(player.NetworkId).DamageTaken ||
+                      Program.IncDamages.GetAllyData(player.NetworkId).DamageTaken > player.Health) ||
+                     (config.Item("SeraphdmgSh").GetValue<Slider>().Value / 100f * (150 + player.Mana * 0.2f) <=
+                      Program.IncDamages.GetAllyData(player.NetworkId).DamageTaken)) || Danger())
+                {
+                    if (Items.HasItem(Seraph.Id) && Items.CanUseItem(Seraph.Id))
+                    {
+                        Seraph.Cast();
+                    }
+                    if (Items.HasItem(SeraphDom.Id) && Items.CanUseItem(SeraphDom.Id))
+                    {
+                        SeraphDom.Cast();
+                    }
                 }
             }
             if (Items.HasItem(solari.Id) && Items.CanUseItem(solari.Id) && config.Item("solari").GetValue<bool>())
@@ -187,7 +228,9 @@ namespace UnderratedAIO.Helpers
                     ObjectManager.Get<Obj_AI_Hero>()
                         .FirstOrDefault(
                             h => h.IsAlly && !h.IsDead && solari.IsInRange(h) && CombatHelper.CheckCriticalBuffs(h)) !=
-                    null)
+                    null ||
+                    (Program.IncDamages.IncomingDamagesAlly.Any(
+                        a => a.Hero.HealthPercent < 50 && (a.DamageTaken > 150 || a.DamageTaken > a.Hero.Health))))
                 {
                     solari.Cast();
                 }
@@ -195,7 +238,8 @@ namespace UnderratedAIO.Helpers
             if (Items.HasItem(mountain.Id) && Items.CanUseItem(mountain.Id) && config.Item("mountain").GetValue<bool>())
             {
                 if (config.Item("castonme").GetValue<bool>() &&
-                    (player.Health / player.MaxHealth * 100f) < config.Item("mountainmin").GetValue<Slider>().Value &&
+                    ((player.Health / player.MaxHealth * 100f) < config.Item("mountainmin").GetValue<Slider>().Value ||
+                     Program.IncDamages.GetAllyData(player.NetworkId).DamageTaken > player.Health) &&
                     (player.CountEnemiesInRange(700f) > 0 || CombatHelper.CheckCriticalBuffs(player)))
                 {
                     mountain.Cast(player);
@@ -207,7 +251,8 @@ namespace UnderratedAIO.Helpers
                             h =>
                                 h.IsAlly && !h.IsMe && !h.IsDead && player.Distance(h) < mountain.Range &&
                                 config.Item("mountainpriority" + h.ChampionName).GetValue<Slider>().Value > 0 &&
-                                (h.Health / h.MaxHealth * 100f) < config.Item("mountainmin").GetValue<Slider>().Value);
+                                ((h.Health / h.MaxHealth * 100f) < config.Item("mountainmin").GetValue<Slider>().Value ||
+                                 Program.IncDamages.GetAllyData(h.NetworkId).DamageTaken > h.Health));
                 if (targ != null)
                 {
                     var finaltarg =
@@ -227,6 +272,14 @@ namespace UnderratedAIO.Helpers
             {
                 UseCleanse(config, cleanseSpell);
             }
+        }
+
+        private static bool Danger()
+        {
+            return
+                player.Buffs.Any(
+                    b => CombatHelper.GetBuffTime(b) < 1f && CombatHelper.dotsHighDmg.Any(a => a == b.Name)) &&
+                player.PhysicalShield < 100;
         }
 
         public static bool IsHeRunAway(Obj_AI_Hero target)
@@ -320,8 +373,19 @@ namespace UnderratedAIO.Helpers
             Menu menuFrost = new Menu("Frost Queen's Claim ", "Frost");
             menuFrost.AddItem(new MenuItem("frost", "Enabled")).SetValue(true);
             menuFrost.AddItem(new MenuItem("frostlow", "Use on low HP")).SetValue(true);
-            menuFrost.AddItem(new MenuItem("frostmin", "Min enemy")).SetValue(new Slider(2, 1, 6));
+            menuFrost.AddItem(new MenuItem("frostmin", "Min enemy")).SetValue(new Slider(2, 1, 2));
             menuI.AddSubMenu(menuFrost);
+
+            Menu menuZhonya = new Menu("Zhonya's Hourglass ", "Zhonya");
+            menuZhonya.AddItem(new MenuItem("Zhonya", "Enabled")).SetValue(true);
+            menuZhonya.AddItem(new MenuItem("Zhonyadmg", "Damage in health %")).SetValue(new Slider(100, 0, 100));
+            menuI.AddSubMenu(menuZhonya);
+
+            Menu menuSeraph = new Menu("Seraph's Embrace ", "Seraph");
+            menuSeraph.AddItem(new MenuItem("Seraph", "Enabled")).SetValue(true);
+            menuSeraph.AddItem(new MenuItem("SeraphdmgHP", "Damage in health %")).SetValue(new Slider(100, 0, 100));
+            menuSeraph.AddItem(new MenuItem("SeraphdmgSh", "Damage in shield %")).SetValue(new Slider(60, 0, 100));
+            menuI.AddSubMenu(menuSeraph);
 
             Menu menuMountain = new Menu("Face of the Mountain ", "Mountain");
             menuMountain.AddItem(new MenuItem("mountain", "Enabled")).SetValue(true);
@@ -545,9 +609,6 @@ namespace UnderratedAIO.Helpers
                             CastQSS(delay, Item);
                             break;
                         case "skarnerimpale":
-                            CastQSS(delay, Item);
-                            break;
-                        case "poppydiplomaticimmunity":
                             CastQSS(delay, Item);
                             break;
                     }
