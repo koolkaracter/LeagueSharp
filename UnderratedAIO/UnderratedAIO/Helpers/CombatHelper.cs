@@ -13,7 +13,7 @@ namespace UnderratedAIO.Helpers
     {
         public static Obj_AI_Hero player = ObjectManager.Player;
 
-        private static List<string> dotsHighDmg =
+        public static List<string> dotsHighDmg =
             new List<string>(
                 new string[]
                 {
@@ -21,7 +21,7 @@ namespace UnderratedAIO.Helpers
                     "VladimirHemoplague"
                 });
 
-        private static List<string> dotsMedDmg =
+        public static List<string> dotsMedDmg =
             new List<string>(
                 new string[]
                 {
@@ -30,7 +30,7 @@ namespace UnderratedAIO.Helpers
                     "fizzmarinerdoombomb"
                 });
 
-        private static List<string> dotsSmallDmg =
+        public static List<string> dotsSmallDmg =
             new List<string>(
                 new string[]
                 { "deadlyvenom", "toxicshotparticle", "MordekaiserChildrenOfTheGrave", "dariushemo", "brandablaze" });
