@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using Color = System.Drawing.Color;
 using LeagueSharp;
@@ -24,6 +26,7 @@ namespace UnderratedAIO.Champions
         public const int BarrelConnectionRange = 660;
         public List<Barrel> savedBarrels = new List<Barrel>();
         public double[] Rwave = new double[] { 50, 70, 90 };
+        public double[] EDamage = new double[] { 60, 90, 120, 150, 180 };
 
         public Gangplank()
         {
@@ -395,7 +398,7 @@ namespace UnderratedAIO.Champions
 
         private void Combo()
         {
-            Obj_AI_Hero target = TargetSelector.GetTarget(
+            var target = TargetSelector.GetTarget(
                 E.Range, TargetSelector.DamageType.Physical, true, HeroManager.Enemies.Where(h => h.IsInvulnerable));
             if (target == null)
             {
@@ -404,7 +407,7 @@ namespace UnderratedAIO.Champions
             var ignitedmg = (float) player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite);
             bool hasIgnite = player.Spellbook.CanUseSpell(player.GetSpellSlot("SummonerDot")) == SpellState.Ready;
             if (config.Item("useIgnite", true).GetValue<bool>() &&
-                ignitedmg > HealthPrediction.GetHealthPrediction(target, 700) && hasIgnite &&
+                ignitedmg > target.Health - Program.IncDamages.GetEnemyData(target.NetworkId).DamageTaken && hasIgnite &&
                 !CombatHelper.CheckCriticalBuffs(target) && !Q.IsReady() && !justQ)
             {
                 player.Spellbook.CastSpell(player.GetSpellSlot("SummonerDot"), target);
@@ -790,6 +793,23 @@ namespace UnderratedAIO.Champions
                     }
                 }
             }
+            if (config.Item("drawWcd", true).GetValue<bool>())
+            {
+                foreach (var barrelData in savedBarrels)
+                {
+                    float time =
+                        Math.Min(
+                            System.Environment.TickCount - barrelData.time -
+                            barrelData.barrel.Health * getEActivationDelay() * 1000f, 0) / 1000f;
+                    if (time < 0)
+                    {
+                        Drawing.DrawText(
+                            barrelData.barrel.HPBarPosition.X - time.ToString().Length * 5 + 40,
+                            barrelData.barrel.HPBarPosition.Y - 20, Color.DarkOrange,
+                            string.Format("{0:0.00}", time).Replace("-", ""));
+                    }
+                }
+            }
         }
 
         public void drawText(int mode, string result)
@@ -907,10 +927,11 @@ namespace UnderratedAIO.Champions
             Menu menuD = new Menu("Drawings ", "dsettings");
             menuD.AddItem(new MenuItem("drawqq", "Draw Q range", true))
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawW", "Draw W", true)).SetValue(true);
             menuD.AddItem(new MenuItem("drawee", "Draw E range", true))
                 .SetValue(new Circle(false, Color.FromArgb(180, 100, 146, 166)));
+            menuD.AddItem(new MenuItem("drawWcd", "Draw E countdown", true)).SetValue(true);
             menuD.AddItem(new MenuItem("drawcombo", "Draw combo damage", true)).SetValue(true);
-            menuD.AddItem(new MenuItem("drawW", "Draw W", true)).SetValue(true);
             menuD.AddItem(new MenuItem("drawEQ", "Draw EQ to cursor", true)).SetValue(true);
             menuD.AddItem(new MenuItem("drawKillableSL", "Show killable targets with R", true))
                 .SetValue(new StringList(new[] { "OFF", "Above HUD", "Under GP" }, 1));
