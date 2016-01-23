@@ -115,8 +115,8 @@ namespace UnderratedAIO.Helpers
         /// </summary>
         private static readonly string[] AttackResets =
         {
-            "dariusnoxiantacticsonh", "fioraflurry", "garenq",
-            "gravesmove", "hecarimrapidslash", "jaxempowertwo", "jaycehypercharge", "leonashieldofdaybreak", "luciane",
+            "dariusnoxiantacticsonh", "garenq", "gravesmove",
+            "hecarimrapidslash", "jaxempowertwo", "jaycehypercharge", "leonashieldofdaybreak", "luciane",
             "monkeykingdoubleattack", "mordekaisermaceofspades", "nasusq", "nautiluspiercinggaze", "netherblade",
             "gangplankqwrapper", "poppypassiveattack", "powerfist", "renektonpreexecute", "rengarq",
             "shyvanadoubleattack", "sivirw", "takedown", "talonnoxiandiplomacy", "trundletrollsmash", "vaynetumble",
@@ -1483,8 +1483,7 @@ namespace UnderratedAIO.Helpers
                                 .Where(
                                     minion =>
                                         minion.IsValidTarget() && InAutoAttackRange(minion) &&
-                                        (_config.Item("AttackWards").GetValue<bool>() ||
-                                         !MinionManager.IsWard(minion.CharData.BaseSkinName.ToLower())) &&
+                                        (_config.Item("AttackWards").GetValue<bool>() || !MinionManager.IsWard(minion)) &&
                                         (_config.Item("AttackPetsnTraps").GetValue<bool>() &&
                                          minion.CharData.BaseSkinName != "jarvanivstandard" ||
                                          MinionManager.IsMinion(minion, _config.Item("AttackWards").GetValue<bool>())) &&
