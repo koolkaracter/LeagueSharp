@@ -65,7 +65,7 @@ namespace AutoJungle.Data
                 if (target != null)
                 {
                     if (smite.CanCast(target) && smiteReady && player.Distance(target.Position) <= smite.Range &&
-                        target.Health > Helpers.GetComboDMG(player, target)*0.7f &&
+                        target.Health > Helpers.GetComboDMG(player, target) * 0.7f &&
                         player.Distance(target) < Orbwalking.GetRealAutoAttackRange(target) &&
                         Program._GameInfo.SmiteableMob == null)
                     {

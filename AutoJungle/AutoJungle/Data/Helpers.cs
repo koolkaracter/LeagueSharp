@@ -410,7 +410,7 @@ namespace AutoJungle.Data
                     .FirstOrDefault(
                         t =>
                             t.IsValidTarget() && Program.player.Distance(t) < GameInfo.ChampionRange &&
-                            getAllyMobs(t.Position, 1100).Count > 1);
+                            getAllyMobs(t.Position, 1000).Count > 1);
             if (turret != null)
             {
                 return turret;

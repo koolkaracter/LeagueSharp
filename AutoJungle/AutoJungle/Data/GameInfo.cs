@@ -35,6 +35,7 @@ namespace AutoJungle
         public IEnumerable<Vector3> EnemyStructures = new List<Vector3>();
         public Vector3 ClosestWardPos = Vector3.Zero;
         public const int ChampionRange = 1300;
+        public bool GroupWithoutTarget;
 
         public GameInfo()
         {

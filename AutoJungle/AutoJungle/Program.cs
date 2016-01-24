@@ -61,12 +61,18 @@ namespace AutoJungle
             CheckCamp();
             if (Debug)
             {
-                Console.WriteLine("Items: ");
+                /* Console.WriteLine("Items: ");
                 foreach (var i in player.InventoryItems)
                 {
                     Console.WriteLine("\t Name: {0}, ID: {1}({2})", i.IData.TranslatedDisplayName, i.Id, (int) i.Id);
-                }
+                }*/
                 _GameInfo.Show();
+                /*
+                foreach (var v in _GameInfo.MonsterList)
+                {
+                    Console.WriteLine(
+                        v.name + ": " + v.IsAlive() + " Next: " + ((Environment.TickCount - v.TimeAtDead) / 1000));
+                }*/
             }
             //Shopping
             if (Shopping())
@@ -167,15 +173,22 @@ namespace AutoJungle
 
         private static void CheckCamp()
         {
+            var nextMob =
+                _GameInfo.MonsterList.OrderBy(m => m.Index).FirstOrDefault(m => m.Index == _GameInfo.CurrentMonster);
+            if (nextMob != null && !nextMob.IsAlive())
+            {
+                //Console.WriteLine(nextMob.name + " skipped: " + (Environment.TickCount - nextMob.TimeAtDead / 1000f));
+                _GameInfo.CurrentMonster++;
+                _GameInfo.MoveTo = nextMob.Position;
+                nextMob =
+                    _GameInfo.MonsterList.OrderBy(m => m.Index).FirstOrDefault(m => m.Index == _GameInfo.CurrentMonster);
+            }
             if (_GameInfo.GameState == State.Positioning)
             {
                 if (Helpers.GetRealDistance(player, _GameInfo.MoveTo) < 500 && _GameInfo.MinionsAround == 0 &&
                     player.Level > 1)
                 {
                     _GameInfo.CurrentMonster++;
-                    var nextMob =
-                        _GameInfo.MonsterList.OrderBy(m => m.Index)
-                            .FirstOrDefault(m => m.Index == _GameInfo.CurrentMonster);
                     if (nextMob != null)
                     {
                         _GameInfo.MoveTo = nextMob.Position;
@@ -197,6 +210,7 @@ namespace AutoJungle
 
         private static void SetGameInfo()
         {
+            _GameInfo.GroupWithoutTarget = false;
             ResetDamageTakenTimer();
             AutoLevel.Enable();
             _GameInfo.WaitOnFountain = WaitOnFountain();
@@ -251,7 +265,9 @@ namespace AutoJungle
             }
             if ((_GameInfo.ShouldRecall && !player.IsRecalling() && !player.InFountain()) &&
                 (_GameInfo.GameState == State.Positioning ||
-                 (_GameInfo.GameState == State.Retreat && _GameInfo.afk > 15)))
+                 (_GameInfo.GameState == State.Retreat &&
+                  (_GameInfo.afk > 15 ||
+                   ObjectManager.Get<Obj_AI_Base>().Count(o => o.IsEnemy && o.Distance(player) < 2000) == 0))))
             {
                 if (player.Distance(_GameInfo.SpawnPoint) > 6000)
                 {
@@ -541,7 +557,7 @@ namespace AutoJungle
                     }
                 }
             }
-            if (Jungle.SmiteReady() && player.Level >= 9 &&
+            if ((Jungle.SmiteReady() || (player.Level >= 14 && player.HealthPercent > 80)) && player.Level >= 9 &&
                 player.Distance(Camps.Dragon.Position) < GameInfo.ChampionRange)
             {
                 var drake = Helpers.GetNearest(player.Position, GameInfo.ChampionRange);
@@ -586,7 +602,7 @@ namespace AutoJungle
                         HeroManager.Allies.Where(a => !a.IsDead && a.Distance(possibleTarget) < 2000)
                             .OrderBy(a => a.Distance(possibleTarget))
                             .FirstOrDefault();
-                    var hp = possibleTarget.Health - myDmg * menu.Item("GankFrequency").GetValue<Slider>().Value / 100;
+                    var hp = possibleTarget.Health - myDmg * menu.Item("GankFrequency").GetValue<Slider>().Value / 100f;
                     if (ally != null)
                     {
                         hp -= Helpers.GetComboDMG(ally, possibleTarget) *
@@ -649,7 +665,7 @@ namespace AutoJungle
             }
             if (tempstate == State.Null && player.Level >= 6 && CheckForGrouping())
             {
-                if (_GameInfo.MoveTo.Distance(player.Position) < GameInfo.ChampionRange)
+                if (_GameInfo.MoveTo.Distance(player.Position) <= GameInfo.ChampionRange)
                 {
                     if (
                         ObjectManager.Get<Obj_AI_Turret>()
@@ -664,7 +680,8 @@ namespace AutoJungle
                         tempstate = State.Pushing;
                     }
                 }
-                if (_GameInfo.MoveTo.Distance(player.Position) > GameInfo.ChampionRange &&
+                if (tempstate == State.Null &&
+                    (_GameInfo.MoveTo.Distance(player.Position) > GameInfo.ChampionRange || _GameInfo.GroupWithoutTarget) &&
                     (_GameInfo.GameState == State.Positioning || _GameInfo.GameState == State.Grouping))
                 {
                     tempstate = State.Grouping;
@@ -693,7 +710,7 @@ namespace AutoJungle
             {
                 return tempstate;
             }
-            else if (Environment.TickCount - GameStateChanging > 2000)
+            else if (Environment.TickCount - GameStateChanging > 1300)
             {
                 GameStateChanging = Environment.TickCount;
                 return tempstate;
@@ -763,6 +780,7 @@ namespace AutoJungle
                 Helpers.CheckPath(player.GetPath(ally.Position)))
             {
                 _GameInfo.MoveTo = ally.Position.Extend(player.Position, 200);
+                _GameInfo.GroupWithoutTarget = true;
                 if (Debug)
                 {
                     Console.WriteLine("CheckForGrouping() - Checking grouping allies");
@@ -879,6 +897,11 @@ namespace AutoJungle
                     Helpers.getMobs(objAiBase.Position, 1000).Count == 0)
                 {
                     _GameInfo.MoveTo = objAiBase.Position.Extend(_GameInfo.SpawnPoint, 100);
+                    _GameInfo.GroupWithoutTarget = true;
+                    if (Debug)
+                    {
+                        Console.WriteLine("CheckForGrouping() - follow minis");
+                    }
                     return true;
                 }
             }
@@ -899,6 +922,10 @@ namespace AutoJungle
                                 Helpers.CheckPath(player.GetPath(miniwave.Position))))
                 {
                     _GameInfo.MoveTo = miniwave.Position.Extend(player.Position, 200);
+                    if (Debug)
+                    {
+                        Console.WriteLine("CheckForGrouping() - Checking free enemy minionwavess");
+                    }
                     return true;
                 }
             }
@@ -1237,6 +1264,23 @@ namespace AutoJungle
             Drawing.OnDraw += Drawing_OnDraw;
             Obj_AI_Base.OnNewPath += Obj_AI_Base_OnNewPath;
             Game.OnEnd += Game_OnEnd;
+            Obj_AI_Base.OnDelete += Obj_AI_Base_OnDelete;
+        }
+
+        private static void Obj_AI_Base_OnDelete(GameObject sender, EventArgs args)
+        {
+            if (sender.Position.Distance(player.Position) < 600)
+            {
+                var closest = _GameInfo.MonsterList.FirstOrDefault(m => m.Position.Distance(sender.Position) < 600);
+                if (closest != null && _GameInfo.GameState == State.Jungling &&
+                    Helpers.getMobs(sender.Position, 600).Where(m => !m.IsDead).Count() == 0)
+                {
+                    if (Environment.TickCount - closest.TimeAtDead > closest.RespawnTime)
+                    {
+                        closest.TimeAtDead = Environment.TickCount;
+                    }
+                }
+            }
         }
 
         private static void Game_OnEnd(GameEndEventArgs args)
@@ -1260,7 +1304,7 @@ namespace AutoJungle
             menuD.AddItem(new MenuItem("State", "Show GameState")).SetValue(false);
             menu.AddSubMenu(menuD);
             Menu menuJ = new Menu("Jungle settings", "jsettings");
-            menuJ.AddItem(new MenuItem("HealtToBack", "Recall on HP(%)").SetValue(new Slider(30, 0, 100)));
+            menuJ.AddItem(new MenuItem("HealtToBack", "Recall on HP(%)").SetValue(new Slider(35, 0, 100)));
             menuJ.AddItem(new MenuItem("UseTrinket", "Use Trinket")).SetValue(true);
             menu.AddSubMenu(menuJ);
             Menu menuG = new Menu("Gank settings", "gsettings");
